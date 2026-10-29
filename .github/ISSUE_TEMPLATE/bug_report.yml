@@ -1,0 +1,40 @@
+name: 不具合の報告
+description: 動きがおかしい、エラーが出る、データや登録が壊れたなど
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        報告ありがとうございます。辞書や学習の中身、トークン、個人名を含むパスは書かないか、伏せてください。
+  - type: textarea
+    id: what
+    attributes:
+      label: 起きたこと
+      description: 何をしたときに、何が起きたか
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待していた動き
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 再現の手順
+      placeholder: |
+        1. vmeltype install v1.4.0
+        2. vmeltype use v1.4.0
+        3. ...
+  - type: input
+    id: environment
+    attributes:
+      label: 使った環境
+      placeholder: 例 Windows 11 x64、vMeltype 0.1.0、Meltype v1.4.0 の通常版
+  - type: textarea
+    id: output
+    attributes:
+      label: 出力
+      description: "`vmeltype status --json` や `vmeltype doctor` の出力、エラーの文言など"
+      render: text
