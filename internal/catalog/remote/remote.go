@@ -289,3 +289,56 @@ func sleep(ctx context.Context, d time.Duration) error {
 		return nil
 	}
 }
+
+// ErrTooLarge は、配布物が公式一覧に書かれたサイズより大きかったことを表す。
+var ErrTooLarge = errors.New("配布物が公式一覧のサイズより大きいので、取得を止めました")
+
+// Download は、配布物を w へ書き、書いたバイト数を返す。配布物は匿名で取れるので、認証情報は送らない。
+// 書きかけの w へは試し直せないので、失敗したら呼び出し側が作業用のファイルごと捨てる。
+func (c *Client) Download(ctx context.Context, downloadURL string, maxBytes int64, w io.Writer) (int64, error) {
+	if err := c.checkDownloadURL(downloadURL); err != nil {
+		return 0, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, nil)
+	if err != nil {
+		return 0, err
+	}
+	req.Header.Set("User-Agent", c.UserAgent)
+	resp, err := c.HTTP.Do(req)
+	if err != nil {
+		if ctx.Err() != nil {
+			return 0, ctx.Err()
+		}
+		return 0, fmt.Errorf("配布物を取得できませんでした: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return 0, fmt.Errorf("配布物を取得できませんでした (%s)", resp.Status)
+	}
+	n, err := io.Copy(w, io.LimitReader(resp.Body, maxBytes+1))
+	if err != nil {
+		if ctx.Err() != nil {
+			return n, ctx.Err()
+		}
+		return n, fmt.Errorf("配布物の取得が途中で失敗しました: %w", err)
+	}
+	if n > maxBytes {
+		return n, ErrTooLarge
+	}
+	return n, nil
+}
+
+// checkDownloadURL は、配布物の URL が HTTPS か、API と同じ場所 (試験用のサーバー) であることを確かめる。
+func (c *Client) checkDownloadURL(downloadURL string) error {
+	u, err := url.Parse(downloadURL)
+	if err != nil {
+		return fmt.Errorf("配布物の URL を読めません: %w", err)
+	}
+	if u.Scheme == "https" {
+		return nil
+	}
+	if base, err := url.Parse(c.BaseURL); err == nil && u.Scheme == base.Scheme && u.Host == base.Host {
+		return nil
+	}
+	return fmt.Errorf("配布物の URL が HTTPS ではないので取得しません: %s", downloadURL)
+}
