@@ -47,13 +47,13 @@ type commandSpec struct {
 
 func commandSpecs(env *Env) []commandSpec {
 	return []commandSpec{
-		{use: "current", aliases: []string{"c"}, short: "有効な Meltype の版を表示する", flags: []commonFlag{flagJSON}},
+		{use: "current", aliases: []string{"c"}, short: "有効な Meltype の版を表示する。通信しない", flags: []commonFlag{flagJSON}, run: runCurrent(env)},
 		{use: "list", aliases: []string{"ls"}, short: "保持版を表示する。通信しない", flags: []commonFlag{flagJSON}, run: runList(env)},
 		{use: "status", short: "要求、配置、登録、稼働、データ先、未完了の処理を表示する", flags: []commonFlag{flagJSON}},
 		{use: "fetch", short: "公式のリリースの情報だけを取得して保存する。配布物は取得しない", flags: []commonFlag{flagJSON}, run: runFetch(env)},
 		{use: "releases", aliases: []string{"rel"}, short: "公式のリリースの一覧を取得して表示する", long: releasesLong, flags: []commonFlag{flagAll, flagOffline, flagJSON}, setup: setupReleasesFlags, run: runReleases(env)},
 		{use: "install [tag]", aliases: []string{"i"}, short: "版を取得、検証して保持する。有効な版は変えない", long: installLong, args: maxArgs(1), flags: append([]commonFlag{flagOffline}, change...), setup: setupInstallFlags, run: runInstall(env)},
-		{use: "use [tag]", aliases: []string{"u"}, short: "保持版を有効にする。通信しない", args: maxArgs(1), flags: append([]commonFlag{flagForce}, change...)},
+		{use: "use [tag]", aliases: []string{"u"}, short: "保持版を有効にする。通信しない", long: useLong, args: maxArgs(1), flags: append([]commonFlag{flagForce}, change...), setup: setupUseFlags, run: runUse(env)},
 		{use: "apply", short: "保存済みの対象を適用、修復する。通信しない", flags: append([]commonFlag{flagForce}, change...)},
 		{use: "uninstall <tag>", aliases: []string{"un"}, short: "有効でない保持版を削除する", args: exactArgs(1), flags: change},
 		{use: "check", short: "新しい版があるかを確かめる。適用しない", flags: []commonFlag{flagJSON}},

@@ -14,6 +14,7 @@ import (
 	"github.com/otnc/vmeltype/internal/assets"
 	"github.com/otnc/vmeltype/internal/catalog/remote"
 	"github.com/otnc/vmeltype/internal/cli"
+	"github.com/otnc/vmeltype/internal/osproc"
 	"github.com/otnc/vmeltype/internal/rootdir"
 )
 
@@ -41,6 +42,7 @@ func main() {
 		HTTPClient:   &http.Client{Timeout: 30 * time.Second},
 		GitHubAPIURL: remote.DefaultBaseURL,
 		Platform:     assets.Platform{OS: runtime.GOOS, Arch: runtime.GOARCH},
+		RunningUnder: osproc.RunningUnder,
 	}
 	code := cli.RunContext(ctx, os.Args[1:], env)
 	stop()
