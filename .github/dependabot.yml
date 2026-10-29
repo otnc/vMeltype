@@ -1,0 +1,48 @@
+# 依存の更新の PR を毎週作る。自動ではマージしないので、変更点を読んでからマージする
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '10:00'
+      timezone: Asia/Tokyo
+    # 公開から 3 日たっていない版は取り込まない
+    cooldown:
+      default-days: 3
+    commit-message:
+      prefix: chore
+      include: scope
+    labels: [dependencies]
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '10:00'
+      timezone: Asia/Tokyo
+    cooldown:
+      default-days: 3
+    commit-message:
+      prefix: chore
+      include: scope
+    labels: [dependencies]
+    groups:
+      commitlint:
+        patterns: ['*']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '10:00'
+      timezone: Asia/Tokyo
+    cooldown:
+      default-days: 3
+    commit-message:
+      prefix: chore
+      include: scope
+    labels: [dependencies]
