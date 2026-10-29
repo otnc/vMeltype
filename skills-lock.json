@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "skills": {
+    "code-review": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/code-review/SKILL.md",
+      "computedHash": "57cfd4ceb011f05e58a1a4f4cad3b2e03419d371f8990f4bcb32ff0d435a039f"
+    },
+    "codebase-design": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/codebase-design/SKILL.md",
+      "computedHash": "b2888e4f4e8c0af3bfd557575a64b905c44e6248c3101d72077816882b3a92b9"
+    },
+    "diagnosing-bugs": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/diagnosing-bugs/SKILL.md",
+      "computedHash": "ede7254edbd22fcab97a0941511f7d440d8f9a249348fea97c50987ad5501674"
+    },
+    "fix-unnatural-line-breaks": {
+      "source": "otnc/skills_fix-unnatural-line-breaks",
+      "sourceType": "github",
+      "skillPath": "skills/fix-unnatural-line-breaks/SKILL.md",
+      "computedHash": "f968f49f5b784d9bd6517434b7a7ed630473642c13bbd78b40cc07a609668325"
+    },
+    "hush-fix": {
+      "source": "ro80t/hush",
+      "sourceType": "github",
+      "skillPath": "skills/hush-fix/SKILL.md",
+      "computedHash": "c4fa82fdf1b5f3dfa38130c3ffd1b989af8d69e453ced9dd9a58da5d27286a51"
+    },
+    "hush-review": {
+      "source": "ro80t/hush",
+      "sourceType": "github",
+      "skillPath": "skills/hush-review/SKILL.md",
+      "computedHash": "bfe62505e9a31b5b69bf864bed945ae8ef02b9542f555854977a78b17b9ab035"
+    },
+    "natural-japanese": {
+      "source": "coji/natural-japanese",
+      "sourceType": "github",
+      "skillPath": "skills/natural-japanese/SKILL.md",
+      "computedHash": "9e8f063bb21017858a56047962fada4c007f9a166c349acbc88b15e6131a870d"
+    },
+    "stop-ai-slop-jp": {
+      "source": "iKora128/stop-ai-slop-jp",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "4165359286fda94f6d21888bce8286af3c13c7ddb2c162ecb7c311840ef5eeca"
+    },
+    "tdd": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/tdd/SKILL.md",
+      "computedHash": "daf55026f456af104a72fa43247f7bcec89e5127316dc5b1b8d675d6a9d8ce94"
+    },
+    "test-driven-development": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "skillPath": "skills/test-driven-development/SKILL.md",
+      "computedHash": "3cfe4ebb6fa7288f668d87880d279c8e48f7a92b63415e296857060f5ce22e05"
+    }
+  }
+}

@@ -1,0 +1,23 @@
+name: 作業
+description: 開発の作業 (機能の実装、調査、整備など)
+labels: [task]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: やること
+      description: 終わったときに何ができるようになっているか
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: 完了の条件
+      placeholder: |
+        - [ ] ...
+        - [ ] テストを足した
+  - type: textarea
+    id: notes
+    attributes:
+      label: 補足
+      description: 関係する Issue、参考の資料、決まっていないことなど

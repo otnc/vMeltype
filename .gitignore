@@ -1,0 +1,34 @@
+# ビルドの出力
+/bin/
+/dist/
+*.exe
+*.test
+*.out
+
+# テストの出力
+coverage.*
+
+# 公開しない資料と、各自の手元の指示
+.private/
+CLAUDE.local.md
+AGENTS.local.md
+
+# AI エージェントの手元の設定。公開するのは .agents/skills だけ
+.claude/
+.agent/
+.agents/*
+!.agents/skills/
+
+# エディタと OS
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# ログ
+*.log
+
+# 依存
+node_modules/

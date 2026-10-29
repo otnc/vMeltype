@@ -1,0 +1,7 @@
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.zip binary
+
+# スキルは作業の道具で、このアプリのコードではないので、GitHub の言語の割合に含めない
+.agents/skills/** linguist-vendored

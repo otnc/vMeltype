@@ -1,0 +1,21 @@
+{
+  "name": "vmeltype-repo-tools",
+  "private": true,
+  "description": "リポジトリの運用の道具",
+  "type": "module",
+  "packageManager": "pnpm@12.15.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "prepare": "simple-git-hooks"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
+    "simple-git-hooks": "^2.14.0"
+  },
+  "simple-git-hooks": {
+    "commit-msg": "pnpm exec commitlint --edit \"$1\""
+  }
+}
