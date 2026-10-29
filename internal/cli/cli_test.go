@@ -14,8 +14,12 @@ type result struct {
 
 func execute(t *testing.T, args ...string) result {
 	t.Helper()
+	return executeIn(t, t.TempDir(), args...)
+}
+
+func executeIn(t *testing.T, root string, args ...string) result {
+	t.Helper()
 	var stdout, stderr bytes.Buffer
-	root := t.TempDir()
 	code := Run(args, Env{In: strings.NewReader(""), Out: &stdout, Err: &stderr, Version: "1.2.3", DefaultRoot: func() (string, error) { return root, nil }})
 	return result{code: code, stdout: stdout.String(), stderr: stderr.String()}
 }
@@ -116,8 +120,9 @@ func TestShortOptionsMatchLongOptions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(strings.Join(tt.command, " ")+" の "+tt.short+" は "+tt.long+" と同じ", func(t *testing.T) {
-			viaShort := execute(t, append(tt.command, tt.short)...)
-			viaLong := execute(t, append(tt.command, tt.long)...)
+			root := t.TempDir()
+			viaShort := executeIn(t, root, append(tt.command, tt.short)...)
+			viaLong := executeIn(t, root, append(tt.command, tt.long)...)
 
 			if viaShort.code == ExitUsage || viaShort != viaLong {
 				t.Errorf("短縮形と長い名前で結果が異なる\n短縮形: %+v\n長い名前: %+v", viaShort, viaLong)

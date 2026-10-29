@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"slices"
 	"time"
+
+	"github.com/otnc/vmeltype/internal/privatefs"
 )
 
 // Repository は、管理する本家のリポジトリ。
@@ -115,7 +117,7 @@ func Load(root string) (*Catalog, error) {
 // 途中で失敗しても、前の完全な一覧が残る。
 func Save(root string, c *Catalog) error {
 	dir := filepath.Dir(catalogPath(root))
-	if err := os.MkdirAll(dir, 0o700); err != nil {
+	if err := privatefs.MkdirAll(dir); err != nil {
 		return fmt.Errorf("公式一覧の保存先を作れませんでした: %w", err)
 	}
 	saved := *c
