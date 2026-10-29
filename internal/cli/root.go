@@ -31,6 +31,8 @@ type Env struct {
 	GitHubAPIURL string
 	// Platform は、配布物を選ぶときのこの端末の OS と CPU。
 	Platform assets.Platform
+	// RunningUnder は、ディレクトリの下の実行ファイルから動いているプロセスを返す。
+	RunningUnder func(dir string) ([]string, error)
 }
 
 const usageTemplate = `使い方:{{if .Runnable}}

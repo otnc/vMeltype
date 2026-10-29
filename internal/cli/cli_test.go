@@ -132,7 +132,7 @@ func TestShortOptionsMatchLongOptions(t *testing.T) {
 }
 
 func TestUnimplementedCommandsFailWithoutChangingAnything(t *testing.T) {
-	got := execute(t, "use", "v1.4.0", "-y")
+	got := execute(t, "apply", "-y")
 
 	if got.code != ExitError {
 		t.Errorf("code = %d, want %d", got.code, ExitError)
