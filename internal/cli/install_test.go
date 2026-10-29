@@ -70,14 +70,18 @@ func newFakeUpstream(t *testing.T, releases ...fakeRelease) *fakeUpstream {
 			f.apiCalls.Add(1)
 			var body []map[string]any
 			for i, rel := range f.releases {
-				name := fmt.Sprintf("Meltype-%s-windows.zip", strings.TrimPrefix(rel.tag, "v"))
+				var assetList []map[string]any
+				for j, platform := range []string{"windows", "windows-portable"} {
+					name := fmt.Sprintf("Meltype-%s-%s.zip", strings.TrimPrefix(rel.tag, "v"), platform)
+					assetList = append(assetList, map[string]any{
+						"id": 100 + i*10 + j, "name": name, "size": len(rel.zip), "digest": rel.digest,
+						"browser_download_url": f.server.URL + "/download/" + rel.tag + "/" + name,
+					})
+				}
 				body = append(body, map[string]any{
 					"id": i + 1, "tag_name": rel.tag, "prerelease": rel.prerelease,
 					"published_at": time.Date(2026, 10, 1+i, 0, 0, 0, 0, time.UTC),
-					"assets": []map[string]any{{
-						"id": 100 + i, "name": name, "size": len(rel.zip), "digest": rel.digest,
-						"browser_download_url": f.server.URL + "/download/" + rel.tag + "/" + name,
-					}},
+					"assets":       assetList,
 				})
 			}
 			json.NewEncoder(w).Encode(body)
@@ -332,5 +336,25 @@ func TestInstallUnknownTag(t *testing.T) {
 
 	if got.code != ExitError || !strings.Contains(got.stderr, "v9.9.9") {
 		t.Errorf("code = %d, stderr = %s", got.code, got.stderr)
+	}
+}
+
+func TestInstallSelectsVariantByPortableFlag(t *testing.T) {
+	zipData := makeZip(t, map[string]string{"a": "b"})
+	upstream := newFakeUpstream(t, fakeRelease{tag: "v1.4.0", zip: zipData, digest: digestOf(zipData)})
+	root := t.TempDir()
+
+	standard := upstream.run(t, root, false, "", "install", "v1.4.0", "-y")
+	portable := upstream.run(t, root, false, "", "install", "v1.4.0", "--portable", "-y")
+
+	if standard.code != ExitOK || portable.code != ExitOK {
+		t.Fatalf("code = %d, %d\n%s%s", standard.code, portable.code, standard.stderr, portable.stderr)
+	}
+	ids := storedIDs(t, root)
+	if len(ids) != 2 || ids[0] == ids[1] {
+		t.Errorf("通常版と portable 版を別に保持していない: %v", ids)
+	}
+	if !strings.Contains(portable.stdout, "Meltype-1.4.0-windows-portable.zip") {
+		t.Errorf("--portable で portable 版の配布物を選んでいない:\n%s", portable.stdout)
 	}
 }

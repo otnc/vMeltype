@@ -17,6 +17,7 @@ import (
 
 const useLong = `保持版を有効にします。通信しません。保持していない版は、先に "vmeltype install <tag>" で取得します。
 
+portable 版は --portable を付けたときだけ対象にします。付けなければ通常版 (IME の登録を伴うもの) だけを探し、portable 版しか保持していなくても選びません。
 いまは Windows の portable 版だけに対応しています。portable 版は実行先 (管理ルートの portable\app) を固定し、版を切り替えるときはアプリのファイルだけを入れ替えます。隣の data と、vMeltype が置いていないファイルはそのまま引き継ぎます。
 同じ版が有効で配置も一致していれば何もしません。--force を付けると、一致していても入れ替えます。`
 
@@ -25,7 +26,8 @@ var errAppRunning = errors.New("実行先の Meltype が動いています。Mel
 
 func setupUseFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool("reinstall", false, "--force と同じ")
-	cmd.Flags().String("id", "", "同じタグの保持版が複数あるときに、保持 ID で選ぶ")
+	cmd.Flags().String("id", "", "保持 ID で保持版を選ぶ")
+	cmd.Flags().Bool("portable", false, "portable 版を対象にする。付けなければ通常版を対象にする")
 }
 
 func runUse(env *Env) func(*cobra.Command, []string) error {
@@ -43,7 +45,7 @@ func runUse(env *Env) func(*cobra.Command, []string) error {
 			return err
 		}
 		st := store.Store{Root: root}
-		target, err := resolveStored(st, args, id, env.Platform)
+		target, err := resolveStored(st, args, id, env.Platform, selectedVariant(cmd))
 		if err != nil {
 			return err
 		}
@@ -82,7 +84,7 @@ func switchVersion(cmd *cobra.Command, env *Env, root string, st store.Store, ta
 	yes, _ := flags.GetBool("yes")
 	asJSON, _ := flags.GetBool("json")
 	if target.Variant != string(assets.Portable) {
-		return fmt.Errorf("%s は通常版です。use はいまは portable 版だけに対応しています (\"vmeltype install %s --variant portable\" で取得できます)", target.ID, target.Tag)
+		return fmt.Errorf("%s は通常版です。use はいまは portable 版だけに対応しています。portable 版を使うなら --portable を付けてください", target.ID)
 	}
 
 	lock, err := lifecycle.AcquireLock(root)
@@ -218,7 +220,7 @@ func runUninstall(env *Env) func(*cobra.Command, []string) error {
 			return err
 		}
 		st := store.Store{Root: root}
-		target, err := resolveStored(st, args, id, env.Platform)
+		target, err := resolveStored(st, args, id, env.Platform, selectedVariant(cmd))
 		if err != nil {
 			return err
 		}
@@ -272,11 +274,13 @@ func runUninstall(env *Env) func(*cobra.Command, []string) error {
 }
 
 func setupUninstallFlags(cmd *cobra.Command) {
-	cmd.Flags().String("id", "", "同じタグの保持版が複数あるときに、保持 ID で選ぶ")
+	cmd.Flags().String("id", "", "保持 ID で保持版を選ぶ")
+	cmd.Flags().Bool("portable", false, "portable 版を対象にする。付けなければ通常版を対象にする")
 }
 
 // resolveStored は、タグか保持 ID から、この端末の保持版を 1 つに決める。保持版の manifest だけを使い、通信しない。
-func resolveStored(st store.Store, args []string, id string, platform assets.Platform) (store.Stored, error) {
+// variant の違う保持版は、同じタグでも対象にしない。portable 版は --portable で明示したときだけ扱うため。
+func resolveStored(st store.Store, args []string, id string, platform assets.Platform, variant assets.Variant) (store.Stored, error) {
 	if id != "" {
 		s, err := st.Get(id)
 		if err != nil {
@@ -284,6 +288,9 @@ func resolveStored(st store.Store, args []string, id string, platform assets.Pla
 		}
 		if len(args) > 0 && !sameTag(s.Tag, args[0]) {
 			return store.Stored{}, usageError{fmt.Errorf("--id %s のタグは %s で、%s ではありません", id, s.Tag, args[0])}
+		}
+		if s.Variant != string(variant) {
+			return store.Stored{}, usageError{fmt.Errorf("--id %s は %s で、--portable の指定と合いません", id, variantLabels[s.Variant])}
 		}
 		return s, nil
 	}
@@ -293,14 +300,17 @@ func resolveStored(st store.Store, args []string, id string, platform assets.Pla
 		return store.Stored{}, err
 	}
 	var exact, alternative []store.Stored
+	otherVariant := false
 	for _, s := range stored {
-		if s.OS != platform.OS || s.Arch != platform.Arch {
+		if s.OS != platform.OS || s.Arch != platform.Arch || !sameTag(s.Tag, args[0]) {
 			continue
 		}
 		switch {
+		case s.Variant != string(variant):
+			otherVariant = true
 		case s.Tag == args[0]:
 			exact = append(exact, s)
-		case sameTag(s.Tag, args[0]):
+		default:
 			alternative = append(alternative, s)
 		}
 	}
@@ -310,7 +320,16 @@ func resolveStored(st store.Store, args []string, id string, platform assets.Pla
 	}
 	switch len(candidates) {
 	case 0:
-		return store.Stored{}, fmt.Errorf("%s は保持していません。先に \"vmeltype install %s\" を実行してください", args[0], args[0])
+		switch {
+		case otherVariant && variant == assets.Standard:
+			return store.Stored{}, fmt.Errorf("%s の通常版は保持していません。portable 版を対象にするなら --portable を付けてください", args[0])
+		case otherVariant:
+			return store.Stored{}, fmt.Errorf("%s の portable 版は保持していません。通常版を対象にするなら --portable を外してください", args[0])
+		case variant == assets.Portable:
+			return store.Stored{}, fmt.Errorf("%s の portable 版は保持していません。先に \"vmeltype install %s --portable\" を実行してください", args[0], args[0])
+		default:
+			return store.Stored{}, fmt.Errorf("%s は保持していません。先に \"vmeltype install %s\" を実行してください", args[0], args[0])
+		}
 	case 1:
 		return candidates[0], nil
 	default:
