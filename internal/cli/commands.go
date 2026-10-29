@@ -62,12 +62,12 @@ func commandSpecs(env *Env) []commandSpec {
 		{use: "unpin", short: "版の固定を解除する", flags: []commonFlag{flagJSON}},
 		{use: "rollback", short: "直前に有効にした版へ戻す。データは戻さない", flags: change, run: runRollback(env)},
 		{use: "recover", short: "中断した変更を処理記録から復旧する", flags: change, run: runRecover(env)},
-		{use: "snapshot", short: "データの保存と復元", subs: []commandSpec{
-			{use: "create", short: "本家を止めてデータを保存する", flags: change},
-			{use: "list", short: "保存したスナップショットを表示する", flags: []commonFlag{flagJSON}},
-			{use: "inspect <id>", short: "スナップショットの範囲を表示する", args: exactArgs(1), flags: []commonFlag{flagJSON}},
-			{use: "verify <id>", short: "スナップショットの完全性を検査する", args: exactArgs(1), flags: []commonFlag{flagJSON}},
-			{use: "restore <id>", short: "いまのデータを退避してからスナップショットを復元する", args: exactArgs(1), flags: change},
+		{use: "snapshot", short: "データの保存と復元。通信しない", long: snapshotLong, subs: []commandSpec{
+			{use: "create", short: "Meltype が止まっていることを確かめてデータを保存する", flags: change, run: runSnapshotCreate(env)},
+			{use: "list", short: "保存したスナップショットを表示する", flags: []commonFlag{flagJSON}, run: runSnapshotList(env)},
+			{use: "inspect <id>", short: "スナップショットの範囲を表示する", args: exactArgs(1), flags: []commonFlag{flagJSON}, run: runSnapshotInspect(env)},
+			{use: "verify <id>", short: "スナップショットの中身を記録と照合する", args: exactArgs(1), flags: []commonFlag{flagJSON}, run: runSnapshotVerify(env)},
+			{use: "restore <id>", short: "いまのデータを保存してからスナップショットを復元する", args: exactArgs(1), flags: change, run: runSnapshotRestore(env)},
 		}},
 		{use: "doctor", short: "依存、権限、登録、データ先、復旧できるかを診断する", flags: []commonFlag{flagJSON}},
 		{use: "run", short: "有効な版の Meltype を起動する"},
