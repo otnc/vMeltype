@@ -93,7 +93,7 @@ func (c *Client) Fetch(ctx context.Context, repository string, previous *catalog
 		changed = true
 	}
 
-	now := c.Now()
+	now := c.Now().UTC()
 	fetchedAt := now
 	if !changed {
 		fetchedAt = previous.FetchedAt
