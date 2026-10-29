@@ -34,7 +34,7 @@ Windows で開発しているので、手順やスクリプトに POSIX シェ�
 ## 作業の進め方
 
 - 作業は GitHub の Issue に対応させる。Issue と PR の扱い方は [docs/agents/issue-tracker.md](docs/agents/issue-tracker.md) にある
-- main からブランチを切って作業し、PR にする。main に直接 push しない。許可なくマージせず、自動マージも有効にしない
+- main からブランチを切って作業し、PR にする
 - コミットメッセージとブランチ名は CONTRIBUTING.md の決まりに従う。commitlint が検査する
 - コミットは関心ごとに分ける。依存される層から順に、実装とそのテストを同じコミットにして積む。移動、整形、無関係な修正を混ぜない
 - 用語とコードの名前は [CONTEXT.md](CONTEXT.md) に合わせる。新しい用語を使うときは CONTEXT.md に足す
