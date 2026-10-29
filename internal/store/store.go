@@ -208,3 +208,23 @@ func (st *Staging) Commit(m Stored) error {
 func (st *Staging) Discard() error {
 	return os.RemoveAll(st.dir)
 }
+
+// Remove は、保持版を消す。先に . で始まる名前へ移してから消すので、途中で止まっても壊れた保持版として一覧に出ない。
+func (s Store) Remove(id string) error {
+	if _, err := s.Get(id); err != nil {
+		return err
+	}
+	removing, err := os.MkdirTemp(s.versionsDir(), ".removing-*")
+	if err != nil {
+		return err
+	}
+	target := filepath.Join(removing, id)
+	if err := os.Rename(s.Path(id), target); err != nil {
+		os.Remove(removing)
+		return fmt.Errorf("保持版を削除できませんでした: %w", err)
+	}
+	if err := os.RemoveAll(removing); err != nil {
+		return fmt.Errorf("保持版は一覧から外しましたが、ファイル (%s) を消しきれませんでした: %w", removing, err)
+	}
+	return nil
+}
