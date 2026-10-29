@@ -1,0 +1,6 @@
+# 公開から 3 日たっていない版は取り込まない (分単位)
+minimumReleaseAge: 4320
+
+# 依存のインストール時スクリプトは、ここで許可したものだけを動かす
+allowBuilds:
+  simple-git-hooks: true

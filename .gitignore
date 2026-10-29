@@ -29,3 +29,6 @@ Thumbs.db
 
 # ログ
 *.log
+
+# 依存
+node_modules/
