@@ -18,7 +18,7 @@ func interruptedUse(t *testing.T, phase string) *localEnv {
 	l := newLocalEnv(t)
 	l.storePortable(t, "v1.4.0", nil)
 	l.storePortable(t, "v1.3.0", nil)
-	if got := l.run(t, false, "", "use", "v1.4.0", "-y"); got.code != ExitOK {
+	if got := l.run(t, false, "", "use", "v1.4.0", "--portable", "-y"); got.code != ExitOK {
 		t.Fatal(got.stderr)
 	}
 	os.MkdirAll(filepath.Join(l.appDir(), "data"), 0o700)
@@ -117,7 +117,7 @@ func TestRecover(t *testing.T) {
 			if len(entries) != 1 {
 				t.Errorf("作業用や退避のディレクトリが残っている: %v", entries)
 			}
-			if next := l.run(t, false, "", "use", "v1.3.0", "-y"); next.code != ExitOK {
+			if next := l.run(t, false, "", "use", "v1.3.0", "--portable", "-y"); next.code != ExitOK {
 				t.Errorf("復旧のあとに use できない: %s", next.stderr)
 			}
 		})

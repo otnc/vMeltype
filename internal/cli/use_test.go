@@ -100,7 +100,7 @@ func TestUsePlacesPortableVersion(t *testing.T) {
 	l := newLocalEnv(t)
 	l.storePortable(t, "v1.4.0", nil)
 
-	got := l.run(t, false, "", "use", "1.4.0", "-y")
+	got := l.run(t, false, "", "use", "1.4.0", "--portable", "-y")
 
 	if got.code != ExitOK {
 		t.Fatalf("code = %d, stderr = %s", got.code, got.stderr)
@@ -118,12 +118,12 @@ func TestUseSwitchKeepsDataAndUnknownFiles(t *testing.T) {
 	l := newLocalEnv(t)
 	l.storePortable(t, "v1.4.0", map[string]string{"only-in-1.4.txt": "old"})
 	l.storePortable(t, "v1.3.0", nil)
-	l.run(t, false, "", "use", "v1.4.0", "-y")
+	l.run(t, false, "", "use", "v1.4.0", "--portable", "-y")
 	os.MkdirAll(filepath.Join(l.appDir(), "data"), 0o700)
 	os.WriteFile(filepath.Join(l.appDir(), "data", "userdict.txt"), []byte("辞書"), 0o600)
 	os.WriteFile(filepath.Join(l.appDir(), "memo.txt"), []byte("利用者のメモ"), 0o600)
 
-	got := l.run(t, false, "", "u", "v1.3.0", "-y")
+	got := l.run(t, false, "", "u", "v1.3.0", "--portable", "-y")
 
 	if got.code != ExitOK {
 		t.Fatalf("code = %d, stderr = %s", got.code, got.stderr)
@@ -155,24 +155,24 @@ func TestUseSwitchKeepsDataAndUnknownFiles(t *testing.T) {
 func TestUseSameVersion(t *testing.T) {
 	l := newLocalEnv(t)
 	l.storePortable(t, "v1.4.0", nil)
-	l.run(t, false, "", "use", "v1.4.0", "-y")
+	l.run(t, false, "", "use", "v1.4.0", "--portable", "-y")
 
 	t.Run("配置が一致していれば、確認せずに何もしない", func(t *testing.T) {
-		got := l.run(t, false, "", "use", "v1.4.0")
+		got := l.run(t, false, "", "use", "v1.4.0", "--portable")
 		if got.code != ExitOK || !strings.Contains(got.stdout, "既に") {
 			t.Errorf("code = %d\n%s%s", got.code, got.stdout, got.stderr)
 		}
 	})
 	t.Run("配置が壊れていれば入れ替える", func(t *testing.T) {
 		os.WriteFile(filepath.Join(l.appDir(), "Meltype.exe"), []byte("壊れた"), 0o600)
-		got := l.run(t, false, "", "use", "v1.4.0", "-y")
+		got := l.run(t, false, "", "use", "v1.4.0", "--portable", "-y")
 		if got.code != ExitOK || l.read(t, "Meltype.exe") != "exe v1.4.0" {
 			t.Errorf("code = %d, Meltype.exe = %q, stderr = %s", got.code, l.read(t, "Meltype.exe"), got.stderr)
 		}
 	})
 	t.Run("--force は一致していても入れ替える", func(t *testing.T) {
 		for _, flag := range []string{"--force", "-f", "--reinstall"} {
-			got := l.run(t, false, "", "use", "v1.4.0", flag, "-y")
+			got := l.run(t, false, "", "use", "v1.4.0", "--portable", flag, "-y")
 			if got.code != ExitOK || strings.Contains(got.stdout, "既に") {
 				t.Errorf("%s: code = %d\n%s%s", flag, got.code, got.stdout, got.stderr)
 			}
@@ -190,7 +190,7 @@ func TestUseStopsBeforeChanging(t *testing.T) {
 	}{
 		{
 			name:     "保持していない版は install を案内する",
-			args:     []string{"use", "v9.9.9", "-y"},
+			args:     []string{"use", "v9.9.9", "--portable", "-y"},
 			wantCode: ExitError,
 			wantText: "vmeltype install",
 		},
@@ -199,7 +199,7 @@ func TestUseStopsBeforeChanging(t *testing.T) {
 			prepare: func(t *testing.T, l *localEnv) {
 				l.running = []string{filepath.Join(l.appDir(), "Meltype.exe")}
 			},
-			args:     []string{"use", "v1.3.0", "-y"},
+			args:     []string{"use", "v1.3.0", "--portable", "-y"},
 			wantCode: ExitNeedsAction,
 			wantText: "終了",
 		},
@@ -209,7 +209,7 @@ func TestUseStopsBeforeChanging(t *testing.T) {
 				os.WriteFile(filepath.Join(l.appDir(), "new-file.txt"), []byte("利用者のもの"), 0o600)
 				l.storePortable(t, "v1.5.0", map[string]string{"new-file.txt": "版のもの"})
 			},
-			args:     []string{"use", "v1.5.0", "-y"},
+			args:     []string{"use", "v1.5.0", "--portable", "-y"},
 			wantCode: ExitError,
 			wantText: "new-file.txt",
 		},
@@ -219,7 +219,7 @@ func TestUseStopsBeforeChanging(t *testing.T) {
 				path := filepath.Join(store.Store{Root: l.root}.Path(store.ID("v1.3.0", "windows", "amd64", "portable")), "files", "Meltype.exe")
 				os.WriteFile(path, []byte("書き換えられた"), 0o600)
 			},
-			args:     []string{"use", "v1.3.0", "-y"},
+			args:     []string{"use", "v1.3.0", "--portable", "-y"},
 			wantCode: ExitError,
 			wantText: "--reinstall",
 		},
@@ -229,18 +229,18 @@ func TestUseStopsBeforeChanging(t *testing.T) {
 				os.MkdirAll(filepath.Join(l.root, "transactions"), 0o700)
 				os.WriteFile(filepath.Join(l.root, "transactions", "current.json"), []byte(`{"schemaVersion":1,"phase":"staged"}`), 0o600)
 			},
-			args:     []string{"use", "v1.3.0", "-y"},
+			args:     []string{"use", "v1.3.0", "--portable", "-y"},
 			wantCode: ExitNeedsAction,
 			wantText: "recover",
 		},
 		{
 			name:     "非 TTY で -y がなければ確認できずに止める",
-			args:     []string{"use", "v1.3.0"},
+			args:     []string{"use", "v1.3.0", "--portable"},
 			wantCode: ExitNeedsAction,
 		},
 		{
 			name:     "--dry-run は計画だけを表示する",
-			args:     []string{"use", "v1.3.0", "--dry-run"},
+			args:     []string{"use", "v1.3.0", "--portable", "--dry-run"},
 			wantCode: ExitOK,
 			wantText: "v1.3.0",
 		},
@@ -251,7 +251,13 @@ func TestUseStopsBeforeChanging(t *testing.T) {
 			},
 			args:     []string{"use", "v1.2.0", "-y"},
 			wantCode: ExitError,
-			wantText: "portable",
+			wantText: "通常版",
+		},
+		{
+			name:     "portable 版だけを保持していても、--portable がなければ選ばない",
+			args:     []string{"use", "v1.3.0", "-y"},
+			wantCode: ExitError,
+			wantText: "--portable",
 		},
 	}
 	for _, tt := range tests {
@@ -259,7 +265,7 @@ func TestUseStopsBeforeChanging(t *testing.T) {
 			l := newLocalEnv(t)
 			l.storePortable(t, "v1.4.0", nil)
 			l.storePortable(t, "v1.3.0", nil)
-			l.run(t, false, "", "use", "v1.4.0", "-y")
+			l.run(t, false, "", "use", "v1.4.0", "--portable", "-y")
 			if tt.prepare != nil {
 				tt.prepare(t, l)
 			}
@@ -279,20 +285,53 @@ func TestUseStopsBeforeChanging(t *testing.T) {
 	}
 }
 
-func TestUseAmbiguousTagRequiresID(t *testing.T) {
-	l := newLocalEnv(t)
-	l.storePortable(t, "v1.4.0", nil)
-	l.storeFiles(t, "v1.4.0", "standard", map[string]string{"Meltype.exe": "x"})
-
-	ambiguous := l.run(t, false, "", "use", "v1.4.0", "-y")
-	chosen := l.run(t, false, "", "use", "v1.4.0", "--id", "v1.4.0_windows-amd64_portable", "-y")
-
-	if ambiguous.code != ExitUsage || !strings.Contains(ambiguous.stderr, "--id") {
-		t.Errorf("code = %d, stderr = %s", ambiguous.code, ambiguous.stderr)
+func TestVariantSelectionWhenBothAreStored(t *testing.T) {
+	setup := func(t *testing.T) *localEnv {
+		l := newLocalEnv(t)
+		l.storePortable(t, "v1.4.0", nil)
+		l.storeFiles(t, "v1.4.0", "standard", map[string]string{"Meltype.exe": "x"})
+		return l
 	}
-	if chosen.code != ExitOK {
-		t.Errorf("--id で選べない: code = %d, stderr = %s", chosen.code, chosen.stderr)
+
+	t.Run("--portable がなければ通常版を対象にする", func(t *testing.T) {
+		got := setup(t).run(t, false, "", "use", "v1.4.0", "-y")
+		if !strings.Contains(got.stderr, "v1.4.0_windows-amd64_standard") {
+			t.Errorf("通常版を選んでいない: code = %d, stderr = %s", got.code, got.stderr)
+		}
+	})
+	t.Run("--portable で portable 版を対象にする", func(t *testing.T) {
+		got := setup(t).run(t, false, "", "use", "v1.4.0", "--portable", "-y")
+		if got.code != ExitOK {
+			t.Errorf("code = %d, stderr = %s", got.code, got.stderr)
+		}
+	})
+	t.Run("--id の variant と --portable が合わなければ止める", func(t *testing.T) {
+		got := setup(t).run(t, false, "", "use", "--id", "v1.4.0_windows-amd64_standard", "--portable", "-y")
+		if got.code != ExitUsage {
+			t.Errorf("code = %d, stderr = %s", got.code, got.stderr)
+		}
+	})
+	t.Run("uninstall も --portable がなければ通常版を削除する", func(t *testing.T) {
+		l := setup(t)
+		got := l.run(t, false, "", "uninstall", "v1.4.0", "-y")
+		stored := storedIDs(t, l.root)
+		if got.code != ExitOK || len(stored) != 1 || stored[0] != "v1.4.0_windows-amd64_portable" {
+			t.Errorf("code = %d, 残った保持版 = %v, stderr = %s", got.code, stored, got.stderr)
+		}
+	})
+}
+
+func storedIDs(t *testing.T, root string) []string {
+	t.Helper()
+	stored, _, err := store.Store{Root: root}.List()
+	if err != nil {
+		t.Fatal(err)
 	}
+	var ids []string
+	for _, s := range stored {
+		ids = append(ids, s.ID)
+	}
+	return ids
 }
 
 func TestCurrentWithoutActiveVersion(t *testing.T) {

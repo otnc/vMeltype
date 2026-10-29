@@ -14,8 +14,8 @@ func TestRollbackReturnsToPreviousVersion(t *testing.T) {
 	l := newLocalEnv(t)
 	l.storePortable(t, "v1.4.0", nil)
 	l.storePortable(t, "v1.3.0", nil)
-	l.run(t, false, "", "use", "v1.4.0", "-y")
-	l.run(t, false, "", "use", "v1.3.0", "-y")
+	l.run(t, false, "", "use", "v1.4.0", "--portable", "-y")
+	l.run(t, false, "", "use", "v1.3.0", "--portable", "-y")
 	os.MkdirAll(filepath.Join(l.appDir(), "data"), 0o700)
 	os.WriteFile(filepath.Join(l.appDir(), "data", "userdict.txt"), []byte("1.3.0 で足した語"), 0o600)
 
@@ -40,7 +40,7 @@ func TestRollbackReturnsToPreviousVersion(t *testing.T) {
 func TestRollbackWithoutPreviousVersion(t *testing.T) {
 	l := newLocalEnv(t)
 	l.storePortable(t, "v1.4.0", nil)
-	l.run(t, false, "", "use", "v1.4.0", "-y")
+	l.run(t, false, "", "use", "v1.4.0", "--portable", "-y")
 
 	got := l.run(t, false, "", "rollback", "-y")
 
@@ -54,7 +54,7 @@ func TestUninstall(t *testing.T) {
 		l := newLocalEnv(t)
 		l.storePortable(t, "v1.4.0", nil)
 		l.storePortable(t, "v1.3.0", nil)
-		l.run(t, false, "", "use", "v1.4.0", "-y")
+		l.run(t, false, "", "use", "v1.4.0", "--portable", "-y")
 		return l
 	}
 	isStored := func(l *localEnv, tag string) bool {
@@ -64,7 +64,7 @@ func TestUninstall(t *testing.T) {
 
 	t.Run("有効でない保持版を削除する", func(t *testing.T) {
 		l := setup(t)
-		got := l.run(t, false, "", "un", "v1.3.0", "-y")
+		got := l.run(t, false, "", "un", "v1.3.0", "--portable", "-y")
 		if got.code != ExitOK || isStored(l, "v1.3.0") {
 			t.Errorf("code = %d, stderr = %s", got.code, got.stderr)
 		}
@@ -77,35 +77,35 @@ func TestUninstall(t *testing.T) {
 	})
 	t.Run("有効版は削除しない", func(t *testing.T) {
 		l := setup(t)
-		got := l.run(t, false, "", "uninstall", "v1.4.0", "-y")
+		got := l.run(t, false, "", "uninstall", "v1.4.0", "--portable", "-y")
 		if got.code != ExitError || !isStored(l, "v1.4.0") || !strings.Contains(got.stderr, "有効") {
 			t.Errorf("code = %d, stderr = %s", got.code, got.stderr)
 		}
 	})
 	t.Run("空の Enter では中止する", func(t *testing.T) {
 		l := setup(t)
-		got := l.run(t, true, "\n", "uninstall", "v1.3.0")
+		got := l.run(t, true, "\n", "uninstall", "v1.3.0", "--portable")
 		if got.code != ExitCanceled || !isStored(l, "v1.3.0") || !strings.Contains(got.stderr, "[y/N]") {
 			t.Errorf("code = %d, stderr = %s", got.code, got.stderr)
 		}
 	})
 	t.Run("y で削除する", func(t *testing.T) {
 		l := setup(t)
-		got := l.run(t, true, "y\n", "uninstall", "v1.3.0")
+		got := l.run(t, true, "y\n", "uninstall", "v1.3.0", "--portable")
 		if got.code != ExitOK || isStored(l, "v1.3.0") {
 			t.Errorf("code = %d, stderr = %s", got.code, got.stderr)
 		}
 	})
 	t.Run("非 TTY で -y がなければ止まる", func(t *testing.T) {
 		l := setup(t)
-		got := l.run(t, false, "", "uninstall", "v1.3.0")
+		got := l.run(t, false, "", "uninstall", "v1.3.0", "--portable")
 		if got.code != ExitNeedsAction || !isStored(l, "v1.3.0") {
 			t.Errorf("code = %d, stderr = %s", got.code, got.stderr)
 		}
 	})
 	t.Run("保持していない版", func(t *testing.T) {
 		l := setup(t)
-		got := l.run(t, false, "", "uninstall", "v9.9.9", "-y")
+		got := l.run(t, false, "", "uninstall", "v9.9.9", "--portable", "-y")
 		if got.code != ExitError {
 			t.Errorf("code = %d, stderr = %s", got.code, got.stderr)
 		}

@@ -24,6 +24,7 @@ import (
 const installLong = `公式の配布物を取得し、GitHub が示す SHA-256 と照合してから展開し、保持版として置きます。有効な版は変えません。
 
 版は v1.4.0 のようなタグか、latest で指定します。latest は、解析できる SemVer が最大の正式版です。--pre を付けると、プレリリースも含めた最大になります。GitHub の Latest の表示とは異なることがあります。
+portable 版を取得するには --portable を付けます。付けなければ通常版を取得します。
 既に保持している版は、通信せずに終わります。取得し直すには --reinstall を付けます。`
 
 // 公式の ZIP は数十 MB なので、これを大きく超えるものは異常とみなす。
@@ -36,7 +37,7 @@ func setupInstallFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool("pre", false, "latest でプレリリースも候補にする")
 	cmd.Flags().Bool("reinstall", false, "保持済みでも取得し直して検証する")
 	cmd.Flags().Bool("allow-unverified", false, "期待値 (SHA-256) のない配布物を、未検証として保持する")
-	cmd.Flags().String("variant", string(assets.Standard), "standard (通常版) か portable")
+	cmd.Flags().Bool("portable", false, "portable 版を取得する。付けなければ通常版を取得する")
 }
 
 type installPlan struct {
@@ -60,11 +61,7 @@ func runInstall(env *Env) func(*cobra.Command, []string) error {
 		dryRun, _ := flags.GetBool("dry-run")
 		yes, _ := flags.GetBool("yes")
 		asJSON, _ := flags.GetBool("json")
-		variantName, _ := flags.GetString("variant")
-		variant := assets.Variant(variantName)
-		if variant != assets.Standard && variant != assets.Portable {
-			return usageError{fmt.Errorf("--variant は standard か portable です: %q", variantName)}
-		}
+		variant := selectedVariant(cmd)
 		if len(args) == 0 {
 			return usageError{errors.New("版を指定してください (例: vmeltype install v1.4.0、vmeltype install latest)")}
 		}
@@ -301,4 +298,12 @@ func newRemoteClient(env *Env) *remote.Client {
 		UserAgent: "vmeltype/" + env.Version,
 		Now:       env.Now,
 	}
+}
+
+// selectedVariant は、--portable の有無から対象の variant を返す。portable 版は明示したときだけ扱い、付けなければ通常版にする。
+func selectedVariant(cmd *cobra.Command) assets.Variant {
+	if portable, _ := cmd.Flags().GetBool("portable"); portable {
+		return assets.Portable
+	}
+	return assets.Standard
 }
