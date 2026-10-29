@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+
+	"github.com/otnc/vmeltype/internal/assets"
 )
 
 // Env は、コマンドが使う入出力と、外の世界への依存。テストで差し替えられるよう、ここからだけ受け取る。
@@ -27,6 +29,8 @@ type Env struct {
 	// HTTPClient と GitHubAPIURL は、公式一覧の取得など、通信するコマンドだけが使う。
 	HTTPClient   *http.Client
 	GitHubAPIURL string
+	// Platform は、配布物を選ぶときのこの端末の OS と CPU。
+	Platform assets.Platform
 }
 
 const usageTemplate = `使い方:{{if .Runnable}}

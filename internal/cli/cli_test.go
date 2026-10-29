@@ -107,8 +107,8 @@ func TestShortOptionsMatchLongOptions(t *testing.T) {
 		short   string
 		long    string
 	}{
-		{command: []string{"install", "v1.4.0"}, short: "-y", long: "--yes"},
-		{command: []string{"install", "v1.4.0"}, short: "-n", long: "--dry-run"},
+		{command: []string{"install", "v1.4.0", "--offline"}, short: "-y", long: "--yes"},
+		{command: []string{"install", "v1.4.0", "--offline"}, short: "-n", long: "--dry-run"},
 		{command: []string{"install", "v1.4.0"}, short: "-o", long: "--offline"},
 		{command: []string{"use", "v1.4.0"}, short: "-f", long: "--force"},
 		{command: []string{"apply"}, short: "-f", long: "--force"},

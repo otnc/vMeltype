@@ -12,7 +12,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/otnc/vmeltype/internal/catalog"
-	"github.com/otnc/vmeltype/internal/catalog/remote"
 )
 
 const releasesLong = `本家の GitHub Releases から公式のリリースの一覧を取得し、保存してから表示します。
@@ -130,14 +129,7 @@ func fetchCatalog(cmd *cobra.Command, env *Env, root string) (previous, fetched 
 		previous = nil
 	}
 
-	client := &remote.Client{
-		HTTP:      env.HTTPClient,
-		BaseURL:   env.GitHubAPIURL,
-		Token:     env.Getenv("VMELTYPE_GITHUB_TOKEN"),
-		UserAgent: "vmeltype/" + env.Version,
-		Now:       env.Now,
-	}
-	fetched, err = client.Fetch(cmd.Context(), catalog.Repository, previous)
+	fetched, err = newRemoteClient(env).Fetch(cmd.Context(), catalog.Repository, previous)
 	if err != nil {
 		if hasSaved {
 			return nil, nil, fmt.Errorf("公式一覧を取得できませんでした: %w\n保存済みの一覧は \"vmeltype releases --cached\" で表示できます", err)
