@@ -1,0 +1,7 @@
+# gitleaks の設定。既定のルールに、除外する場所だけを足す
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "外部から取り込んだ AI エージェント向けのスキル。説明のための偽のトークンを含む"
+paths = ['''^\.agents/skills/''']
