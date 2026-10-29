@@ -128,3 +128,24 @@ func TestIDIsSafeAsDirectoryName(t *testing.T) {
 		t.Errorf("ディレクトリ名に使えない ID: %q", got)
 	}
 }
+
+func TestRemove(t *testing.T) {
+	s := Store{Root: t.TempDir()}
+	commit(t, s, sample("v1.4.0"), "a")
+	commit(t, s, sample("v1.3.0"), "b")
+
+	if err := s.Remove(ID("v1.3.0", "windows", "amd64", "standard")); err != nil {
+		t.Fatal(err)
+	}
+
+	got, _, _ := s.List()
+	if len(got) != 1 || got[0].Tag != "v1.4.0" {
+		t.Errorf("指定した保持版だけを消していない: %+v", got)
+	}
+	if entries, _ := os.ReadDir(filepath.Join(s.Root, "versions")); len(entries) != 1 {
+		t.Errorf("削除の途中のディレクトリが残っている: %v", entries)
+	}
+	if err := s.Remove(ID("v9.9.9", "windows", "amd64", "standard")); !errors.Is(err, ErrNotStored) {
+		t.Errorf("保持していない版: err = %v", err)
+	}
+}
