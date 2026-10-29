@@ -334,7 +334,7 @@ func TestInstallUnknownTag(t *testing.T) {
 
 	got := upstream.run(t, t.TempDir(), false, "", "install", "v9.9.9", "-y")
 
-	if got.code != ExitError || !strings.Contains(got.stderr, "v9.9.9") {
+	if got.code != ExitError || !strings.Contains(got.stderr, "9.9.9") {
 		t.Errorf("code = %d, stderr = %s", got.code, got.stderr)
 	}
 }
@@ -357,4 +357,54 @@ func TestInstallSelectsVariantByPortableFlag(t *testing.T) {
 	if !strings.Contains(portable.stdout, "Meltype-1.4.0-windows-portable.zip") {
 		t.Errorf("--portable で portable 版の配布物を選んでいない:\n%s", portable.stdout)
 	}
+}
+
+func TestInstallVersionQuery(t *testing.T) {
+	var releases []fakeRelease
+	for _, rel := range []struct {
+		tag string
+		pre bool
+	}{{"v1.3.0", false}, {"v1.4.0", false}, {"v1.4.1-pre.1", true}, {"v1.4.1-pre.2", true}} {
+		data := makeZip(t, map[string]string{"a": rel.tag})
+		releases = append(releases, fakeRelease{tag: rel.tag, prerelease: rel.pre, zip: data, digest: digestOf(data)})
+	}
+	upstream := newFakeUpstream(t, releases...)
+
+	tests := []struct {
+		name string
+		args []string
+		want string
+	}{
+		{name: "版を省くと正式版の最新", args: []string{"install"}, want: "v1.4.0"},
+		{name: "v を省いた版", args: []string{"install", "1.3.0"}, want: "v1.3.0"},
+		{name: "範囲の指定で、その中の正式版の最新", args: []string{"install", "1.3"}, want: "v1.3.0"},
+		{name: "メジャーだけの指定", args: []string{"install", "1"}, want: "v1.4.0"},
+		{name: "--pre でプレリリースの最新", args: []string{"install", "--pre"}, want: "v1.4.1-pre.2"},
+		{name: "版と --pre で、その版のプレリリースの最新", args: []string{"install", "1.4.1", "--pre"}, want: "v1.4.1-pre.2"},
+		{name: "明示したプレリリース", args: []string{"install", "1.4.1-pre.1"}, want: "v1.4.1-pre.1"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			root := t.TempDir()
+
+			got := upstream.run(t, root, false, "", append(tt.args, "-y")...)
+
+			if tags := storedTags(t, root); got.code != ExitOK || len(tags) != 1 || tags[0] != tt.want {
+				t.Errorf("code = %d, tags = %v, want %s\n%s", got.code, tags, tt.want, got.stderr)
+			}
+		})
+	}
+
+	t.Run("合う版がなければ、指定の意味を示して止める", func(t *testing.T) {
+		got := upstream.run(t, t.TempDir(), false, "", "install", "2", "-y")
+		if got.code != ExitError || !strings.Contains(got.stderr, "2.x.x の正式版の最新") {
+			t.Errorf("code = %d, stderr = %s", got.code, got.stderr)
+		}
+	})
+	t.Run("解釈できない指定は引数の誤り", func(t *testing.T) {
+		got := upstream.run(t, t.TempDir(), false, "", "install", "1.x", "-y")
+		if got.code != ExitUsage {
+			t.Errorf("code = %d, stderr = %s", got.code, got.stderr)
+		}
+	})
 }

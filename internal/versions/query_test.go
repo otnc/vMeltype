@@ -152,3 +152,12 @@ func TestQueryDescribe(t *testing.T) {
 		}
 	}
 }
+
+func isPre(tag string) bool {
+	for _, r := range tag {
+		if r == '-' {
+			return true
+		}
+	}
+	return false
+}
