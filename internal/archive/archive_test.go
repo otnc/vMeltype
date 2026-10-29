@@ -86,6 +86,31 @@ func TestExtractZipWritesFilesAndRecordsHashes(t *testing.T) {
 	}
 }
 
+func TestExtractZipAcceptsBackslashSeparators(t *testing.T) {
+	// 公式の Windows の ZIP は、区切りに \ を使っている
+	archivePath := writeZip(t,
+		entry{name: `app\dotnet\`},
+		entry{name: `app\dotnet\host.dll`, body: "dll"},
+		entry{name: `app\meltype-ime.ps1`, body: "script"},
+	)
+	dest := filepath.Join(t.TempDir(), "out")
+
+	files, err := ExtractZip(archivePath, dest, defaultLimits)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if got, err := os.ReadFile(filepath.Join(dest, "app", "meltype-ime.ps1")); err != nil || string(got) != "script" {
+		t.Errorf(`\ を区切りとして展開していない: %q, %v`, got, err)
+	}
+	if got, err := os.ReadFile(filepath.Join(dest, "app", "dotnet", "host.dll")); err != nil || string(got) != "dll" {
+		t.Errorf(`末尾が \ の項目をディレクトリとして扱っていない: %q, %v`, got, err)
+	}
+	if len(files) != 2 || files[1].Path != "app/meltype-ime.ps1" {
+		t.Errorf("記録のパスを / 区切りにしていない: %+v", files)
+	}
+}
+
 func TestExtractZipRejectsUnsafeEntries(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -95,7 +120,8 @@ func TestExtractZipRejectsUnsafeEntries(t *testing.T) {
 		{name: "途中の親への脱出", entry: entry{name: "a/../../evil.txt", body: "x"}},
 		{name: "絶対パス", entry: entry{name: "/etc/evil", body: "x"}},
 		{name: "ドライブ付きのパス", entry: entry{name: "C:/evil.txt", body: "x"}},
-		{name: "バックスラッシュの区切り", entry: entry{name: `a\..\..\evil.txt`, body: "x"}},
+		{name: `\ の区切りでの親への脱出`, entry: entry{name: `a\..\..\evil.txt`, body: "x"}},
+		{name: `\ で始まる絶対パス`, entry: entry{name: `\evil.txt`, body: "x"}},
 		{name: "代替データストリーム", entry: entry{name: "a.txt:hidden", body: "x"}},
 		{name: "Windows の予約名", entry: entry{name: "dir/NUL.txt", body: "x"}},
 		{name: "Windows の予約名 (小文字)", entry: entry{name: "com1", body: "x"}},

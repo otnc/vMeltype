@@ -55,8 +55,9 @@ func ExtractZip(zipPath, dest string, limits Limits) ([]File, error) {
 	var files []File
 	var written int64
 	for _, f := range r.File {
-		target := filepath.Join(dest, filepath.FromSlash(path.Clean(f.Name)))
-		if f.FileInfo().IsDir() {
+		name := entryName(f)
+		target := filepath.Join(dest, filepath.FromSlash(name))
+		if isDirEntry(f) {
 			if err := privatefs.MkdirAll(target); err != nil {
 				return nil, err
 			}
@@ -70,7 +71,7 @@ func ExtractZip(zipPath, dest string, limits Limits) ([]File, error) {
 			return nil, err
 		}
 		written += n
-		file.Path = path.Clean(f.Name)
+		file.Path = name
 		files = append(files, file)
 	}
 	return files, nil
@@ -82,7 +83,7 @@ func validateEntries(entries []*zip.File, limits Limits) error {
 	}
 	seen := map[string]bool{}
 	for _, f := range entries {
-		if err := validateName(f.Name); err != nil {
+		if err := validateName(entryName(f)); err != nil {
 			return err
 		}
 		mode := f.Mode()
@@ -90,7 +91,7 @@ func validateEntries(entries []*zip.File, limits Limits) error {
 			return fmt.Errorf("%w: %q は通常のファイルでもディレクトリでもありません", ErrUnsafeArchive, f.Name)
 		}
 		// Windows と macOS の既定のファイルシステムは大文字と小文字を区別しないので、同じ場所への上書きになる
-		key := strings.ToLower(path.Clean(f.Name))
+		key := strings.ToLower(entryName(f))
 		if seen[key] {
 			return fmt.Errorf("%w: 大文字と小文字だけが違う名前が重なっています: %q", ErrUnsafeArchive, f.Name)
 		}
@@ -99,15 +100,19 @@ func validateEntries(entries []*zip.File, limits Limits) error {
 	return nil
 }
 
+// entryName は、項目の名前を / 区切りにそろえて返す。公式の Windows の ZIP は \ を区切りに使うため、
+// \ も区切りとみなしてから検査し、\ を使った親への脱出も見逃さないようにする。
+func entryName(f *zip.File) string {
+	return path.Clean(strings.ReplaceAll(f.Name, `\`, "/"))
+}
+
 func validateName(name string) error {
 	unsafe := func(reason string) error {
 		return fmt.Errorf("%w: %q は%s", ErrUnsafeArchive, name, reason)
 	}
 	switch {
-	case name == "":
+	case name == "" || name == ".":
 		return unsafe("空の名前です")
-	case strings.Contains(name, `\`):
-		return unsafe(" / 以外の区切りを含みます")
 	case strings.HasPrefix(name, "/"):
 		return unsafe("絶対パスです")
 	case strings.ContainsRune(name, 0):
@@ -175,4 +180,9 @@ func extractFile(f *zip.File, target string, remaining int64) (File, int64, erro
 		return File{}, 0, fmt.Errorf("%w: 展開した量が上限を超えました", ErrUnsafeArchive)
 	}
 	return File{Size: n, SHA256: hex.EncodeToString(hash.Sum(nil))}, n, nil
+}
+
+// isDirEntry は、項目がディレクトリかを返す。公式の Windows の ZIP は、ディレクトリの名前の末尾も \ にしている。
+func isDirEntry(f *zip.File) bool {
+	return f.FileInfo().IsDir() || strings.HasSuffix(f.Name, `\`)
 }
