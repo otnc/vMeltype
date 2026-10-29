@@ -14,7 +14,8 @@ vMeltype で使う用語と、コードで使う英語の名前の対応です�
 | タグ | `tag` | リリースを指す名前 (`v1.4.0` など)。解決したあとは、そのままの文字列 (exact tag) で保存する |
 | variant | `variant` | 通常版 (`standard`) と portable 版 (`portable`) の区別。portable 版は `--portable` で明示したときだけ扱う |
 | プラットフォーム | `platform` | OS と CPU の組。Go の GOOS と GOARCH で表す |
-| latest | `latest` | 区分の中で、解析できる SemVer が最大のリリース。GitHub の Latest の表示とは異なることがある |
+| 版の指定 | `versions.Query` | install と use の版の指定。先頭の v は省ける。省略 (または `latest`) で正式版の最新、`1` や `1.4` で範囲の中の正式版の最新、`1.4.0` でその正式版。`--pre` でプレリリースから最新。uninstall は 1 つの版 (`1.4.0`、`1.4.1-pre.1`) だけを受け付ける |
+| 最新 | `versions.Select` | 版の指定に合う中で、解析できる SemVer が最大のもの。GitHub の Latest の表示とは異なることがある |
 
 ## 保持と有効化
 

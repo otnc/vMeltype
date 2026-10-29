@@ -341,3 +341,66 @@ func TestCurrentWithoutActiveVersion(t *testing.T) {
 		t.Errorf("code = %d\n%s%s", got.code, got.stdout, got.stderr)
 	}
 }
+
+func TestUseVersionQuery(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+		want string
+	}{
+		{name: "版を省くと、保持している正式版の最新", args: []string{"use", "--portable"}, want: "exe v1.4.0"},
+		{name: "範囲の指定で、保持している中の正式版の最新", args: []string{"use", "1.3", "--portable"}, want: "exe v1.3.0"},
+		{name: "--pre で、保持しているプレリリースの最新", args: []string{"use", "--pre", "--portable"}, want: "exe v1.4.1-pre.1"},
+		{name: "v を省いた版", args: []string{"use", "1.3.0", "--portable"}, want: "exe v1.3.0"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := newLocalEnv(t)
+			for _, tag := range []string{"v1.3.0", "v1.4.0", "v1.4.1-pre.1"} {
+				l.storePortable(t, tag, nil)
+			}
+
+			got := l.run(t, false, "", append(tt.args, "-y")...)
+
+			if got.code != ExitOK || l.read(t, "Meltype.exe") != tt.want {
+				t.Errorf("code = %d, Meltype.exe = %q, want %q\n%s", got.code, l.read(t, "Meltype.exe"), tt.want, got.stderr)
+			}
+		})
+	}
+
+	t.Run("合う保持版がなければ、指定の意味と install を示す", func(t *testing.T) {
+		l := newLocalEnv(t)
+		l.storePortable(t, "v1.4.0", nil)
+		got := l.run(t, false, "", "use", "1.3", "--portable", "-y")
+		if got.code != ExitError || !strings.Contains(got.stderr, "1.3.x の正式版の最新") || !strings.Contains(got.stderr, "vmeltype install 1.3 --portable") {
+			t.Errorf("code = %d, stderr = %s", got.code, got.stderr)
+		}
+	})
+}
+
+func TestUninstallRequiresExactVersion(t *testing.T) {
+	for _, args := range [][]string{{"1.3"}, {"1"}, {"latest"}, {"1.3.0", "--pre"}} {
+		t.Run(strings.Join(args, " ")+" は引数の誤り", func(t *testing.T) {
+			l := newLocalEnv(t)
+			l.storePortable(t, "v1.3.0", nil)
+
+			got := l.run(t, false, "", append(append([]string{"uninstall"}, args...), "--portable", "-y")...)
+
+			if got.code != ExitUsage {
+				t.Errorf("code = %d, stderr = %s", got.code, got.stderr)
+			}
+			if len(storedTags(t, l.root)) != 1 {
+				t.Errorf("範囲の指定で保持版を削除した")
+			}
+		})
+	}
+
+	t.Run("v を省いた版で削除できる", func(t *testing.T) {
+		l := newLocalEnv(t)
+		l.storePortable(t, "v1.3.0", nil)
+		got := l.run(t, false, "", "uninstall", "1.3.0", "--portable", "-y")
+		if got.code != ExitOK || len(storedTags(t, l.root)) != 0 {
+			t.Errorf("code = %d, stderr = %s", got.code, got.stderr)
+		}
+	})
+}

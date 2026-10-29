@@ -23,7 +23,7 @@ import (
 
 const installLong = `公式の配布物を取得し、GitHub が示す SHA-256 と照合してから展開し、保持版として置きます。有効な版は変えません。
 
-版は v1.4.0 のようなタグか、latest で指定します。latest は、解析できる SemVer が最大の正式版です。--pre を付けると、プレリリースも含めた最大になります。GitHub の Latest の表示とは異なることがあります。
+版の先頭の v は省けます。版を省くと正式版の最新、1 や 1.4 のような範囲ではその中の正式版の最新、1.4.0 ではその正式版を選びます。--pre を付けると、正式版ではなくプレリリースから最新を選びます (例: 1.4.1 --pre)。1.4.1-pre.1 のようにプレリリースを直接指定することもできます。最新は SemVer で比べ、GitHub の Latest の表示とは異なることがあります。
 portable 版を取得するには --portable を付けます。付けなければ通常版を取得します。
 既に保持している版は、通信せずに終わります。取得し直すには --reinstall を付けます。`
 
@@ -34,7 +34,7 @@ var extractLimits = archive.Limits{MaxFiles: 50000, MaxTotalBytes: 4 << 30}
 const fallbackMaxDownloadBytes = 1 << 30
 
 func setupInstallFlags(cmd *cobra.Command) {
-	cmd.Flags().Bool("pre", false, "latest でプレリリースも候補にする")
+	cmd.Flags().Bool("pre", false, "正式版ではなく、プレリリースから最新を選ぶ")
 	cmd.Flags().Bool("reinstall", false, "保持済みでも取得し直して検証する")
 	cmd.Flags().Bool("allow-unverified", false, "期待値 (SHA-256) のない配布物を、未検証として保持する")
 	cmd.Flags().Bool("portable", false, "portable 版を取得する。付けなければ通常版を取得する")
@@ -62,10 +62,14 @@ func runInstall(env *Env) func(*cobra.Command, []string) error {
 		yes, _ := flags.GetBool("yes")
 		asJSON, _ := flags.GetBool("json")
 		variant := selectedVariant(cmd)
-		if len(args) == 0 {
-			return usageError{errors.New("版を指定してください (例: vmeltype install v1.4.0、vmeltype install latest)")}
+		input := ""
+		if len(args) > 0 {
+			input = args[0]
 		}
-		input := args[0]
+		query, err := versions.ParseQuery(input, pre)
+		if err != nil {
+			return usageError{err}
+		}
 
 		root, err := managementRoot(cmd, env)
 		if err != nil {
@@ -74,8 +78,8 @@ func runInstall(env *Env) func(*cobra.Command, []string) error {
 		st := store.Store{Root: root}
 		out := cmd.OutOrStdout()
 
-		// タグを直接指定したときは、公式一覧を待たずに保持済みかを確かめる
-		if input != "latest" && !reinstall {
+		// 1 つの版を指定したときは、公式一覧を待たずに保持済みかを確かめる
+		if query.IsExact() && !reinstall {
 			if s, ok := findStored(st, input, env.Platform, variant); ok {
 				return reportAlreadyStored(out, s, asJSON)
 			}
@@ -85,7 +89,7 @@ func runInstall(env *Env) func(*cobra.Command, []string) error {
 		if offline {
 			c, err = catalog.Load(root)
 			if errors.Is(err, catalog.ErrNotFetched) {
-				return fmt.Errorf("%s は保持しておらず、保存済みの公式一覧もないので、--offline では取得できません", input)
+				return fmt.Errorf("%s は保持しておらず、保存済みの公式一覧もないので、--offline では取得できません", query.Describe())
 			}
 		} else {
 			_, c, err = fetchCatalog(cmd, env, root)
@@ -93,7 +97,7 @@ func runInstall(env *Env) func(*cobra.Command, []string) error {
 		if err != nil {
 			return err
 		}
-		release, err := resolveRelease(c.Releases(), input, pre)
+		release, err := resolveRelease(c.Releases(), query)
 		if err != nil {
 			return err
 		}
@@ -226,15 +230,21 @@ func downloadAndStore(cmd *cobra.Command, env *Env, st store.Store, plan install
 	return stored, nil
 }
 
-func resolveRelease(releases []catalog.Release, input string, pre bool) (catalog.Release, error) {
-	if input == "latest" {
-		release, ok := versions.Latest(releases, pre)
-		if !ok {
-			return catalog.Release{}, errors.New("公式一覧に latest の候補がありません")
-		}
-		return release, nil
+func resolveRelease(releases []catalog.Release, query versions.Query) (catalog.Release, error) {
+	candidates := make([]versions.Candidate, len(releases))
+	for i, r := range releases {
+		candidates[i] = versions.Candidate{Tag: r.Tag, Prerelease: r.Prerelease}
 	}
-	return versions.ResolveTag(releases, input)
+	chosen, ok := versions.Select(candidates, query)
+	if !ok {
+		return catalog.Release{}, fmt.Errorf("%w: %s", versions.ErrTagNotFound, query.Describe())
+	}
+	for _, r := range releases {
+		if r.Tag == chosen.Tag {
+			return r, nil
+		}
+	}
+	return catalog.Release{}, fmt.Errorf("%w: %s", versions.ErrTagNotFound, query.Describe())
 }
 
 // findStored は、タグの指定 (先頭の v の有無を含む) に合う保持版を、候補が 1 つのときだけ返す。

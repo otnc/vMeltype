@@ -13,9 +13,12 @@ import (
 	"github.com/otnc/vmeltype/internal/lifecycle"
 	"github.com/otnc/vmeltype/internal/prompt"
 	"github.com/otnc/vmeltype/internal/store"
+	"github.com/otnc/vmeltype/internal/versions"
 )
 
 const useLong = `保持版を有効にします。通信しません。保持していない版は、先に "vmeltype install <tag>" で取得します。
+
+版の指定は install と同じで、保持している版の中から選びます。版を省くと保持している正式版の最新、1 や 1.4 ではその範囲の最新、--pre ではプレリリースの最新です。
 
 portable 版は --portable を付けたときだけ対象にします。付けなければ通常版 (IME の登録を伴うもの) だけを探し、portable 版しか保持していなくても選びません。
 いまは Windows の portable 版だけに対応しています。portable 版は実行先 (管理ルートの portable\app) を固定し、版を切り替えるときはアプリのファイルだけを入れ替えます。隣の data と、vMeltype が置いていないファイルはそのまま引き継ぎます。
@@ -26,6 +29,7 @@ var errAppRunning = errors.New("実行先の Meltype が動いています。Mel
 
 func setupUseFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool("reinstall", false, "--force と同じ")
+	cmd.Flags().Bool("pre", false, "正式版ではなく、保持しているプレリリースから最新を選ぶ")
 	cmd.Flags().String("id", "", "保持 ID で保持版を選ぶ")
 	cmd.Flags().Bool("portable", false, "portable 版を対象にする。付けなければ通常版を対象にする")
 }
@@ -35,9 +39,9 @@ func runUse(env *Env) func(*cobra.Command, []string) error {
 		flags := cmd.Flags()
 		force, _ := flags.GetBool("force")
 		reinstall, _ := flags.GetBool("reinstall")
-		id, _ := flags.GetString("id")
-		if len(args) == 0 && id == "" {
-			return usageError{errors.New("版を指定してください (例: vmeltype use v1.4.0)")}
+		query, err := newStoredQuery(cmd, args)
+		if err != nil {
+			return err
 		}
 
 		root, err := managementRoot(cmd, env)
@@ -45,7 +49,7 @@ func runUse(env *Env) func(*cobra.Command, []string) error {
 			return err
 		}
 		st := store.Store{Root: root}
-		target, err := resolveStored(st, args, id, env.Platform, selectedVariant(cmd))
+		target, err := resolveStored(st, query, env.Platform)
 		if err != nil {
 			return err
 		}
@@ -211,7 +215,13 @@ func runRecover(env *Env) func(*cobra.Command, []string) error {
 func runUninstall(env *Env) func(*cobra.Command, []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		flags := cmd.Flags()
-		id, _ := flags.GetString("id")
+		query, err := newStoredQuery(cmd, args)
+		if err != nil {
+			return err
+		}
+		if query.id == "" && !query.query.IsExact() {
+			return usageError{fmt.Errorf("uninstall では、削除する版を省略せずに指定してください (例: 1.4.0、1.4.1-pre.1): %q", query.input)}
+		}
 		dryRun, _ := flags.GetBool("dry-run")
 		yes, _ := flags.GetBool("yes")
 		asJSON, _ := flags.GetBool("json")
@@ -220,7 +230,7 @@ func runUninstall(env *Env) func(*cobra.Command, []string) error {
 			return err
 		}
 		st := store.Store{Root: root}
-		target, err := resolveStored(st, args, id, env.Platform, selectedVariant(cmd))
+		target, err := resolveStored(st, query, env.Platform)
 		if err != nil {
 			return err
 		}
@@ -278,19 +288,62 @@ func setupUninstallFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool("portable", false, "portable 版を対象にする。付けなければ通常版を対象にする")
 }
 
-// resolveStored は、タグか保持 ID から、この端末の保持版を 1 つに決める。保持版の manifest だけを使い、通信しない。
+// storedQuery は、保持版を選ぶための指定。input は利用者が書いた版の指定 (省略なら空)。
+type storedQuery struct {
+	input   string
+	query   versions.Query
+	pre     bool
+	id      string
+	variant assets.Variant
+}
+
+// newStoredQuery は、引数と --pre、--id、--portable から、保持版の選び方を作る。
+func newStoredQuery(cmd *cobra.Command, args []string) (storedQuery, error) {
+	q := storedQuery{variant: selectedVariant(cmd)}
+	if len(args) > 0 {
+		q.input = args[0]
+	}
+	if cmd.Flags().Lookup("pre") != nil {
+		q.pre, _ = cmd.Flags().GetBool("pre")
+	}
+	q.id, _ = cmd.Flags().GetString("id")
+	query, err := versions.ParseQuery(q.input, q.pre)
+	if err != nil {
+		return storedQuery{}, usageError{err}
+	}
+	q.query = query
+	return q, nil
+}
+
+func (q storedQuery) installHint() string {
+	parts := []string{"vmeltype install"}
+	if q.input != "" {
+		parts = append(parts, q.input)
+	}
+	if q.pre {
+		parts = append(parts, "--pre")
+	}
+	if q.variant == assets.Portable {
+		parts = append(parts, "--portable")
+	}
+	return strings.Join(parts, " ")
+}
+
+// resolveStored は、版の指定か保持 ID から、この端末の保持版を 1 つに決める。保持版の manifest だけを使い、通信しない。
 // variant の違う保持版は、同じタグでも対象にしない。portable 版は --portable で明示したときだけ扱うため。
-func resolveStored(st store.Store, args []string, id string, platform assets.Platform, variant assets.Variant) (store.Stored, error) {
-	if id != "" {
-		s, err := st.Get(id)
+func resolveStored(st store.Store, q storedQuery, platform assets.Platform) (store.Stored, error) {
+	if q.id != "" {
+		s, err := st.Get(q.id)
 		if err != nil {
 			return store.Stored{}, err
 		}
-		if len(args) > 0 && !sameTag(s.Tag, args[0]) {
-			return store.Stored{}, usageError{fmt.Errorf("--id %s のタグは %s で、%s ではありません", id, s.Tag, args[0])}
+		if q.input != "" {
+			if _, ok := versions.Select([]versions.Candidate{{Tag: s.Tag, Prerelease: s.Prerelease}}, q.query); !ok {
+				return store.Stored{}, usageError{fmt.Errorf("--id %s のタグは %s で、%s に合いません", q.id, s.Tag, q.query.Describe())}
+			}
 		}
-		if s.Variant != string(variant) {
-			return store.Stored{}, usageError{fmt.Errorf("--id %s は %s で、--portable の指定と合いません", id, variantLabels[s.Variant])}
+		if s.Variant != string(q.variant) {
+			return store.Stored{}, usageError{fmt.Errorf("--id %s は %s で、--portable の指定と合いません", q.id, variantLabels[s.Variant])}
 		}
 		return s, nil
 	}
@@ -299,51 +352,35 @@ func resolveStored(st store.Store, args []string, id string, platform assets.Pla
 	if err != nil {
 		return store.Stored{}, err
 	}
-	var exact, alternative []store.Stored
-	otherVariant := false
+	// 同じ端末と variant の中では、タグごとに保持版は 1 つになる
+	sameByTag := map[string]store.Stored{}
+	var same, other []versions.Candidate
 	for _, s := range stored {
-		if s.OS != platform.OS || s.Arch != platform.Arch || !sameTag(s.Tag, args[0]) {
+		if s.OS != platform.OS || s.Arch != platform.Arch {
 			continue
 		}
-		switch {
-		case s.Variant != string(variant):
-			otherVariant = true
-		case s.Tag == args[0]:
-			exact = append(exact, s)
-		default:
-			alternative = append(alternative, s)
+		c := versions.Candidate{Tag: s.Tag, Prerelease: s.Prerelease}
+		if s.Variant == string(q.variant) {
+			sameByTag[s.Tag] = s
+			same = append(same, c)
+		} else {
+			other = append(other, c)
 		}
 	}
-	candidates := exact
-	if len(candidates) == 0 {
-		candidates = alternative
+	if chosen, ok := versions.Select(same, q.query); ok {
+		return sameByTag[chosen.Tag], nil
 	}
-	switch len(candidates) {
-	case 0:
-		switch {
-		case otherVariant && variant == assets.Standard:
-			return store.Stored{}, fmt.Errorf("%s の通常版は保持していません。portable 版を対象にするなら --portable を付けてください", args[0])
-		case otherVariant:
-			return store.Stored{}, fmt.Errorf("%s の portable 版は保持していません。通常版を対象にするなら --portable を外してください", args[0])
-		case variant == assets.Portable:
-			return store.Stored{}, fmt.Errorf("%s の portable 版は保持していません。先に \"vmeltype install %s --portable\" を実行してください", args[0], args[0])
-		default:
-			return store.Stored{}, fmt.Errorf("%s は保持していません。先に \"vmeltype install %s\" を実行してください", args[0], args[0])
-		}
-	case 1:
-		return candidates[0], nil
-	default:
-		var ids []string
-		for _, c := range candidates {
-			ids = append(ids, c.ID)
-		}
-		return store.Stored{}, usageError{fmt.Errorf("%s の保持版が複数あります。--id で選んでください: %s", args[0], strings.Join(ids, "、"))}
-	}
-}
 
-// sameTag は、先頭の v の有無だけが違うタグを同じとみなす。
-func sameTag(a, b string) bool {
-	return strings.TrimPrefix(a, "v") == strings.TrimPrefix(b, "v")
+	wanted := q.query.Describe()
+	_, otherMatches := versions.Select(other, q.query)
+	switch {
+	case otherMatches && q.variant == assets.Standard:
+		return store.Stored{}, fmt.Errorf("%s の通常版は保持していません。portable 版を対象にするなら --portable を付けてください", wanted)
+	case otherMatches:
+		return store.Stored{}, fmt.Errorf("%s の portable 版は保持していません。通常版を対象にするなら --portable を外してください", wanted)
+	default:
+		return store.Stored{}, fmt.Errorf("%s は保持していません。先に \"%s\" を実行してください", wanted, q.installHint())
+	}
 }
 
 func writeUsePlan(w io.Writer, plan lifecycle.UsePlan) {
