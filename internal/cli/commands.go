@@ -48,7 +48,7 @@ type commandSpec struct {
 func commandSpecs(env *Env) []commandSpec {
 	return []commandSpec{
 		{use: "current", aliases: []string{"c"}, short: "有効な Meltype の版を表示する", flags: []commonFlag{flagJSON}},
-		{use: "list", aliases: []string{"ls"}, short: "保持版、現在の版、直前の版、配置先を表示する", flags: []commonFlag{flagJSON}},
+		{use: "list", aliases: []string{"ls"}, short: "保持版を表示する。通信しない", flags: []commonFlag{flagJSON}, run: runList(env)},
 		{use: "status", short: "要求、配置、登録、稼働、データ先、未完了の処理を表示する", flags: []commonFlag{flagJSON}},
 		{use: "fetch", short: "公式のリリースの情報だけを取得して保存する。配布物は取得しない", flags: []commonFlag{flagJSON}, run: runFetch(env)},
 		{use: "releases", aliases: []string{"rel"}, short: "公式のリリースの一覧を取得して表示する", long: releasesLong, flags: []commonFlag{flagAll, flagOffline, flagJSON}, setup: setupReleasesFlags, run: runReleases(env)},
