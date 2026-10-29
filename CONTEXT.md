@@ -13,6 +13,8 @@ vMeltype で使う用語と、コードで使う英語の名前の対応です�
 | 正式版、プレリリース | `stable`、`prerelease` | GitHub の `prerelease` フラグによる区分 |
 | タグ | `tag` | リリースを指す名前 (`v1.4.0` など)。解決したあとは、そのままの文字列 (exact tag) で保存する |
 | variant | `variant` | 通常版 (`standard`) と portable 版 (`portable`) の区別 |
+| プラットフォーム | `platform` | OS と CPU の組。Go の GOOS と GOARCH で表す |
+| latest | `latest` | 区分の中で、解析できる SemVer が最大のリリース。GitHub の Latest の表示とは異なることがある |
 
 ## 保持と有効化
 
