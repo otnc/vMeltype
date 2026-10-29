@@ -36,19 +36,22 @@ type commandSpec struct {
 	use     string
 	aliases []string
 	short   string
+	long    string
 	args    cobra.PositionalArgs
 	flags   []commonFlag
 	run     func(cmd *cobra.Command, args []string) error
 	subs    []commandSpec
+	// setup は、そのコマンドだけのオプションを足す。
+	setup func(cmd *cobra.Command)
 }
 
-func commandSpecs(version string) []commandSpec {
+func commandSpecs(env *Env) []commandSpec {
 	return []commandSpec{
 		{use: "current", aliases: []string{"c"}, short: "有効な Meltype の版を表示する", flags: []commonFlag{flagJSON}},
 		{use: "list", aliases: []string{"ls"}, short: "保持版、現在の版、直前の版、配置先を表示する", flags: []commonFlag{flagJSON}},
 		{use: "status", short: "要求、配置、登録、稼働、データ先、未完了の処理を表示する", flags: []commonFlag{flagJSON}},
-		{use: "fetch", short: "公式のリリースの情報だけを取得して保存する", flags: []commonFlag{flagJSON}},
-		{use: "releases", aliases: []string{"rel"}, short: "公式のリリースの一覧を取得して表示する", flags: []commonFlag{flagAll, flagOffline, flagJSON}},
+		{use: "fetch", short: "公式のリリースの情報だけを取得して保存する。配布物は取得しない", flags: []commonFlag{flagJSON}, run: runFetch(env)},
+		{use: "releases", aliases: []string{"rel"}, short: "公式のリリースの一覧を取得して表示する", long: releasesLong, flags: []commonFlag{flagAll, flagOffline, flagJSON}, setup: setupReleasesFlags, run: runReleases(env)},
 		{use: "install [tag]", aliases: []string{"i"}, short: "版を取得、検証して保持する。有効な版は変えない", args: maxArgs(1), flags: append([]commonFlag{flagOffline}, change...)},
 		{use: "use [tag]", aliases: []string{"u"}, short: "保持版を有効にする。通信しない", args: maxArgs(1), flags: append([]commonFlag{flagForce}, change...)},
 		{use: "apply", short: "保存済みの対象を適用、修復する。通信しない", flags: append([]commonFlag{flagForce}, change...)},
@@ -75,7 +78,7 @@ func commandSpecs(version string) []commandSpec {
 			{use: "disable", short: "追従を無効にする", flags: []commonFlag{flagJSON}},
 		}},
 		{use: "app", short: "vMeltype 自身の操作", subs: []commandSpec{
-			{use: "version", short: "vMeltype の版を表示する", run: printVersion(version)},
+			{use: "version", short: "vMeltype の版を表示する", run: printVersion(env.Version)},
 			{use: "doctor", short: "vMeltype 自身と管理ルートを診断する", flags: []commonFlag{flagJSON}},
 			{use: "update", short: "vMeltype 自身を更新する", flags: change},
 			{use: "uninstall", short: "Meltype を管理前に戻してから vMeltype を削除する", flags: change},
@@ -92,6 +95,7 @@ func buildCommand(spec commandSpec) *cobra.Command {
 		Use:                   spec.use,
 		Aliases:               spec.aliases,
 		Short:                 spec.short,
+		Long:                  spec.long,
 		Args:                  spec.args,
 		RunE:                  spec.run,
 		DisableFlagsInUseLine: true,
@@ -99,6 +103,9 @@ func buildCommand(spec commandSpec) *cobra.Command {
 	for _, flag := range spec.flags {
 		def := commonFlagDefinitions[flag]
 		cmd.Flags().BoolP(def.name, def.shorthand, false, def.usage)
+	}
+	if spec.setup != nil {
+		spec.setup(cmd)
 	}
 
 	if len(spec.subs) > 0 {

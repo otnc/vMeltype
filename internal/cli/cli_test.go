@@ -15,7 +15,8 @@ type result struct {
 func execute(t *testing.T, args ...string) result {
 	t.Helper()
 	var stdout, stderr bytes.Buffer
-	code := Run(args, Streams{In: strings.NewReader(""), Out: &stdout, Err: &stderr}, "1.2.3")
+	root := t.TempDir()
+	code := Run(args, Env{In: strings.NewReader(""), Out: &stdout, Err: &stderr, Version: "1.2.3", DefaultRoot: func() (string, error) { return root, nil }})
 	return result{code: code, stdout: stdout.String(), stderr: stderr.String()}
 }
 
@@ -108,8 +109,8 @@ func TestShortOptionsMatchLongOptions(t *testing.T) {
 		{command: []string{"use", "v1.4.0"}, short: "-f", long: "--force"},
 		{command: []string{"apply"}, short: "-f", long: "--force"},
 		{command: []string{"list"}, short: "-j", long: "--json"},
-		{command: []string{"releases"}, short: "-a", long: "--all"},
-		{command: []string{"releases"}, short: "-o", long: "--offline"},
+		{command: []string{"releases", "--cached"}, short: "-a", long: "--all"},
+		{command: []string{"releases", "--cached"}, short: "-o", long: "--offline"},
 		{command: []string{"uninstall", "v1.4.0"}, short: "-y", long: "--yes"},
 		{command: []string{"app", "uninstall"}, short: "-n", long: "--dry-run"},
 	}

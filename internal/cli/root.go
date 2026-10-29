@@ -5,16 +5,28 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
+	"path/filepath"
+	"time"
 
 	"github.com/spf13/cobra"
 )
 
-// Streams は、コマンドが使う入出力。Interactive は、標準入力と表示先の両方が TTY のときだけ true にする。
-type Streams struct {
+// Env は、コマンドが使う入出力と、外の世界への依存。テストで差し替えられるよう、ここからだけ受け取る。
+// Interactive は、標準入力と表示先の両方が TTY のときだけ true にする。
+type Env struct {
 	In          io.Reader
 	Out         io.Writer
 	Err         io.Writer
 	Interactive bool
+	Version     string
+	Now         func() time.Time
+	Getenv      func(string) string
+	// DefaultRoot は、--root がないときの管理ルートを返す。
+	DefaultRoot func() (string, error)
+	// HTTPClient と GitHubAPIURL は、公式一覧の取得など、通信するコマンドだけが使う。
+	HTTPClient   *http.Client
+	GitHubAPIURL string
 }
 
 const usageTemplate = `使い方:{{if .Runnable}}
@@ -28,25 +40,28 @@ const usageTemplate = `使い方:{{if .Runnable}}
   {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
 
 オプション:
-{{.LocalFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableSubCommands}}
+{{.LocalFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
+
+共通のオプション:
+{{.InheritedFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableSubCommands}}
 
 "{{.CommandPath}} <コマンド> --help" で、各コマンドの説明を表示します。{{end}}
 `
 
 // Run は、引数を解釈してコマンドを実行し、終了コードを返す。
 //
-//	os.Exit(cli.Run(os.Args[1:], cli.Streams{In: os.Stdin, Out: os.Stdout, Err: os.Stderr}, version))
-func Run(args []string, streams Streams, version string) int {
-	return RunContext(context.Background(), args, streams, version)
+//	os.Exit(cli.Run(os.Args[1:], env))
+func Run(args []string, env Env) int {
+	return RunContext(context.Background(), args, env)
 }
 
 // RunContext は Run と同じ。ctx が中止されたら (Ctrl+C など)、中止の終了コードを返す。
-func RunContext(ctx context.Context, args []string, streams Streams, version string) int {
-	root := newRootCommand(version)
+func RunContext(ctx context.Context, args []string, env Env) int {
+	root := newRootCommand(&env)
 	root.SetArgs(args)
-	root.SetIn(streams.In)
-	root.SetOut(streams.Out)
-	root.SetErr(streams.Err)
+	root.SetIn(env.In)
+	root.SetOut(env.Out)
+	root.SetErr(env.Err)
 
 	executed, err := root.ExecuteContextC(ctx)
 	if err == nil && ctx.Err() != nil {
@@ -54,21 +69,21 @@ func RunContext(ctx context.Context, args []string, streams Streams, version str
 	}
 	code := exitCodeOf(err)
 	if err != nil {
-		fmt.Fprintf(streams.Err, "エラー: %v\n", err)
+		fmt.Fprintf(env.Err, "エラー: %v\n", err)
 		if code == ExitUsage {
-			fmt.Fprintf(streams.Err, "\"%s --help\" で使い方を表示します。\n", executed.CommandPath())
+			fmt.Fprintf(env.Err, "\"%s --help\" で使い方を表示します。\n", executed.CommandPath())
 		}
 	}
 	return code
 }
 
-func newRootCommand(version string) *cobra.Command {
+func newRootCommand(env *Env) *cobra.Command {
 	root := &cobra.Command{
 		Use:   "vmeltype",
 		Short: "Meltype の複数の版を保持し、切り替える",
 		Long: `vMeltype は、Meltype の正式版、プレリリース、旧版を保持し、選んで切り替える版の管理ツールです。
 install で取得して保持し、use で有効にします。use、list、current などのローカル操作は通信しません。`,
-		Version:               version,
+		Version:               env.Version,
 		Args:                  rejectUnknownSubcommand,
 		DisableFlagsInUseLine: true,
 		SilenceErrors:         true,
@@ -79,12 +94,13 @@ install で取得して保持し、use で有効にします。use、list、curr
 	}
 	// v は版の指定と紛らわしいので、--version の短縮形にしない
 	root.Flags().Bool("version", false, "vMeltype の版を表示する")
+	root.PersistentFlags().String("root", "", "vMeltype の管理ルート (設定、保持版、スナップショットを置く場所)")
 	root.SetVersionTemplate("vMeltype {{.Version}}\n")
 	root.SetFlagErrorFunc(func(_ *cobra.Command, err error) error {
 		return usageError{fmt.Errorf("オプションの誤り: %w", err)}
 	})
 
-	for _, spec := range commandSpecs(version) {
+	for _, spec := range commandSpecs(env) {
 		root.AddCommand(buildCommand(spec))
 	}
 
@@ -106,4 +122,16 @@ func applyJapaneseHelp(cmd *cobra.Command) {
 	for _, sub := range cmd.Commands() {
 		applyJapaneseHelp(sub)
 	}
+}
+
+// managementRoot は、--root か既定の管理ルートを、絶対パスで返す。
+func managementRoot(cmd *cobra.Command, env *Env) (string, error) {
+	root, err := cmd.Flags().GetString("root")
+	if err != nil {
+		return "", err
+	}
+	if root == "" {
+		return env.DefaultRoot()
+	}
+	return filepath.Abs(root)
 }
