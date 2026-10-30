@@ -1,10 +1,12 @@
 # 本家の通常版を Install.cmd と同じ install.ps1 で入れた環境を、vmeltype が取り込んで切り替えることを通しで確かめる。
 # 利用者の %LOCALAPPDATA% の Meltype と自動起動を書き換え、動いている Meltype も止めるので、GitHub Actions の使い捨ての Windows でだけ動かす。
-# Meltype IME は登録しない (install.ps1 は -Ask を付けなければ登録を求めない)。
+# -Ime を付けると、install.ps1 -Ask で Meltype IME も登録し (GitHub Actions は管理者で動き、UAC の確認は出ない)、切り替えで DLL も入れ替わることを確かめる。
+# 付けなければ IME は登録しない (install.ps1 は -Ask を付けなければ登録を求めない)。
 param(
     [Parameter(Mandatory)] [string] $Vmeltype,
     [Parameter(Mandatory)] [string] $From,
-    [Parameter(Mandatory)] [string] $To
+    [Parameter(Mandatory)] [string] $To,
+    [switch] $Ime
 )
 
 $ErrorActionPreference = 'Stop'
@@ -59,21 +61,45 @@ function Assert-AutoUpdateDisabled {
     }
 }
 
-if (Test-Path 'HKLM:\SOFTWARE\Microsoft\CTF\TIP\{417D801B-A9BD-4C26-BD16-356A825A6998}') {
-    throw 'この環境には Meltype IME が登録されています。登録していない環境で動かします'
+$tipKey = 'HKLM:\SOFTWARE\Microsoft\CTF\TIP\{417D801B-A9BD-4C26-BD16-356A825A6998}'
+if (Test-Path $tipKey) {
+    throw 'この環境には Meltype IME が既に登録されています。登録していない環境から始めます'
+}
+
+function Get-StoredPackage([string] $Tag) {
+    $stored = (Invoke-Vmeltype list --json | ConvertFrom-Json).stored | Where-Object { $_.tag.TrimStart('v') -eq $Tag.TrimStart('v') -and $_.variant -eq 'standard' }
+    return Join-Path $root "versions\$($stored.id)\files"
+}
+
+# 登録した IME の DLL が、Tag の版のものかを、本家が DLL の隣に置く署名する前の中身のハッシュで確かめる
+function Assert-ImeDll([string] $Tag) {
+    if (-not $Ime) { return }
+    $programFiles = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::LocalMachine, [Microsoft.Win32.RegistryView]::Registry64).OpenSubKey('SOFTWARE\Microsoft\Windows\CurrentVersion').GetValue('ProgramFilesDir')
+    foreach ($arch in 'x64', 'x86') {
+        $installed = (Get-Content -LiteralPath (Join-Path $programFiles "Meltype\tip\$arch\MeltypeTip.dll.sha256") -Raw).Trim()
+        $expected = (Get-Content -LiteralPath (Join-Path (Get-StoredPackage $Tag) "app\tip\$arch\MeltypeTip.dll.sha256") -Raw).Trim()
+        Write-Host "IME の DLL ($arch): $installed"
+        if ($installed -ne $expected) {
+            throw "登録した IME の DLL ($arch) が $Tag のものではありません"
+        }
+    }
 }
 
 Invoke-Vmeltype install $From -y | Out-Null
 Invoke-Vmeltype install $To -y | Out-Null
-$stored = (Invoke-Vmeltype list --json | ConvertFrom-Json).stored | Where-Object { $_.tag.TrimStart('v') -eq $From.TrimStart('v') -and $_.variant -eq 'standard' }
 
 Write-Host '--- 本家の install.ps1 で入れて起動する'
-$package = Join-Path $root "versions\$($stored.id)\files"
-& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $package 'install.ps1')
+$installArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path (Get-StoredPackage $From) 'install.ps1'))
+if ($Ime) { $installArgs += '-Ask' }
+& powershell.exe @installArgs
 if ($LASTEXITCODE -ne 0) {
     throw "本家の install.ps1 が終了コード $LASTEXITCODE で失敗しました"
 }
+if ($Ime -ne (Test-Path $tipKey)) {
+    throw "Meltype IME の登録が、-Ime の指定 ($Ime) と合いません"
+}
 Assert-Running $From
+Assert-ImeDll $From
 Wait-Until { Test-Path (Join-Path $dataDir 'config.json') } 'Meltype がデータ先に設定を作りません'
 Set-Content -Path $marker -Value 'vMeltype の検査で置いたファイル'
 $uninstallKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Meltype'
@@ -84,6 +110,7 @@ if (-not (Test-Path $uninstallKey)) {
 Write-Host '--- 本家のインストールを取り込んで切り替える'
 Invoke-Vmeltype use $To -y | Out-Null
 Assert-Running $To
+Assert-ImeDll $To
 Assert-AutoUpdateDisabled
 if (-not (Test-Path $marker)) {
     throw 'データ先に置いたファイルが消えました'
@@ -111,6 +138,7 @@ Invoke-Vmeltype doctor | Out-Null
 Write-Host '--- 元の版に切り替える'
 Invoke-Vmeltype use $From -y | Out-Null
 Assert-Running $From
+Assert-ImeDll $From
 Assert-AutoUpdateDisabled
 if (-not (Test-Path $marker)) {
     throw 'データ先に置いたファイルが消えました'
