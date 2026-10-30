@@ -70,6 +70,10 @@ func commandSpecs(env *Env) []commandSpec {
 			{use: "restore <id>", short: "いまのデータを保存してからスナップショットを復元する", args: exactArgs(1), flags: change, setup: addStopAppFlag, run: runSnapshotRestore(env)},
 			{use: "export <id> <file>", short: "スナップショットを 1 つのファイルに書き出す。別の PC で取り込める", args: exactArgs(2), flags: []commonFlag{flagJSON}, run: runSnapshotExport(env)},
 			{use: "import <file>", short: "書き出したスナップショットを取り込む。データは変えない", args: exactArgs(1), flags: []commonFlag{flagJSON}, run: runSnapshotImport(env)},
+			{use: "remove <id>", short: "スナップショットを削除する。データは変えない", args: exactArgs(1), flags: change, run: runSnapshotRemove(env)},
+			{use: "prune", short: "自動で作ったスナップショットの古いものを削除する。手動で作ったものと取り込んだものは残す", flags: change, setup: func(cmd *cobra.Command) {
+				cmd.Flags().Int("keep", 0, "自動で作ったものを、新しいほうからいくつ残すか (既定は設定 auto-snapshot-keep の値)")
+			}, run: runSnapshotPrune(env)},
 		}},
 		{use: "doctor", short: "管理ルートを診断し、直し方を示す。通信しない", flags: []commonFlag{flagJSON}, run: runDoctor(env)},
 		{use: "run", short: "有効なバージョンの Meltype を起動する。通信しない", run: runRun(env)},

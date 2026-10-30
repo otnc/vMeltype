@@ -21,6 +21,8 @@ var ErrInvalid = errors.New("設定できません")
 type Settings struct {
 	// StopAppOnYes は、-y だけで、動いている実行先の Meltype を終了させるか。
 	StopAppOnYes bool
+	// AutoSnapshotKeep は、自動で作ったスナップショットを、新しいほうからいくつ残すか。0 なら消さない。
+	AutoSnapshotKeep int
 }
 
 // Item は、show で表示する 1 つの設定。
@@ -31,17 +33,49 @@ type Item struct {
 	Description string `json:"description"`
 }
 
-type boolKey struct {
-	defaultValue bool
+// key は、1 つの設定の型と既定の値。値は、ファイルでは JSON の値、利用者の入力と表示では文字列で扱う。
+type key struct {
+	defaultValue string
 	description  string
-	field        func(*Settings) *bool
+	// hint は、受け付けない値を渡されたときに示す、受け付ける値の説明。
+	hint string
+	// parse は、利用者の入力を JSON の値にする。受け付けなければ false を返す。
+	parse func(string) (any, bool)
+	// apply は、ファイルの値を Settings に入れ、表示する文字列を返す。
+	apply func(*Settings, json.RawMessage) (string, error)
 }
 
-var keys = map[string]boolKey{
+var keys = map[string]key{
 	"stop-app-on-yes": {
-		defaultValue: true,
+		defaultValue: "true",
 		description:  "-y だけで、動いている実行先の Meltype を終了させる。false なら --stop-app を付けたときだけ終了させる",
-		field:        func(s *Settings) *bool { return &s.StopAppOnYes },
+		hint:         "true か false",
+		parse: func(s string) (any, bool) {
+			v, err := strconv.ParseBool(s)
+			return v, err == nil
+		},
+		apply: func(s *Settings, data json.RawMessage) (string, error) {
+			err := json.Unmarshal(data, &s.StopAppOnYes)
+			return strconv.FormatBool(s.StopAppOnYes), err
+		},
+	},
+	"auto-snapshot-keep": {
+		defaultValue: "10",
+		description:  "切り替えや復元の前に自動で作ったスナップショットを、新しいほうからいくつ残すか。0 なら消さない。手動で作ったものと取り込んだものは数えない",
+		hint:         "0 以上の整数",
+		parse: func(s string) (any, bool) {
+			v, err := strconv.Atoi(s)
+			return v, err == nil && v >= 0
+		},
+		apply: func(s *Settings, data json.RawMessage) (string, error) {
+			if err := json.Unmarshal(data, &s.AutoSnapshotKeep); err != nil {
+				return "", err
+			}
+			if s.AutoSnapshotKeep < 0 {
+				return "", errors.New("負の数")
+			}
+			return strconv.Itoa(s.AutoSnapshotKeep), nil
+		},
 	},
 }
 
@@ -51,29 +85,19 @@ func path(root string) string {
 
 // Load は、設定を読む。ファイルがなければ既定の値を返す。型の合わない値は、黙って既定にせずエラーにする。
 func Load(root string) (Settings, error) {
-	raw, err := readRaw(root)
-	if err != nil {
-		return Settings{}, err
-	}
-	var s Settings
-	for name, k := range keys {
-		value, err := k.read(raw, name)
-		if err != nil {
-			return Settings{}, err
-		}
-		*k.field(&s) = value
-	}
-	return s, nil
+	s, _, err := load(root)
+	return s, err
 }
 
 // Set は、1 つの設定を変える。知らない項目は、新しいバージョンの vMeltype が書いたものかもしれないので消さない。
-func Set(root, key, value string) error {
-	if _, ok := keys[key]; !ok {
-		return fmt.Errorf("%w: %q (設定できるもの: %s)", ErrInvalid, key, strings.Join(keyNames(), "、"))
+func Set(root, name, value string) error {
+	k, ok := keys[name]
+	if !ok {
+		return fmt.Errorf("%w: %q (設定できるもの: %s)", ErrInvalid, name, strings.Join(keyNames(), "、"))
 	}
-	parsed, err := strconv.ParseBool(value)
-	if err != nil {
-		return fmt.Errorf("%w: %s には true か false を指定してください: %q", ErrInvalid, key, value)
+	parsed, ok := k.parse(value)
+	if !ok {
+		return fmt.Errorf("%w: %s には %s を指定してください: %q", ErrInvalid, name, k.hint, value)
 	}
 	raw, err := readRaw(root)
 	if err != nil {
@@ -82,38 +106,45 @@ func Set(root, key, value string) error {
 	if raw == nil {
 		raw = map[string]json.RawMessage{}
 	}
-	raw[key], _ = json.Marshal(parsed)
+	raw[name], _ = json.Marshal(parsed)
 	return writeRaw(root, raw)
 }
 
 // Items は、すべての設定の、いまの値と既定の値を返す。
 func Items(root string) ([]Item, error) {
-	raw, err := readRaw(root)
+	_, values, err := load(root)
 	if err != nil {
 		return nil, err
 	}
 	var items []Item
 	for _, name := range keyNames() {
 		k := keys[name]
-		value, err := k.read(raw, name)
-		if err != nil {
-			return nil, err
-		}
-		items = append(items, Item{Key: name, Value: strconv.FormatBool(value), Default: strconv.FormatBool(k.defaultValue), Description: k.description})
+		items = append(items, Item{Key: name, Value: values[name], Default: k.defaultValue, Description: k.description})
 	}
 	return items, nil
 }
 
-func (k boolKey) read(raw map[string]json.RawMessage, name string) (bool, error) {
-	data, ok := raw[name]
-	if !ok {
-		return k.defaultValue, nil
+// load は、既定の値にファイルの値を重ねた設定と、項目ごとの表示する値を返す。
+func load(root string) (Settings, map[string]string, error) {
+	raw, err := readRaw(root)
+	if err != nil {
+		return Settings{}, nil, err
 	}
-	var value bool
-	if err := json.Unmarshal(data, &value); err != nil {
-		return false, fmt.Errorf("設定 %s の値を読めません (%s)。\"vmeltype app config set %s true\" などで直してください", name, data, name)
+	var s Settings
+	values := map[string]string{}
+	for _, name := range keyNames() {
+		k := keys[name]
+		data, ok := raw[name]
+		if !ok {
+			data = json.RawMessage(k.defaultValue)
+		}
+		value, err := k.apply(&s, data)
+		if err != nil {
+			return Settings{}, nil, fmt.Errorf("設定 %s の値を読めません (%s)。\"vmeltype app config set %s %s\" などで直してください", name, data, name, k.defaultValue)
+		}
+		values[name] = value
 	}
-	return value, nil
+	return s, values, nil
 }
 
 func keyNames() []string {

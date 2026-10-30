@@ -33,6 +33,7 @@ vmeltype rollback           # 直前のバージョンに戻す
 vmeltype pin                # いまのバージョンから切り替えないよう固定する
 vmeltype snapshot create    # Meltype のデータを保存する
 vmeltype snapshot export <id> data.vmeltype-snapshot  # 保存したデータを 1 つのファイルにする。別の PC で import できる
+vmeltype snapshot prune     # 自動で作ったスナップショットの古いものを消す
 vmeltype status             # 有効なバージョン、配置、データ先を表示する
 vmeltype doctor             # 問題がないかを調べ、直し方を示す
 vmeltype app update         # vMeltype 自身を新しいバージョンにする (self upgrade でも同じ)
@@ -43,7 +44,7 @@ vmeltype app update         # vMeltype 自身を新しいバージョンにす�
 通常版の切り替えでは、本家と同じ場所 (`%LOCALAPPDATA%\Programs\Meltype` と `%LOCALAPPDATA%\Meltype`) を使い、次のことを行います。
 
 - 動いている Meltype を正常に終了させ、切り替えたあとに起動し直す
-- 切り替えの前に、データのスナップショットを作る
+- 切り替えの前に、データのスナップショットを作る。自動で作ったものは、新しいほうから 10 個 (`vmeltype app config set auto-snapshot-keep <数>` で変えられる) だけ残し、古いものを消す
 - 本家の自動更新を止める (`config.json` の `AutoUpdate` を `false` にする)
 - Meltype IME を登録済みなら、IME の DLL も切り替え先のバージョンのものに入れ替える。DLL が違えば、管理者権限の確認 (UAC) が出る
 

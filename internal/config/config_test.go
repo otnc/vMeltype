@@ -10,8 +10,24 @@ import (
 func TestLoadDefaults(t *testing.T) {
 	s, err := Load(t.TempDir())
 
-	if err != nil || !s.StopAppOnYes {
+	if err != nil || !s.StopAppOnYes || s.AutoSnapshotKeep != 10 {
 		t.Errorf("設定がないときの既定が違う: %+v, %v", s, err)
+	}
+}
+
+func TestSetCount(t *testing.T) {
+	root := t.TempDir()
+
+	if err := Set(root, "auto-snapshot-keep", "3"); err != nil {
+		t.Fatal(err)
+	}
+	if s, err := Load(root); err != nil || s.AutoSnapshotKeep != 3 {
+		t.Errorf("変えた値にならない: %+v, %v", s, err)
+	}
+	for _, value := range []string{"-1", "abc", "1.5", "true"} {
+		if err := Set(root, "auto-snapshot-keep", value); err == nil {
+			t.Errorf("auto-snapshot-keep = %s を受け付けた", value)
+		}
 	}
 }
 
@@ -68,10 +84,17 @@ func TestItems(t *testing.T) {
 
 	items, err := Items(root)
 
-	if err != nil || len(items) != 1 {
-		t.Fatalf("items = %+v, %v", items, err)
+	if err != nil {
+		t.Fatal(err)
 	}
-	if got := items[0]; got.Key != "stop-app-on-yes" || got.Value != "false" || got.Default != "true" || got.Description == "" {
+	byKey := map[string]Item{}
+	for _, item := range items {
+		byKey[item.Key] = item
+	}
+	if got := byKey["stop-app-on-yes"]; got.Value != "false" || got.Default != "true" || got.Description == "" {
+		t.Errorf("項目が違う: %+v", got)
+	}
+	if got := byKey["auto-snapshot-keep"]; got.Value != "10" || got.Default != "10" || got.Description == "" {
 		t.Errorf("項目が違う: %+v", got)
 	}
 }
