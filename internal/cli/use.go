@@ -181,11 +181,17 @@ func switchVersion(cmd *cobra.Command, env *Env, root string, st store.Store, ta
 		}
 		if imeRegistered {
 			if err = replaceIME(env, filepath.Join(st.Path(target.ID), "files", "app"), target.Tag); err != nil {
-				return err
+				return fmt.Errorf("%w。切り替えずに止めたので、実行先と IME は変えていません", err)
 			}
 		}
 	}
 	if err = lifecycle.ExecuteUse(root, st.Path(target.ID), plan, env.Now()); err != nil {
+		// 処理記録が残っていれば、recover が実行先を決めてから DLL を合わせる
+		if imeRegistered && !errors.Is(err, lifecycle.ErrNeedsRecover) {
+			if matchErr := matchIME(env, plan.AppDir, fromLabel(plan.From)); matchErr != nil {
+				err = errors.Join(err, matchErr)
+			}
+		}
 		return err
 	}
 	if asJSON {
@@ -198,6 +204,9 @@ func switchVersion(cmd *cobra.Command, env *Env, root string, st store.Store, ta
 	fmt.Fprintf(out, "%s に切り替えました。起動するには %s を実行します。\n", target.Tag, filepath.Join(plan.AppDir, "Meltype.exe"))
 	return nil
 }
+
+const recoverLong = `中断した use や rollback を、処理記録をもとに、元へ戻すか終えます。新しいバージョンを実行先に置く前に止まっていれば元へ戻し、置いたあとなら data などの引き継ぎを終えます。
+通常版で Meltype IME を登録済みなら、そのあとに IME の DLL を実行先にあるバージョンのものに合わせます。DLL が違えば、管理者権限の確認 (UAC) が出ます。`
 
 func runRecover(env *Env) func(*cobra.Command, []string) error {
 	return func(cmd *cobra.Command, _ []string) error {
@@ -240,6 +249,15 @@ func runRecover(env *Env) func(*cobra.Command, []string) error {
 			planOut = cmd.ErrOrStderr()
 		}
 		fmt.Fprintln(planOut, description)
+		imeRegistered := false
+		if j.To.Variant == string(assets.Standard) && env.IMERegistered != nil {
+			if imeRegistered, err = env.IMERegistered(); err != nil {
+				return err
+			}
+		}
+		if imeRegistered {
+			fmt.Fprintln(planOut, "Meltype IME は登録済みなので、DLL を実行先のバージョンのものに合わせます。DLL が違えば、管理者権限の確認 (UAC) が出ます。")
+		}
 		if dryRun {
 			if asJSON {
 				return writeJSON(out, map[string]any{"pending": true, "dryRun": true, "complete": plan.Complete, "to": j.To.StoreID})
@@ -252,6 +270,15 @@ func runRecover(env *Env) func(*cobra.Command, []string) error {
 		}
 		if err := lifecycle.ExecuteRecover(root, plan); err != nil {
 			return err
+		}
+		if imeRegistered {
+			tag := fromLabel(j.From)
+			if plan.Complete {
+				tag = j.To.Tag
+			}
+			if err := matchIME(env, j.To.AppDir, tag); err != nil {
+				return fmt.Errorf("実行先は復旧しましたが、%w", err)
+			}
 		}
 		if asJSON {
 			return writeJSON(out, map[string]any{"pending": false, "complete": plan.Complete, "to": j.To.StoreID})

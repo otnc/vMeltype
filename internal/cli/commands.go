@@ -61,7 +61,7 @@ func commandSpecs(env *Env) []commandSpec {
 		{use: "pin [tag]", short: "有効なバージョンを固定する。通信しない", long: pinLong, args: maxArgs(1), flags: []commonFlag{flagJSON}, run: runPin(env)},
 		{use: "unpin", short: "バージョンの固定を解除する。有効なバージョンは変えない", flags: []commonFlag{flagJSON}, run: runUnpin(env)},
 		{use: "rollback", short: "直前に有効にしたバージョンへ戻す。データは戻さない", flags: change, setup: setupRollbackFlags, run: runRollback(env)},
-		{use: "recover", short: "中断した変更を処理記録から復旧する", flags: change, run: runRecover(env)},
+		{use: "recover", short: "中断した変更を処理記録から復旧する", long: recoverLong, flags: change, run: runRecover(env)},
 		{use: "snapshot", short: "データの保存と復元。通信しない", long: snapshotLong, subs: []commandSpec{
 			{use: "create", short: "Meltype が止まっていることを確かめてデータを保存する。動いていれば終了させてから保存する", flags: change, setup: addStopAppFlag, run: runSnapshotCreate(env)},
 			{use: "list", short: "保存したスナップショットを表示する", flags: []commonFlag{flagJSON}, run: runSnapshotList(env)},

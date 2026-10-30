@@ -10,6 +10,7 @@ import (
 
 	"github.com/otnc/vmeltype/internal/lifecycle"
 	"github.com/otnc/vmeltype/internal/store"
+	"github.com/otnc/vmeltype/internal/winime"
 )
 
 // interruptedUse は、v1.4.0 が有効で data がある状態から、v1.3.0 への use が phase で止まった状態を作る。
@@ -61,6 +62,108 @@ func interruptedUse(t *testing.T, phase string) *localEnv {
 		t.Fatal(err)
 	}
 	return l
+}
+
+// interruptedStandardUse は、通常版の v1.3.0 が有効で Meltype IME を登録済みの状態から、DLL を入れ替えたあとの v1.4.0 への use が phase で止まった状態を作る。
+func interruptedStandardUse(t *testing.T, phase string) *localEnv {
+	t.Helper()
+	l := newLocalEnv(t)
+	l.storeStandard(t, "v1.3.0")
+	l.storeStandard(t, "v1.4.0")
+	l.imeRegistered = true
+	l.imeResult = winime.ResultReplaced
+	if got := l.run(t, false, "", "use", "1.3.0", "-y"); got.code != ExitOK {
+		t.Fatal(got.stderr)
+	}
+
+	appDir := l.standardAppDir()
+	parent := filepath.Dir(appDir)
+	staging := filepath.Join(parent, ".staging-1")
+	backup := filepath.Join(parent, ".previous-1")
+	target, err := store.Store{Root: l.root}.Get(store.ID("v1.4.0", "windows", "amd64", "standard"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	copyTree(t, filepath.Join(store.Store{Root: l.root}.Path(target.ID), "files", "app"), staging)
+
+	state, _ := lifecycle.LoadState(l.root)
+	journal := lifecycle.Journal{
+		SchemaVersion: lifecycle.SchemaVersion,
+		Operation:     "use",
+		StartedAt:     time.Date(2026, 10, 29, 9, 0, 0, 0, time.UTC),
+		Phase:         phase,
+		From:          state.Active,
+		To: lifecycle.Activation{
+			StoreID: target.ID, Tag: target.Tag, Variant: target.Variant, AppDir: appDir,
+			OwnedEntries: []string{"Meltype.exe", "dotnet", "tip", "uninstall-helper.ps1"},
+		},
+		StagingDir: staging,
+		BackupDir:  backup,
+	}
+	switch phase {
+	case lifecycle.PhaseOldMoved:
+		os.Rename(appDir, backup)
+	case lifecycle.PhaseNewPlaced:
+		os.Rename(appDir, backup)
+		os.Rename(staging, appDir)
+	}
+	data, _ := json.Marshal(journal)
+	if err := os.WriteFile(filepath.Join(l.root, "transactions", "current.json"), data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	l.imeCalls = nil
+	return l
+}
+
+func TestRecoverStandardMatchesIMEToAppDir(t *testing.T) {
+	tests := []struct {
+		name  string
+		phase string
+		want  string
+	}{
+		{name: "元へ戻したら、DLL も元のバージョンに戻す", phase: lifecycle.PhaseOldMoved, want: "exe v1.3.0"},
+		{name: "引き継ぎを終えたら、DLL を新しいバージョンにそろえる", phase: lifecycle.PhaseNewPlaced, want: "exe v1.4.0"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := interruptedStandardUse(t, tt.phase)
+
+			got := l.run(t, false, "", "recover", "-y")
+
+			if got.code != ExitOK || readFile(filepath.Join(l.standardAppDir(), "Meltype.exe")) != tt.want {
+				t.Fatalf("code = %d\n%s%s", got.code, got.stdout, got.stderr)
+			}
+			if len(l.imeCalls) != 1 || l.imeCalls[0].appDir != l.standardAppDir() || l.imeCalls[0].deployed != tt.want {
+				t.Errorf("DLL を実行先のバージョンに合わせていない: %+v", l.imeCalls)
+			}
+		})
+	}
+	t.Run("DLL を合わせられなければ、実行先を戻したうえで知らせる", func(t *testing.T) {
+		l := interruptedStandardUse(t, lifecycle.PhaseOldMoved)
+		l.imeResult = winime.ResultCanceled
+
+		got := l.run(t, false, "", "recover", "-y")
+
+		if got.code == ExitOK || !strings.Contains(got.stderr, "管理者権限") {
+			t.Errorf("code = %d\n%s", got.code, got.stderr)
+		}
+		if readFile(filepath.Join(l.standardAppDir(), "Meltype.exe")) != "exe v1.3.0" {
+			t.Errorf("実行先を戻していない")
+		}
+		if next := l.run(t, false, "", "recover", "-y"); !strings.Contains(next.stdout, "中断した変更はありません") {
+			t.Errorf("処理記録が残っている: %s", next.stdout)
+		}
+	})
+	t.Run("portable 版の復旧では DLL に触れない", func(t *testing.T) {
+		l := interruptedUse(t, lifecycle.PhaseOldMoved)
+		l.imeRegistered = true
+
+		l.run(t, false, "", "recover", "-y")
+
+		if len(l.imeCalls) != 0 {
+			t.Errorf("portable 版なのに DLL を入れ替えた: %+v", l.imeCalls)
+		}
+	})
 }
 
 func copyTree(t *testing.T, src, dst string) {
