@@ -3,6 +3,7 @@ package prompt
 import (
 	"bytes"
 	"errors"
+	"io"
 	"strings"
 	"testing"
 )
@@ -68,6 +69,29 @@ func TestConfirmShowsDefaultInSuffix(t *testing.T) {
 
 			if out.String() != tt.want {
 				t.Errorf("表示 = %q, want %q", out.String(), tt.want)
+			}
+		})
+	}
+}
+
+func TestAsk(t *testing.T) {
+	t.Run("続けて聞いても、それぞれの答えを読む", func(t *testing.T) {
+		c := Confirmer{In: strings.NewReader("n\ny\n\n"), Out: io.Discard, Interactive: true}
+
+		first, err1 := c.Ask("1 つ目？", DefaultYes)
+		second, err2 := c.Ask("2 つ目？", DefaultNo)
+		third, err3 := c.Ask("3 つ目？", DefaultYes)
+
+		if first || !second || !third || err1 != nil || err2 != nil || err3 != nil {
+			t.Errorf("答え = %v %v %v, エラー = %v %v %v", first, second, third, err1, err2, err3)
+		}
+	})
+	for name, input := range map[string]string{"EOF": "", "Esc": "\x1b\n"} {
+		t.Run(name+" は n ではなく中止にする", func(t *testing.T) {
+			c := Confirmer{In: strings.NewReader(input), Out: io.Discard, Interactive: true}
+
+			if _, err := c.Ask("消しますか？", DefaultNo); !errors.Is(err, ErrCanceled) {
+				t.Errorf("err = %v", err)
 			}
 		})
 	}

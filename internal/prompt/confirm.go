@@ -2,7 +2,6 @@
 package prompt
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -49,36 +48,67 @@ func (c Confirmer) Confirm(question string, def Default) error {
 	if !c.Interactive {
 		return ErrNeedsConfirmation
 	}
+	yes, err := c.Ask(question, def)
+	if err != nil {
+		return err
+	}
+	if !yes {
+		return ErrCanceled
+	}
+	return nil
+}
 
+// Ask は、y か n で答える質問をし、答えを返す。空の Enter は def を選ぶ。
+// EOF と Esc は、n とは区別して ErrCanceled を返す (入力が閉じた環境で、どちらかを勝手に選ばない)。
+// 続けて聞いたときに次の答えを読み落とさないよう、1 行ずつだけ読む。呼び出し側は、対話できることを確かめておく。
+//
+//	removeData, err := c.Ask("データも削除しますか？", prompt.DefaultNo)
+func (c Confirmer) Ask(question string, def Default) (bool, error) {
 	suffix := "[Y/n]"
 	if def == DefaultNo {
 		suffix = "[y/N]"
 	}
-	reader := bufio.NewReader(c.In)
 	for {
 		fmt.Fprintf(c.Out, "%s %s ", question, suffix)
-		line, err := reader.ReadString('\n')
+		line, err := readLine(c.In)
 		if err != nil && (!errors.Is(err, io.EOF) || line == "") {
-			return ErrCanceled
+			return false, ErrCanceled
 		}
 		answer := strings.ToLower(strings.TrimSpace(line))
 		atEOF := errors.Is(err, io.EOF)
 		switch {
+		case strings.Contains(answer, escape):
+			return false, ErrCanceled
 		case answer == "" && atEOF:
-			return ErrCanceled
+			return false, ErrCanceled
 		case answer == "":
-			if def == DefaultYes {
-				return nil
-			}
-			return ErrCanceled
+			return def == DefaultYes, nil
 		case answer == "y" || answer == "yes":
-			return nil
-		case answer == "n" || answer == "no" || strings.Contains(answer, escape):
-			return ErrCanceled
+			return true, nil
+		case answer == "n" || answer == "no":
+			return false, nil
 		}
 		if atEOF {
-			return ErrCanceled
+			return false, ErrCanceled
 		}
 		fmt.Fprintln(c.Out, "y か n で答えてください。")
+	}
+}
+
+// readLine は、改行までを 1 バイトずつ読む。bufio で先読みすると、次の質問の答えまで読んでしまうため。
+func readLine(r io.Reader) (string, error) {
+	var line []byte
+	b := make([]byte, 1)
+	for {
+		n, err := r.Read(b)
+		if n > 0 {
+			if b[0] == '\n' {
+				return string(line), nil
+			}
+			line = append(line, b[0])
+		}
+		if err != nil {
+			return string(line), err
+		}
 	}
 }
