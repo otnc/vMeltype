@@ -1,5 +1,5 @@
 {
-  "name": "vmeltype-repo-tools",
+  "name": "meltool-repo-tools",
   "private": true,
   "description": "リポジトリの運用の道具",
   "type": "module",

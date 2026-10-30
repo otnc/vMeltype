@@ -24,17 +24,17 @@ body:
     attributes:
       label: 再現の手順
       placeholder: |
-        1. vmeltype install v1.4.0
-        2. vmeltype use v1.4.0
+        1. meltool install v1.4.0
+        2. meltool use v1.4.0
         3. ...
   - type: input
     id: environment
     attributes:
       label: 使った環境
-      placeholder: 例 Windows 11 x64、vMeltype 0.1.0、Meltype v1.4.0 の通常版
+      placeholder: 例 Windows 11 x64、Meltool 0.1.0、Meltype v1.4.0 の通常版
   - type: textarea
     id: output
     attributes:
       label: 出力
-      description: "`vmeltype status --json` や `vmeltype doctor` の出力、エラーの文言など"
+      description: "`meltool status --json` や `meltool doctor` の出力、エラーの文言など"
       render: text
