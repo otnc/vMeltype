@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/otnc/vmeltype/internal/assets"
+	"github.com/otnc/vmeltype/internal/winime"
 )
 
 // Env は、コマンドが使う入出力と、外の世界への依存。テストで差し替えられるよう、ここからだけ受け取る。
@@ -41,6 +42,8 @@ type Env struct {
 	LocalAppData func() (string, error)
 	// IMERegistered は、Meltype IME が PC に登録されているかを返す。
 	IMERegistered func() (bool, error)
+	// ReplaceIME は、登録済みの Meltype IME の DLL を、appDir (切り替え先の版の、本家の ZIP の app に当たるディレクトリ) のものに入れ替える。
+	ReplaceIME func(appDir string) (winime.Result, error)
 }
 
 const usageTemplate = `使い方:{{if .Runnable}}

@@ -17,6 +17,7 @@ import (
 	"github.com/otnc/vmeltype/internal/cli"
 	"github.com/otnc/vmeltype/internal/osproc"
 	"github.com/otnc/vmeltype/internal/rootdir"
+	"github.com/otnc/vmeltype/internal/winime"
 	"github.com/otnc/vmeltype/internal/winsys"
 )
 
@@ -54,6 +55,9 @@ func main() {
 		StartApp:      appctl.Start,
 		LocalAppData:  winsys.LocalAppData,
 		IMERegistered: winsys.IMERegistered,
+		ReplaceIME: func(appDir string) (winime.Result, error) {
+			return winime.Replace(ctx, appDir)
+		},
 	}
 	code := cli.RunContext(ctx, os.Args[1:], env)
 	stop()
