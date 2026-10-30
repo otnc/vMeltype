@@ -41,6 +41,8 @@ type localEnv struct {
 	// removeCalls は、本家のアンインストーラーで Meltype の削除を求められた記録。removeFails なら削除に失敗する。
 	removeCalls []removeCall
 	removeFails bool
+	// outColor と errColor は、標準出力と標準エラーが色を付けられる端末であることを真似る。
+	outColor, errColor bool
 }
 
 func newLocalEnv(t *testing.T) *localEnv {
@@ -55,6 +57,8 @@ func (l *localEnv) run(t *testing.T, interactive bool, stdin string, args ...str
 		Out:          &stdout,
 		Err:          &stderr,
 		Interactive:  interactive,
+		OutColor:     l.outColor,
+		ErrColor:     l.errColor,
 		Version:      "1.2.3",
 		Now:          func() time.Time { return time.Date(2026, 10, 29, 9, 0, 0, 0, time.UTC) },
 		Getenv:       func(string) string { return "" },

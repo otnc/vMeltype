@@ -36,6 +36,8 @@ type Confirmer struct {
 	AssumeYes   bool
 	// ListenKeys は、端末を 1 キーずつ読む。nil なら In から 1 行ずつ読む。入力が端末のときだけ渡す。
 	ListenKeys ListenKeys
+	// Color は、Out に色を付けるか。
+	Color bool
 }
 
 // Confirm は、実行してよければ nil を返す。
@@ -75,7 +77,7 @@ func (c Confirmer) Ask(question string, def Default) (bool, error) {
 		return c.askByKey(question, suffix, def)
 	}
 	for {
-		fmt.Fprintf(c.Out, "%s %s ", question, suffix)
+		fmt.Fprintf(c.Out, "%s %s ", question, c.paint(colorSuffix, suffix))
 		line, err := readLine(c.In)
 		if err != nil && (!errors.Is(err, io.EOF) || line == "") {
 			return false, ErrCanceled

@@ -24,9 +24,11 @@ type Env struct {
 	Out         io.Writer
 	Err         io.Writer
 	Interactive bool
-	Version     string
-	Now         func() time.Time
-	Getenv      func(string) string
+	// OutColor と ErrColor は、標準出力と標準エラーに色を付けるか。端末で、NO_COLOR がないときだけ true にする。
+	OutColor, ErrColor bool
+	Version            string
+	Now                func() time.Time
+	Getenv             func(string) string
 	// DefaultRoot は、--root がないときの管理ルートを返す。
 	DefaultRoot func() (string, error)
 	// HTTPClient と GitHubAPIURL は、公式一覧の取得など、通信するコマンドだけが使う。
@@ -58,7 +60,7 @@ type Env struct {
 
 // confirmer は、変更の前の確認を作る。確認は標準エラーに出し、端末なら y か n を押すだけで答えられる。
 func (env *Env) confirmer(cmd *cobra.Command, interactive, assumeYes bool) prompt.Confirmer {
-	return prompt.Confirmer{In: cmd.InOrStdin(), Out: cmd.ErrOrStderr(), Interactive: interactive, AssumeYes: assumeYes, ListenKeys: env.ListenKeys}
+	return prompt.Confirmer{In: cmd.InOrStdin(), Out: cmd.ErrOrStderr(), Interactive: interactive, AssumeYes: assumeYes, ListenKeys: env.ListenKeys, Color: env.ErrColor}
 }
 
 const usageTemplate = `使い方:{{if .Runnable}}
@@ -101,7 +103,7 @@ func RunContext(ctx context.Context, args []string, env Env) int {
 	}
 	code := exitCodeOf(err)
 	if err != nil && !errors.Is(err, errUpdateAvailable) {
-		fmt.Fprintf(env.Err, "エラー: %v\n", err)
+		fmt.Fprintf(env.Err, "%s %v\n", env.errStyle().paint(colorError, "エラー:"), err)
 		if code == ExitUsage {
 			fmt.Fprintf(env.Err, "\"%s --help\" で使い方を表示します。\n", executed.CommandPath())
 		}

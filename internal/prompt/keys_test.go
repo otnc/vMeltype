@@ -3,6 +3,7 @@ package prompt
 import (
 	"bytes"
 	"errors"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -91,5 +92,23 @@ func TestAskByKey(t *testing.T) {
 				t.Errorf("答えたあとに改行していない: %q", out.String())
 			}
 		})
+	}
+}
+
+func TestAskByKeyWithColor(t *testing.T) {
+	keys := &fakeKeys{keys: runes("y")}
+	var out bytes.Buffer
+	c := Confirmer{Out: &out, Interactive: true, ListenKeys: keys.listen, Color: true}
+
+	if _, err := c.Ask("削除しますか？", DefaultNo); err != nil {
+		t.Fatal(err)
+	}
+
+	plain := regexp.MustCompile(`\x1b\[[0-9;]*m`).ReplaceAllString(out.String(), "")
+	if plain == out.String() {
+		t.Errorf("色を付けていない: %q", out.String())
+	}
+	if lines := rendered(plain); len(lines) != 1 || lines[0] != "削除しますか？ y" {
+		t.Errorf("色を除いた表示 = %q", lines)
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/mattn/go-colorable"
 	"golang.org/x/term"
 
 	"github.com/otnc/vmeltype/internal/appctl"
@@ -32,14 +33,22 @@ const stopAppTimeout = 15 * time.Second
 // removeMeltypeTimeout は、本家のアンインストーラーが Meltype を消し終えるまで待つ時間。本家の画面で確認に答える時間も含める。
 const removeMeltypeTimeout = 10 * time.Minute
 
+// colorEnabled は、f に色を付けてよいかを返す。NO_COLOR (https://no-color.org) と TERM=dumb を守り、端末でなければ付けない。
+func colorEnabled(f *os.File) bool {
+	return os.Getenv("NO_COLOR") == "" && os.Getenv("TERM") != "dumb" && term.IsTerminal(int(f.Fd()))
+}
+
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	env := cli.Env{
-		In:  os.Stdin,
-		Out: os.Stdout,
-		Err: os.Stderr,
+		In: os.Stdin,
+		// go-colorable は、色の制御に対応していない Windows のコンソールでも色を付け、対応していれば素通しする
+		Out: colorable.NewColorableStdout(),
+		Err: colorable.NewColorableStderr(),
 		// 確認は標準エラーに出すので、標準出力ではなく標準エラーが TTY かを見る
 		Interactive: term.IsTerminal(int(os.Stdin.Fd())) && term.IsTerminal(int(os.Stderr.Fd())),
+		OutColor:    colorEnabled(os.Stdout),
+		ErrColor:    colorEnabled(os.Stderr),
 		Version:     version,
 		Now:         time.Now,
 		Getenv:      os.Getenv,
