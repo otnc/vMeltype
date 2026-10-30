@@ -34,6 +34,8 @@ type localEnv struct {
 	// imeResult は、IME の DLL の入れ替えの結果。imeCalls は、入れ替えを求められた記録。
 	imeResult winime.Result
 	imeCalls  []imeCall
+	// installedTip は、Program Files に登録されている IME の DLL のハッシュ。
+	installedTip map[string]string
 	// upstream は、公式一覧と配布物を返す偽の GitHub。nil なら通信しない。
 	upstream *fakeUpstream
 	// removeCalls は、本家のアンインストーラーで Meltype の削除を求められた記録。removeFails なら削除に失敗する。
@@ -71,9 +73,10 @@ func (l *localEnv) run(t *testing.T, interactive bool, stdin string, args ...str
 			l.started++
 			return nil
 		},
-		LocalAppData:  func() (string, error) { return l.localAppData, nil },
-		IMERegistered: func() (bool, error) { return l.imeRegistered, nil },
-		Executable:    func() (string, error) { return `C:	oolsvmeltype.exe`, nil },
+		LocalAppData:       func() (string, error) { return l.localAppData, nil },
+		IMERegistered:      func() (bool, error) { return l.imeRegistered, nil },
+		InstalledTipHashes: func() (map[string]string, error) { return l.installedTip, nil },
+		Executable:         func() (string, error) { return `C:	oolsvmeltype.exe`, nil },
 		RemoveMeltype: func(appDir, fallback string, interactive bool) error {
 			l.removeCalls = append(l.removeCalls, removeCall{appDir: appDir, fallback: fallback, interactive: interactive})
 			if l.removeFails {

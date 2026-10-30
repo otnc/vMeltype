@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -13,6 +15,7 @@ import (
 	"github.com/otnc/vmeltype/internal/lifecycle"
 	"github.com/otnc/vmeltype/internal/snapshot"
 	"github.com/otnc/vmeltype/internal/store"
+	"github.com/otnc/vmeltype/internal/winsys"
 )
 
 // errDoctorFailed は、doctor が直すべき問題を見つけたことを表す。
@@ -73,6 +76,9 @@ func diagnose(env *Env, root string) []check {
 	} else {
 		checks = append(checks, journalCheck(s), deploymentCheck(s))
 		if c, ok := previousCheck(root, s); ok {
+			checks = append(checks, c)
+		}
+		if c, ok := imeCheck(env, root, s); ok {
 			checks = append(checks, c)
 		}
 	}
@@ -172,4 +178,42 @@ func writeChecks(w io.Writer, root string, checks []check) {
 			fmt.Fprintf(w, "    対処: %s\n", c.Hint)
 		}
 	}
+}
+
+// imeCheck は、有効版が通常版で Meltype IME を登録済みなら、登録されている DLL が有効版のものかを調べる。
+// 本家の更新で本体だけが新しくなり、古い版の DLL が残ることがある。新旧の本体と DLL が組み合わさって動くとは限らない。
+// 比べるのは、本家が DLL の隣に置く、署名する前の中身のハッシュ。調べないときは項目を出さない。
+func imeCheck(env *Env, root string, s localStatus) (check, bool) {
+	if s.Active == nil || s.Active.Variant != string(assets.Standard) || s.Pending != nil || env.IMERegistered == nil {
+		return check{}, false
+	}
+	registered, err := env.IMERegistered()
+	if err != nil {
+		return check{Name: "ime", Level: levelWarn, Message: err.Error()}, true
+	}
+	if !registered {
+		return check{}, false
+	}
+	installed, err := env.InstalledTipHashes()
+	if err != nil {
+		return check{Name: "ime", Level: levelWarn, Message: err.Error()}, true
+	}
+	tip := filepath.Join(store.Store{Root: root}.Path(s.Active.StoreID), "files", "app", "tip")
+	var mismatched []string
+	for _, arch := range []string{"x64", "x86"} {
+		data, err := os.ReadFile(filepath.Join(tip, arch, "MeltypeTip.dll.sha256"))
+		expected := winsys.NormalizeHash(string(data))
+		if err != nil || expected == "" || installed[arch] == "" {
+			return check{Name: "ime", Level: levelWarn, Message: fmt.Sprintf("登録されている Meltype IME の DLL (%s) が %s のものかを、ハッシュがないので確かめられません", arch, s.Active.Tag)}, true
+		}
+		if installed[arch] != expected {
+			mismatched = append(mismatched, arch)
+		}
+	}
+	if len(mismatched) > 0 {
+		return check{Name: "ime", Level: levelFail,
+			Message: fmt.Sprintf("登録されている Meltype IME の DLL (%s) が、有効版 %s のものではありません", strings.Join(mismatched, "、"), s.Active.Tag),
+			Hint:    fmt.Sprintf("\"%s\" で、DLL も %s のものに入れ替えてください", reapplyCommand(s.Active), s.Active.Tag)}, true
+	}
+	return check{Name: "ime", Level: levelOK, Message: fmt.Sprintf("登録されている Meltype IME の DLL は %s のものです", s.Active.Tag)}, true
 }

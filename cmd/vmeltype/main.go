@@ -56,9 +56,10 @@ func main() {
 		StopApp: func(appDir string) error {
 			return appctl.Stop(ctx, appDir, osproc.RunningUnder, stopAppTimeout)
 		},
-		StartApp:      appctl.Start,
-		LocalAppData:  winsys.LocalAppData,
-		IMERegistered: winsys.IMERegistered,
+		StartApp:           appctl.Start,
+		LocalAppData:       winsys.LocalAppData,
+		IMERegistered:      winsys.IMERegistered,
+		InstalledTipHashes: winsys.InstalledTipHashes,
 		ReplaceIME: func(appDir string) (winime.Result, error) {
 			return winime.Replace(ctx, appDir)
 		},

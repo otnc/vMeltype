@@ -174,3 +174,41 @@ func TestDoctorFindsProblems(t *testing.T) {
 		})
 	}
 }
+
+func TestDoctorChecksIMEDLL(t *testing.T) {
+	tests := []struct {
+		name      string
+		installed map[string]string
+		wantLevel string
+		wantCode  int
+	}{
+		{name: "有効版の DLL なら OK", installed: map[string]string{"x64": "HASH-X64-V1.4.0", "x86": "HASH-X86-V1.4.0"}, wantLevel: "ok", wantCode: ExitOK},
+		{name: "ほかの版の DLL なら、置き直し方を示す", installed: map[string]string{"x64": "HASH-X64-V1.3.0", "x86": "HASH-X86-V1.3.0"}, wantLevel: "fail", wantCode: ExitNeedsAction},
+		{name: "DLL のハッシュがなければ、確かめられないと警告する", installed: map[string]string{"x64": "", "x86": ""}, wantLevel: "warn", wantCode: ExitOK},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := managedStandard(t)
+			l.imeRegistered = true
+			l.installedTip = tt.installed
+
+			got, d := l.doctor(t)
+
+			if got.code != tt.wantCode || d.levels()["ime"] != tt.wantLevel {
+				t.Errorf("code = %d, ime = %q\n%s", got.code, d.levels()["ime"], got.stderr)
+			}
+			if tt.wantLevel == "fail" && !strings.Contains(l.run(t, false, "", "doctor").stdout, "vmeltype use v1.4.0 --force") {
+				t.Errorf("置き直し方を示していない")
+			}
+		})
+	}
+	t.Run("IME を登録していなければ調べない", func(t *testing.T) {
+		l := managedStandard(t)
+
+		_, d := l.doctor(t)
+
+		if _, ok := d.levels()["ime"]; ok {
+			t.Errorf("登録していないのに調べた: %+v", d)
+		}
+	})
+}
