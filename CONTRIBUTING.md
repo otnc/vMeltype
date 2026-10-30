@@ -1,6 +1,6 @@
 # 開発への参加
 
-vMeltype の開発に参加する人に向けた決まりと手順です。文書、コードのコメント、コミットメッセージの説明、Issue、PR は日本語で書きます。
+Meltool の開発に参加する人に向けた決まりと手順です。文書、コードのコメント、コミットメッセージの説明、Issue、PR は日本語で書きます。
 
 ## 手元で動かす
 
@@ -13,8 +13,8 @@ vMeltype の開発に参加する人に向けた決まりと手順です。文�
 ### 初回の手順
 
 ```sh
-git clone https://github.com/otnc/vMeltype.git
-cd vMeltype
+git clone https://github.com/otnc/Meltool.git
+cd Meltool
 pnpm install
 go build ./...
 ```
@@ -90,14 +90,14 @@ docs: CONTRIBUTING にブランチ名の決まりを追記
 | スコープ | 領域 |
 | --- | --- |
 | `core` | バージョンの比較、計画など、OS と通信に依らない共通の処理 |
-| `cli` | `vmeltype` のコマンド、引数、表示、確認 |
+| `cli` | `meltool` のコマンド、引数、表示、確認 |
 | `gui` | 任意の GUI |
 | `catalog` | 公式一覧の取得と保存 |
 | `store` | 保持バージョン、manifest、管理ルート |
 | `snapshot` | データの保存と復元 |
 | `lifecycle` | use、apply、rollback、recover、journal、baseline、自身の削除 |
 | `windows`、`macos`、`linux` | OS ごとの適用と helper |
-| `installer` | vMeltype 自身のインストーラーとアンインストーラー |
+| `installer` | Meltool 自身のインストーラーとアンインストーラー |
 | `release` | 配布物の作成、署名、公開 |
 | `deps` | 依存の更新 |
 | `ci` | CI |
