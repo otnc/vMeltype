@@ -3,6 +3,7 @@ package lifecycle
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -111,14 +112,21 @@ func quarantineUpdates(root, dataDir string, now time.Time) error {
 	for i := 2; exists(dst); i++ {
 		dst = filepath.Join(dir, fmt.Sprintf("update-%s-%d", now.UTC().Format("20060102T150405Z"), i))
 	}
+	// 管理ルートが別のドライブにあれば rename できないので、写してから消す
 	if err := os.Rename(updates, dst); err != nil {
-		return fmt.Errorf("本家がダウンロード済みの更新 (%s) を管理ルートに移せなかったので、切り替えません: %w", updates, err)
+		if copyErr := copyTree(updates, dst); copyErr != nil {
+			os.RemoveAll(dst)
+			return fmt.Errorf("本家がダウンロード済みの更新 (%s) を管理ルートに移せなかったので、切り替えません: %w", updates, errors.Join(err, copyErr))
+		}
+		if err := os.RemoveAll(updates); err != nil {
+			return fmt.Errorf("本家がダウンロード済みの更新 (%s) を管理ルートに写しましたが、消せなかったので、切り替えません: %w", updates, err)
+		}
 	}
 	return updateBaseline(root, func(b *Baseline) { b.QuarantinedUpdates = append(b.QuarantinedUpdates, dst) })
 }
 
-// keepAdoptedApp は、取り込んだ本家のファイル (前の実行先を退避したもの) を、管理前の記録として残す。
-// 管理ルートが別のドライブにあって移せなければ、退避した場所のまま記録する。
+// keepAdoptedApp は、取り込んだ本家のファイル (前の実行先を退避したもの) を、管理前の記録として管理ルートに移す。
+// 管理ルートが別のドライブにあって rename できなければ、写してから消す。写せなければ、退避した場所のまま記録する。
 func keepAdoptedApp(root string, journal *Journal) error {
 	b, err := LoadBaseline(root)
 	if err != nil {
@@ -132,9 +140,53 @@ func keepAdoptedApp(root string, journal *Journal) error {
 		return err
 	}
 	if err := os.Rename(journal.BackupDir, saved); err != nil {
-		saved = journal.BackupDir
+		if copyErr := copyTree(journal.BackupDir, saved); copyErr != nil {
+			os.RemoveAll(saved)
+			saved = journal.BackupDir
+		} else {
+			os.RemoveAll(journal.BackupDir)
+		}
 	}
 	return updateBaseline(root, func(b *Baseline) {
 		b.StandardApp = &AdoptedApp{AppDir: journal.To.AppDir, SavedDir: saved, Replaced: nonNil(journal.Adopted), AdoptedAt: journal.StartedAt}
 	})
+}
+
+// copyTree は、src の通常のファイルとディレクトリを dst に写す。リンクなど通常のファイルでないものがあれば止める。
+func copyTree(src, dst string) error {
+	return filepath.WalkDir(src, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		target := filepath.Join(dst, rel)
+		switch {
+		case d.IsDir():
+			return privatefs.MkdirAll(target)
+		case d.Type().IsRegular():
+			return copyFile(path, target)
+		default:
+			return fmt.Errorf("通常のファイルでないものがあります: %s", path)
+		}
+	})
+}
+
+func copyFile(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	out, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(out, in); err != nil {
+		out.Close()
+		return err
+	}
+	return out.Close()
 }
