@@ -1,6 +1,7 @@
 package upstreamconf
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -38,18 +39,6 @@ func TestDisableAutoUpdate(t *testing.T) {
 			original: Original{FileExisted: true, AutoUpdate: ptr(true)},
 		},
 		{
-			name:     "項目がなければ先頭に足す",
-			body:     "{\n  \"Enabled\": true\n}",
-			want:     "{\"AutoUpdate\": false,\n  \"Enabled\": true\n}",
-			original: Original{FileExisted: true},
-		},
-		{
-			name:     "空のオブジェクトにも足す",
-			body:     "{}",
-			want:     "{\"AutoUpdate\": false}",
-			original: Original{FileExisted: true},
-		},
-		{
 			name:     "既に false なら変えない",
 			body:     "{\"AutoUpdate\":false}",
 			want:     "{\"AutoUpdate\":false}",
@@ -76,6 +65,28 @@ func TestDisableAutoUpdate(t *testing.T) {
 			}
 			if original.FileExisted != tt.original.FileExisted || !sameBool(original.AutoUpdate, tt.original.AutoUpdate) {
 				t.Errorf("元の値 = %+v, want %+v", original, tt.original)
+			}
+		})
+	}
+
+	// 足す位置と空白は、書き換えに使うライブラリに任せるので、中身の値で確かめる
+	for _, body := range []string{"{\n  \"Enabled\": true\n}", "{}"} {
+		t.Run("項目がなければ足し、ほかの項目は変えない: "+body, func(t *testing.T) {
+			path := writeConfig(t, body)
+
+			original, err := DisableAutoUpdate(path)
+
+			var got map[string]any
+			if err := json.Unmarshal([]byte(read(t, path)), &got); err != nil {
+				t.Fatal(err)
+			}
+			var before map[string]any
+			json.Unmarshal([]byte(body), &before)
+			if err != nil || got["AutoUpdate"] != false || len(got) != len(before)+1 || (before["Enabled"] != nil && got["Enabled"] != true) {
+				t.Errorf("中身 = %q, err = %v", read(t, path), err)
+			}
+			if !original.FileExisted || original.AutoUpdate != nil {
+				t.Errorf("元の値 = %+v", original)
 			}
 		})
 	}
