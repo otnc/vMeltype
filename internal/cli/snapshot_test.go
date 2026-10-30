@@ -168,3 +168,56 @@ func TestSnapshotUnknownID(t *testing.T) {
 		t.Errorf("code = %d, stderr = %s", got.code, got.stderr)
 	}
 }
+
+func TestSnapshotExportImport(t *testing.T) {
+	t.Run("書き出したものを別の PC で取り込み、復元できる", func(t *testing.T) {
+		from := managedStandard(t)
+		from.writeStandardData(t, "userdict.txt", "前の PC の辞書")
+		id := from.createSnapshot(t)
+		file := filepath.Join(t.TempDir(), "data.vmeltype-snapshot")
+
+		exported := from.run(t, false, "", "snapshot", "export", id, file)
+		if exported.code != ExitOK || !strings.Contains(exported.stdout, "辞書") {
+			t.Fatalf("code = %d\n%s%s", exported.code, exported.stdout, exported.stderr)
+		}
+
+		to := managedStandard(t)
+		imported := to.run(t, false, "", "snapshot", "import", file, "--json")
+		var m struct{ ID string }
+		json.Unmarshal([]byte(imported.stdout), &m)
+		if imported.code != ExitOK || m.ID == "" {
+			t.Fatalf("code = %d\n%s%s", imported.code, imported.stdout, imported.stderr)
+		}
+		restored := to.run(t, false, "", "snapshot", "restore", m.ID, "-y")
+		if restored.code != ExitOK || readFile(filepath.Join(to.standardDataDir(), "userdict.txt")) != "前の PC の辞書" {
+			t.Errorf("code = %d\n%s", restored.code, restored.stderr)
+		}
+	})
+	t.Run("通常版のデータを portable 版には復元しない", func(t *testing.T) {
+		from := managedStandard(t)
+		id := from.createSnapshot(t)
+		file := filepath.Join(t.TempDir(), "data.vmeltype-snapshot")
+		from.run(t, false, "", "snapshot", "export", id, file)
+		to := newPortableWithData(t)
+		var m struct{ ID string }
+		json.Unmarshal([]byte(to.run(t, false, "", "snapshot", "import", file, "--json").stdout), &m)
+
+		got := to.run(t, false, "", "snapshot", "restore", m.ID, "-y")
+
+		if got.code != ExitError || !strings.Contains(got.stderr, "通常版") || portableUserdict(to) != "保存した辞書" {
+			t.Errorf("code = %d\n%s", got.code, got.stderr)
+		}
+	})
+}
+
+func (l *localEnv) writeStandardData(t *testing.T, name, body string) {
+	t.Helper()
+	if err := os.WriteFile(filepath.Join(l.standardDataDir(), name), []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// portableUserdict は、portable 版の data の userdict.txt の中身を返す。
+func portableUserdict(l *localEnv) string {
+	return readFile(filepath.Join(l.appDir(), "data", "userdict.txt"))
+}

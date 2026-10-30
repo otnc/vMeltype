@@ -10,6 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/otnc/vmeltype/internal/assets"
 	"github.com/otnc/vmeltype/internal/lifecycle"
 	"github.com/otnc/vmeltype/internal/prompt"
 	"github.com/otnc/vmeltype/internal/snapshot"
@@ -231,8 +232,8 @@ func runSnapshotRestore(env *Env) func(*cobra.Command, []string) error {
 			return err
 		}
 		dataDir := place.dataDir
-		if !strings.EqualFold(m.Source, dataDir) {
-			return fmt.Errorf("スナップショット %s は %s のデータで、いまの有効版のデータ先 (%s) とは違うので、復元しません", id, m.Source, dataDir)
+		if from, to := dataKind(m.Source), dataKind(dataDir); from != to {
+			return fmt.Errorf("スナップショット %s は%sのデータ (%s) で、いまの有効版は%sなので、復元しません", id, variantLabels[from], m.Source, variantLabels[to])
 		}
 
 		out := cmd.OutOrStdout()
@@ -293,4 +294,60 @@ func runSnapshotRestore(env *Env) func(*cobra.Command, []string) error {
 		fmt.Fprintln(out)
 		return nil
 	}
+}
+
+func runSnapshotExport(env *Env) func(*cobra.Command, []string) error {
+	return func(cmd *cobra.Command, args []string) error {
+		root, err := managementRoot(cmd, env)
+		if err != nil {
+			return err
+		}
+		id, file := args[0], args[1]
+		if filepath.Ext(file) == "" {
+			file += snapshot.FileExtension
+		}
+		if err := snapshot.Export(root, id, file); err != nil {
+			return err
+		}
+		out := cmd.OutOrStdout()
+		if asJSON, _ := cmd.Flags().GetBool("json"); asJSON {
+			return writeJSON(out, map[string]any{"id": id, "file": file})
+		}
+		fmt.Fprintf(out, "スナップショット %s を %s に書き出しました。\n", id, file)
+		fmt.Fprintln(out, "このファイルには、Meltype の設定、辞書、学習の中身が入っています。人に渡したり公開したりしないでください。")
+		fmt.Fprintf(out, "別の PC では \"vmeltype snapshot import %s\" で取り込みます。\n", filepath.Base(file))
+		return nil
+	}
+}
+
+func runSnapshotImport(env *Env) func(*cobra.Command, []string) error {
+	return func(cmd *cobra.Command, args []string) error {
+		root, err := managementRoot(cmd, env)
+		if err != nil {
+			return err
+		}
+		m, err := snapshot.Import(root, args[0], env.Now())
+		if err != nil {
+			return err
+		}
+		out := cmd.OutOrStdout()
+		if asJSON, _ := cmd.Flags().GetBool("json"); asJSON {
+			return writeJSON(out, m)
+		}
+		fmt.Fprintf(out, "スナップショット %s として取り込みました (%d ファイル、%s)。\n", m.ID, len(m.Files), formatBytes(m.TotalBytes))
+		fmt.Fprintf(out, "復元するには \"vmeltype snapshot restore %s\" を実行します。\n", m.ID)
+		return nil
+	}
+}
+
+// dataKind は、データ先が portable 版のもの (実行先の隣の data) か、通常版のものかを返す。
+// 別の PC で作ったスナップショットはデータ先のパスが違うので、パスではなく種類で比べる。
+func dataKind(path string) string {
+	clean := filepath.Clean(path)
+	if strings.EqualFold(filepath.Base(clean), "data") &&
+		strings.EqualFold(filepath.Base(filepath.Dir(clean)), "app") &&
+		strings.EqualFold(filepath.Base(filepath.Dir(filepath.Dir(clean))), "portable") {
+		return string(assets.Portable)
+	}
+	return string(assets.Standard)
 }

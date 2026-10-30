@@ -30,6 +30,7 @@ vmeltype update             # 新しい版を取得して切り替える (upgrad
 vmeltype rollback           # 直前の版に戻す
 vmeltype pin                # いまの版から切り替えないよう固定する
 vmeltype snapshot create    # Meltype のデータを保存する
+vmeltype snapshot export <id> data.vmeltype-snapshot  # 保存したデータを 1 つのファイルにする。別の PC で import できる
 vmeltype status             # 有効版、配置、データ先を表示する
 vmeltype doctor             # 問題がないかを調べ、直し方を示す
 vmeltype app update         # vMeltype 自身を新しい版にする (self upgrade でも同じ)
