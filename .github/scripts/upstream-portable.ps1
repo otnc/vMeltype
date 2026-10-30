@@ -1,8 +1,8 @@
-# 本家の portable 版を使って、vmeltype の取得、切り替え、snapshot、Meltype の終了と起動し直しを通しで確かめる。
+# 本家の portable 版を使って、meltool の取得、切り替え、snapshot、Meltype の終了と起動し直しを通しで確かめる。
 # 本家の --exit は同じセッションで動いている Meltype に届き、普段使いの Meltype も止めてしまうので、
 # GitHub Actions の使い捨ての Windows でだけ動かす。
 param(
-    [Parameter(Mandatory)] [string] $Vmeltype,
+    [Parameter(Mandatory)] [string] $Meltool,
     [Parameter(Mandatory)] [string] $From,
     [Parameter(Mandatory)] [string] $To
 )
@@ -12,17 +12,17 @@ if ($env:GITHUB_ACTIONS -ne 'true') {
     throw 'このスクリプトは、動いている Meltype を止めるので、GitHub Actions の中でだけ動かします'
 }
 
-$root = Join-Path $env:RUNNER_TEMP 'vmeltype-root'
+$root = Join-Path $env:RUNNER_TEMP 'meltool-root'
 $appDir = Join-Path $root 'portable\app'
 $exe = Join-Path $appDir 'Meltype.exe'
 $dataDir = Join-Path $appDir 'data'
-$marker = Join-Path $dataDir 'vmeltype-check.txt'
+$marker = Join-Path $dataDir 'meltool-check.txt'
 
-function Invoke-Vmeltype {
-    Write-Host "> vmeltype $args"
-    $output = & $Vmeltype --root $root @args
+function Invoke-Meltool {
+    Write-Host "> meltool $args"
+    $output = & $Meltool --root $root @args
     if ($LASTEXITCODE -ne 0) {
-        throw "vmeltype $args が終了コード $LASTEXITCODE で失敗しました"
+        throw "meltool $args が終了コード $LASTEXITCODE で失敗しました"
     }
     $text = $output -join "`n"
     Write-Host $text
@@ -58,52 +58,52 @@ function Assert-Marker([bool] $Expected) {
     }
 }
 
-Invoke-Vmeltype install $From --portable -y | Out-Null
-Invoke-Vmeltype install $To --portable -y | Out-Null
-Invoke-Vmeltype list | Out-Null
+Invoke-Meltool install $From --portable -y | Out-Null
+Invoke-Meltool install $To --portable -y | Out-Null
+Invoke-Meltool list | Out-Null
 
 Write-Host '--- 有効にして起動する'
-Invoke-Vmeltype use $From --portable -y | Out-Null
-Invoke-Vmeltype run | Out-Null
+Invoke-Meltool use $From --portable -y | Out-Null
+Invoke-Meltool run | Out-Null
 Assert-Running $From
 # 動いている間に run をもう一度使っても、二つ目は起動しない
-Invoke-Vmeltype run | Out-Null
+Invoke-Meltool run | Out-Null
 if ((Get-Running).Count -ne 1) {
     throw "Meltype が $((Get-Running).Count) 個動いています"
 }
 # Meltype は起動すると data と設定のファイルを作る
 Wait-Until { Test-Path (Join-Path $dataDir 'config.json') } 'Meltype が data に設定を作りません'
-$before = (Invoke-Vmeltype snapshot create -y --json | ConvertFrom-Json).id
+$before = (Invoke-Meltool snapshot create -y --json | ConvertFrom-Json).id
 Assert-Running $From
-Set-Content -Path $marker -Value 'vMeltype の検査で置いたファイル'
+Set-Content -Path $marker -Value 'Meltool の検査で置いたファイル'
 
 Write-Host '--- 動いている Meltype を終了させて切り替える'
-Invoke-Vmeltype use $To --portable -y | Out-Null
+Invoke-Meltool use $To --portable -y | Out-Null
 Assert-Running $To
 Assert-Marker $true
-$current = Invoke-Vmeltype current --json | ConvertFrom-Json
+$current = Invoke-Meltool current --json | ConvertFrom-Json
 if ($current.active.tag.TrimStart('v') -ne $To.TrimStart('v')) {
     throw "有効なバージョンの記録が $($current.active.tag) です"
 }
 
 Write-Host '--- rollback で戻す'
-Invoke-Vmeltype rollback -y | Out-Null
+Invoke-Meltool rollback -y | Out-Null
 Assert-Running $From
 Assert-Marker $true
 
 Write-Host '--- 動いている Meltype の状態を調べる'
 # Meltype が動いて data に書いても、実行先の配置は保持バージョンと一致したままになる
-$status = Invoke-Vmeltype status --json | ConvertFrom-Json
+$status = Invoke-Meltool status --json | ConvertFrom-Json
 if ($status.deployment -ne 'match' -or $status.running.Count -eq 0 -or -not $status.dataExists) {
     throw "status が違います: deployment = $($status.deployment)、running = $($status.running.Count)、dataExists = $($status.dataExists)"
 }
-Invoke-Vmeltype doctor | Out-Null
+Invoke-Meltool doctor | Out-Null
 
 Write-Host '--- snapshot を復元する'
-Invoke-Vmeltype snapshot restore $before -y | Out-Null
+Invoke-Meltool snapshot restore $before -y | Out-Null
 Assert-Running $From
 Assert-Marker $false
-$snapshots = (Invoke-Vmeltype snapshot list --json | ConvertFrom-Json).snapshots
+$snapshots = (Invoke-Meltool snapshot list --json | ConvertFrom-Json).snapshots
 if ($snapshots.Count -ne 2) {
     throw "復元の前の data を保存していません ($($snapshots.Count) 件)"
 }

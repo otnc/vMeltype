@@ -1,9 +1,9 @@
-# 本家の通常版を Install.cmd と同じ install.ps1 で入れた環境を、vmeltype が取り込んで切り替えることを通しで確かめる。
+# 本家の通常版を Install.cmd と同じ install.ps1 で入れた環境を、meltool が取り込んで切り替えることを通しで確かめる。
 # 利用者の %LOCALAPPDATA% の Meltype と自動起動を書き換え、動いている Meltype も止めるので、GitHub Actions の使い捨ての Windows でだけ動かす。
 # -Ime を付けると、install.ps1 -Ask で Meltype IME も登録し (GitHub Actions は管理者で動き、UAC の確認は出ない)、切り替えで DLL も入れ替わることを確かめる。
 # 付けなければ IME は登録しない (install.ps1 は -Ask を付けなければ登録を求めない)。
 param(
-    [Parameter(Mandatory)] [string] $Vmeltype,
+    [Parameter(Mandatory)] [string] $Meltool,
     [Parameter(Mandatory)] [string] $From,
     [Parameter(Mandatory)] [string] $To,
     [switch] $Ime
@@ -14,17 +14,17 @@ if ($env:GITHUB_ACTIONS -ne 'true') {
     throw 'このスクリプトは、利用者の Meltype を書き換えるので、GitHub Actions の中でだけ動かします'
 }
 
-$root = Join-Path $env:RUNNER_TEMP 'vmeltype-root'
+$root = Join-Path $env:RUNNER_TEMP 'meltool-root'
 $appDir = Join-Path $env:LOCALAPPDATA 'Programs\Meltype'
 $exe = Join-Path $appDir 'Meltype.exe'
 $dataDir = Join-Path $env:LOCALAPPDATA 'Meltype'
-$marker = Join-Path $dataDir 'vmeltype-check.txt'
+$marker = Join-Path $dataDir 'meltool-check.txt'
 
-function Invoke-Vmeltype {
-    Write-Host "> vmeltype $args"
-    $output = & $Vmeltype --root $root @args
+function Invoke-Meltool {
+    Write-Host "> meltool $args"
+    $output = & $Meltool --root $root @args
     if ($LASTEXITCODE -ne 0) {
-        throw "vmeltype $args が終了コード $LASTEXITCODE で失敗しました"
+        throw "meltool $args が終了コード $LASTEXITCODE で失敗しました"
     }
     $text = $output -join "`n"
     Write-Host $text
@@ -67,7 +67,7 @@ if (Test-Path $tipKey) {
 }
 
 function Get-StoredPackage([string] $Tag) {
-    $stored = (Invoke-Vmeltype list --json | ConvertFrom-Json).stored | Where-Object { $_.tag.TrimStart('v') -eq $Tag.TrimStart('v') -and $_.variant -eq 'standard' }
+    $stored = (Invoke-Meltool list --json | ConvertFrom-Json).stored | Where-Object { $_.tag.TrimStart('v') -eq $Tag.TrimStart('v') -and $_.variant -eq 'standard' }
     return Join-Path $root "versions\$($stored.id)\files"
 }
 
@@ -85,8 +85,8 @@ function Assert-ImeDll([string] $Tag) {
     }
 }
 
-Invoke-Vmeltype install $From -y | Out-Null
-Invoke-Vmeltype install $To -y | Out-Null
+Invoke-Meltool install $From -y | Out-Null
+Invoke-Meltool install $To -y | Out-Null
 
 Write-Host '--- 本家の install.ps1 で入れて起動する'
 $installArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path (Get-StoredPackage $From) 'install.ps1'))
@@ -101,14 +101,14 @@ if ($Ime -ne (Test-Path $tipKey)) {
 Assert-Running $From
 Assert-ImeDll $From
 Wait-Until { Test-Path (Join-Path $dataDir 'config.json') } 'Meltype がデータ先に設定を作りません'
-Set-Content -Path $marker -Value 'vMeltype の検査で置いたファイル'
+Set-Content -Path $marker -Value 'Meltool の検査で置いたファイル'
 $uninstallKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Meltype'
 if (-not (Test-Path $uninstallKey)) {
     throw '本家の install.ps1 が「設定 → アプリ」に登録していません'
 }
 
 Write-Host '--- 本家のインストールを取り込んで切り替える'
-Invoke-Vmeltype use $To -y | Out-Null
+Invoke-Meltool use $To -y | Out-Null
 Assert-Running $To
 Assert-ImeDll $To
 Assert-AutoUpdateDisabled
@@ -121,7 +121,7 @@ if (-not (Test-Path (Join-Path $appDir 'uninstall.ps1'))) {
 if (-not (Test-Path (Join-Path $root 'baseline\standard-app\Meltype.exe'))) {
     throw '置き換えた本家のファイルを管理前の記録に残していません'
 }
-$snapshots = (Invoke-Vmeltype snapshot list --json | ConvertFrom-Json).snapshots
+$snapshots = (Invoke-Meltool snapshot list --json | ConvertFrom-Json).snapshots
 if (@($snapshots | Where-Object reason -eq 'before-use').Count -ne 1) {
     throw '切り替えの前のスナップショットがありません'
 }
@@ -129,14 +129,14 @@ if (@($snapshots | Where-Object reason -eq 'before-use').Count -ne 1) {
 Write-Host '--- 動いている Meltype の状態を調べる'
 # 本家が起動して設定を保存し直しても、自動更新は止まったままになる
 Assert-AutoUpdateDisabled
-$status = Invoke-Vmeltype status --json | ConvertFrom-Json
+$status = Invoke-Meltool status --json | ConvertFrom-Json
 if ($status.deployment -ne 'match' -or $status.running.Count -eq 0 -or $status.dataDir -ne $dataDir) {
     throw "status が違います: deployment = $($status.deployment)、running = $($status.running.Count)、dataDir = $($status.dataDir)"
 }
-Invoke-Vmeltype doctor | Out-Null
+Invoke-Meltool doctor | Out-Null
 
 Write-Host '--- 元のバージョンに切り替える'
-Invoke-Vmeltype use $From -y | Out-Null
+Invoke-Meltool use $From -y | Out-Null
 Assert-Running $From
 Assert-ImeDll $From
 Assert-AutoUpdateDisabled
@@ -144,8 +144,8 @@ if (-not (Test-Path $marker)) {
     throw 'データ先に置いたファイルが消えました'
 }
 
-Write-Host '--- Meltype を残して vMeltype をやめる'
-Invoke-Vmeltype app uninstall -y | Out-Null
+Write-Host '--- Meltype を残して Meltool をやめる'
+Invoke-Meltool app uninstall -y | Out-Null
 if (Test-Path $root) {
     throw '管理ルートが残っています'
 }
@@ -158,11 +158,11 @@ if (-not (Test-Path $marker)) {
     throw 'データ先に置いたファイルが消えました'
 }
 
-Write-Host '--- もう一度取り込み、Meltype も削除して vMeltype をやめる'
-Invoke-Vmeltype install $To -y | Out-Null
-Invoke-Vmeltype use $To -y | Out-Null
+Write-Host '--- もう一度取り込み、Meltype も削除して Meltool をやめる'
+Invoke-Meltool install $To -y | Out-Null
+Invoke-Meltool use $To -y | Out-Null
 Assert-Running $To
-Invoke-Vmeltype app uninstall --remove-meltype -y | Out-Null
+Invoke-Meltool app uninstall --remove-meltype -y | Out-Null
 foreach ($path in $root, $appDir, $uninstallKey) {
     if (Test-Path $path) {
         throw "$path が残っています"
