@@ -19,7 +19,7 @@ func (l *localEnv) standardDataDir() string {
 	return filepath.Join(l.localAppData, "Meltype")
 }
 
-// storeStandard は、本家の通常版の ZIP と同じく、app の下に本体があり、隣にインストール用のスクリプトがある保持版を置く。
+// storeStandard は、本家の通常版の ZIP と同じく、app の下に本体があり、隣にインストール用のスクリプトがある保持バージョンを置く。
 func (l *localEnv) storeStandard(t *testing.T, tag string) {
 	t.Helper()
 	l.storeFiles(t, tag, "standard", map[string]string{
@@ -149,7 +149,7 @@ func TestUseStandard(t *testing.T) {
 			t.Errorf("管理前の記録が変わった")
 		}
 		if s := l.status(t); s.Previous == nil || s.Previous.Tag != "v1.4.0" {
-			t.Errorf("直前の版が違う: %+v", s)
+			t.Errorf("直前のバージョンが違う: %+v", s)
 		}
 	})
 
@@ -168,7 +168,7 @@ func TestUseStandard(t *testing.T) {
 }
 
 func TestUseStandardReplacesRegisteredIME(t *testing.T) {
-	t.Run("登録済みなら、実行先を入れ替える前に、切り替え先の版の DLL に入れ替える", func(t *testing.T) {
+	t.Run("登録済みなら、実行先を入れ替える前に、切り替え先のバージョンの DLL に入れ替える", func(t *testing.T) {
 		l := newLocalEnv(t)
 		l.storeStandard(t, "v1.4.0")
 		l.installUpstream(t)
@@ -181,7 +181,7 @@ func TestUseStandardReplacesRegisteredIME(t *testing.T) {
 			t.Fatalf("code = %d, stderr = %s", got.code, got.stderr)
 		}
 		if len(l.imeCalls) != 1 || readFile(filepath.Join(l.imeCalls[0].appDir, "tip", "x64", "MeltypeTip.dll")) != "tip v1.4.0" {
-			t.Errorf("切り替え先の版の DLL を渡していない: %+v", l.imeCalls)
+			t.Errorf("切り替え先のバージョンの DLL を渡していない: %+v", l.imeCalls)
 		}
 		if l.imeCalls[0].deployed != "exe 本家の 1.2.0" {
 			t.Errorf("実行先を入れ替えてから DLL を入れ替えた")
@@ -239,7 +239,7 @@ func TestUseStandardStopsWhenIMECannotBeReplaced(t *testing.T) {
 				t.Errorf("止めるべきなのに実行先を変えた")
 			}
 			if s := l.status(t); s.Active != nil {
-				t.Errorf("止めるべきなのに有効版を記録した: %+v", s)
+				t.Errorf("止めるべきなのに有効なバージョンを記録した: %+v", s)
 			}
 			if l.started != 1 {
 				t.Errorf("終了させた本家を起動し直していない")

@@ -1,4 +1,4 @@
-// Package store は、管理ルートの versions に置く保持版と、その manifest を扱う。通信しない。
+// Package store は、管理ルートの versions に置く保持バージョンと、その manifest を扱う。通信しない。
 package store
 
 import (
@@ -17,12 +17,12 @@ import (
 	"github.com/otnc/vmeltype/internal/versions"
 )
 
-// SchemaVersion は、この版の vMeltype が読み書きする manifest の形式の版。
+// SchemaVersion は、このバージョンの vMeltype が読み書きする manifest の形式のバージョン。
 const SchemaVersion = 1
 
 const manifestFile = "manifest.json"
 
-// 作業中や置き換え中のディレクトリは . で始め、保持版として扱わない。
+// 作業中や置き換え中のディレクトリは . で始め、保持バージョンとして扱わない。
 const (
 	stagingPrefix  = ".staging-"
 	replacedPrefix = ".replaced-"
@@ -31,9 +31,9 @@ const (
 // ExpectedFromGitHubDigest は、アーカイブの期待値が GitHub の API の digest から来たことを表す。
 const ExpectedFromGitHubDigest = "github-digest"
 
-var ErrNotStored = errors.New("その版は保持していません")
+var ErrNotStored = errors.New("そのバージョンは保持していません")
 
-// Stored は、1 つの保持版の manifest。
+// Stored は、1 つの保持バージョンの manifest。
 type Stored struct {
 	SchemaVersion int            `json:"schemaVersion"`
 	ID            string         `json:"id"`
@@ -64,7 +64,7 @@ type ArchiveRecord struct {
 	ExpectedSource string `json:"expectedSource,omitempty"`
 }
 
-// Problem は、manifest を読めない保持版。
+// Problem は、manifest を読めない保持バージョン。
 type Problem struct {
 	ID     string `json:"id"`
 	Reason string `json:"reason"`
@@ -79,7 +79,7 @@ func ID(tag, goos, arch, variant string) string {
 	return fmt.Sprintf("%s_%s-%s_%s", safeTag, goos, arch, variant)
 }
 
-// Store は、管理ルートの保持版の置き場。
+// Store は、管理ルートの保持バージョンの置き場。
 type Store struct {
 	Root string
 }
@@ -88,12 +88,12 @@ func (s Store) versionsDir() string {
 	return filepath.Join(s.Root, "versions")
 }
 
-// Path は、保持版のディレクトリを返す。
+// Path は、保持バージョンのディレクトリを返す。
 func (s Store) Path(id string) string {
 	return filepath.Join(s.versionsDir(), id)
 }
 
-// List は、保持版を SemVer の新しい順に返す。manifest を読めないものは problems に入れ、ほかの保持版は読み続ける。
+// List は、保持バージョンを SemVer の新しい順に返す。manifest を読めないものは problems に入れ、ほかの保持バージョンは読み続ける。
 func (s Store) List() (stored []Stored, problems []Problem, err error) {
 	entries, err := os.ReadDir(s.versionsDir())
 	if errors.Is(err, os.ErrNotExist) {
@@ -137,7 +137,7 @@ func (s Store) Get(id string) (Stored, error) {
 		return Stored{}, fmt.Errorf("manifest が壊れています: %w", err)
 	}
 	if m.SchemaVersion > SchemaVersion {
-		return Stored{}, errors.New("新しい版の vMeltype が保存した manifest なので読めません")
+		return Stored{}, errors.New("新しいバージョンの vMeltype が保存した manifest なので読めません")
 	}
 	if m.ID != id {
 		return Stored{}, fmt.Errorf("manifest の保持 ID (%s) がディレクトリ名と一致しません", m.ID)
@@ -145,7 +145,7 @@ func (s Store) Get(id string) (Stored, error) {
 	return m, nil
 }
 
-// Staging は、作業中の保持版。Commit するまで一覧に出ない。
+// Staging は、作業中の保持バージョン。Commit するまで一覧に出ない。
 type Staging struct {
 	store Store
 	dir   string
@@ -168,7 +168,7 @@ func (st *Staging) Dir() string {
 	return st.dir
 }
 
-// Commit は、manifest を書いてから作業用のディレクトリを保持版の場所へ移す。
+// Commit は、manifest を書いてから作業用のディレクトリを保持バージョンの場所へ移す。
 // 同じ保持 ID があれば、退避してから置き換え、置き換えに失敗したら元へ戻す。
 func (st *Staging) Commit(m Stored) error {
 	m.SchemaVersion = SchemaVersion
@@ -185,20 +185,20 @@ func (st *Staging) Commit(m Stored) error {
 	if _, err := os.Stat(target); err == nil {
 		replaced = filepath.Join(st.store.versionsDir(), replacedPrefix+filepath.Base(st.dir)[len(stagingPrefix):])
 		if err := os.Rename(target, replaced); err != nil {
-			return fmt.Errorf("前の保持版を退避できませんでした: %w", err)
+			return fmt.Errorf("前の保持バージョンを退避できませんでした: %w", err)
 		}
 	}
 	if err := os.Rename(st.dir, target); err != nil {
 		if replaced != "" {
 			if restoreErr := os.Rename(replaced, target); restoreErr != nil {
-				return fmt.Errorf("保持版を置けず、前の保持版も戻せませんでした (%s に残っています): %w", replaced, errors.Join(err, restoreErr))
+				return fmt.Errorf("保持バージョンを置けず、前の保持バージョンも戻せませんでした (%s に残っています): %w", replaced, errors.Join(err, restoreErr))
 			}
 		}
-		return fmt.Errorf("保持版を置けませんでした: %w", err)
+		return fmt.Errorf("保持バージョンを置けませんでした: %w", err)
 	}
 	if replaced != "" {
 		if err := os.RemoveAll(replaced); err != nil {
-			return fmt.Errorf("保持版は置けましたが、前の保持版 (%s) を消せませんでした: %w", replaced, err)
+			return fmt.Errorf("保持バージョンは置けましたが、前の保持バージョン (%s) を消せませんでした: %w", replaced, err)
 		}
 	}
 	return nil
@@ -209,7 +209,7 @@ func (st *Staging) Discard() error {
 	return os.RemoveAll(st.dir)
 }
 
-// Remove は、保持版を消す。先に . で始まる名前へ移してから消すので、途中で止まっても壊れた保持版として一覧に出ない。
+// Remove は、保持バージョンを消す。先に . で始まる名前へ移してから消すので、途中で止まっても壊れた保持バージョンとして一覧に出ない。
 func (s Store) Remove(id string) error {
 	if _, err := s.Get(id); err != nil {
 		return err
@@ -221,10 +221,10 @@ func (s Store) Remove(id string) error {
 	target := filepath.Join(removing, id)
 	if err := os.Rename(s.Path(id), target); err != nil {
 		os.Remove(removing)
-		return fmt.Errorf("保持版を削除できませんでした: %w", err)
+		return fmt.Errorf("保持バージョンを削除できませんでした: %w", err)
 	}
 	if err := os.RemoveAll(removing); err != nil {
-		return fmt.Errorf("保持版は一覧から外しましたが、ファイル (%s) を消しきれませんでした: %w", removing, err)
+		return fmt.Errorf("保持バージョンは一覧から外しましたが、ファイル (%s) を消しきれませんでした: %w", removing, err)
 	}
 	return nil
 }

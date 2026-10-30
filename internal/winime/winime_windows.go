@@ -42,7 +42,7 @@ switch (Invoke-Elevated $source $hashes 'Register') {
 }
 `
 
-// Replace は、appDir (切り替え先の版の、本家の ZIP の app に当たるディレクトリ) の meltype-ime.ps1 と tip を使って、
+// Replace は、appDir (切り替え先のバージョンの、本家の ZIP の app に当たるディレクトリ) の meltype-ime.ps1 と tip を使って、
 // 登録済みの IME の DLL を入れ替える。DLL が違うときだけ、本家が管理者権限の確認 (UAC) を出す。
 // 呼び出し側は、Meltype IME が登録済みであることと、Meltype が止まっていることを確かめておく。
 func Replace(ctx context.Context, appDir string) (Result, error) {

@@ -42,7 +42,7 @@ func TestSelect(t *testing.T) {
 		{name: "3 つそろえば、その正式版", input: "1.0.0", want: "v1.0.0"},
 		{name: "--pre はプレリリースだけから最新", pre: true, want: "v2.0.0-pre.1"},
 		{name: "--pre と範囲で、その範囲のプレリリースの最新", input: "1", pre: true, want: "v1.4.1-pre.2"},
-		{name: "--pre と 3 つの版で、その版のプレリリースの最新", input: "1.3.1", pre: true, want: "v1.3.1-pre.3"},
+		{name: "--pre と 3 つそろったバージョンで、そのバージョンのプレリリースの最新", input: "1.3.1", pre: true, want: "v1.3.1-pre.3"},
 		{name: "明示したプレリリース", input: "1.3.1-pre.2", want: "v1.3.1-pre.2"},
 		{name: "明示したプレリリースは --pre があっても同じ", input: "v1.3.1-pre.2", pre: true, want: "v1.3.1-pre.2"},
 	}

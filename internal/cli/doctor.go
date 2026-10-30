@@ -72,7 +72,7 @@ func diagnose(env *Env, root string) []check {
 	var checks []check
 	s, err := inspectLocal(env, root)
 	if err != nil {
-		checks = append(checks, check{Name: "state", Level: levelFail, Message: fmt.Sprintf("有効版の記録か処理記録を読めません: %v", err), Hint: "記録のファイルを手で確かめてください"})
+		checks = append(checks, check{Name: "state", Level: levelFail, Message: fmt.Sprintf("有効なバージョンの記録か処理記録を読めません: %v", err), Hint: "記録のファイルを手で確かめてください"})
 	} else {
 		checks = append(checks, journalCheck(s), deploymentCheck(s))
 		if c, ok := previousCheck(root, s); ok {
@@ -97,13 +97,13 @@ func deploymentCheck(s localStatus) check {
 	c := check{Name: "deployment"}
 	switch s.Deployment {
 	case lifecycle.DeploymentNone:
-		c.Level, c.Message = levelOK, "有効な版はありません"
+		c.Level, c.Message = levelOK, "有効なバージョンはありません"
 	case lifecycle.DeploymentMatch:
-		c.Level, c.Message = levelOK, fmt.Sprintf("実行先の %s は保持版と一致しています", s.Active.Tag)
+		c.Level, c.Message = levelOK, fmt.Sprintf("実行先の %s は保持バージョンと一致しています", s.Active.Tag)
 	case lifecycle.DeploymentPending:
 		c.Level, c.Message = levelWarn, describeDeployment(s.Status)
 	case lifecycle.DeploymentMismatch:
-		c.Level, c.Message = levelFail, fmt.Sprintf("実行先の %s が保持版と一致しません (%s)", s.Active.Tag, summarize(s.Mismatched))
+		c.Level, c.Message = levelFail, fmt.Sprintf("実行先の %s が保持バージョンと一致しません (%s)", s.Active.Tag, summarize(s.Mismatched))
 		c.Hint = fmt.Sprintf("\"%s\" で置き直してください", reapplyCommand(s.Active))
 	default:
 		c.Level, c.Message = levelFail, describeDeployment(s.Status)
@@ -112,32 +112,32 @@ func deploymentCheck(s localStatus) check {
 	return c
 }
 
-// previousCheck は、rollback で戻る先を保持しているかを調べる。直前の版がなければ項目を出さない。
+// previousCheck は、rollback で戻る先を保持しているかを調べる。直前のバージョンがなければ項目を出さない。
 func previousCheck(root string, s localStatus) (check, bool) {
 	if s.Previous == nil {
 		return check{}, false
 	}
 	if _, err := (store.Store{Root: root}).Get(s.Previous.StoreID); err != nil {
-		return check{Name: "previous", Level: levelWarn, Message: fmt.Sprintf("直前の版 %s を保持していないので、rollback で戻れません", s.Previous.Tag),
+		return check{Name: "previous", Level: levelWarn, Message: fmt.Sprintf("直前のバージョン %s を保持していないので、rollback で戻れません", s.Previous.Tag),
 			Hint: fmt.Sprintf("戻せるようにするには \"%s\" で取得してください", installCommand(s.Previous.Tag, s.Previous.Variant))}, true
 	}
-	return check{Name: "previous", Level: levelOK, Message: fmt.Sprintf("直前の版 %s を保持しているので、rollback で戻れます", s.Previous.Tag)}, true
+	return check{Name: "previous", Level: levelOK, Message: fmt.Sprintf("直前のバージョン %s を保持しているので、rollback で戻れます", s.Previous.Tag)}, true
 }
 
 func storedCheck(root string) check {
 	stored, problems, err := store.Store{Root: root}.List()
 	if err != nil {
-		return check{Name: "stored", Level: levelFail, Message: fmt.Sprintf("保持版を読めません: %v", err)}
+		return check{Name: "stored", Level: levelFail, Message: fmt.Sprintf("保持バージョンを読めません: %v", err)}
 	}
 	if len(problems) > 0 {
 		var ids []string
 		for _, p := range problems {
 			ids = append(ids, p.ID)
 		}
-		return check{Name: "stored", Level: levelWarn, Message: fmt.Sprintf("読めない保持版があります (%s)", strings.Join(ids, "、")),
+		return check{Name: "stored", Level: levelWarn, Message: fmt.Sprintf("読めない保持バージョンがあります (%s)", strings.Join(ids, "、")),
 			Hint: "使うなら \"vmeltype install <tag> --reinstall\" で取得し直してください"}
 	}
-	return check{Name: "stored", Level: levelOK, Message: fmt.Sprintf("保持版は %d 件で、すべて読めます", len(stored))}
+	return check{Name: "stored", Level: levelOK, Message: fmt.Sprintf("保持バージョンは %d 件で、すべて読めます", len(stored))}
 }
 
 func snapshotsCheck(root string) check {
@@ -180,8 +180,8 @@ func writeChecks(w io.Writer, root string, checks []check) {
 	}
 }
 
-// imeCheck は、有効版が通常版で Meltype IME を登録済みなら、登録されている DLL が有効版のものかを調べる。
-// 本家の更新で本体だけが新しくなり、古い版の DLL が残ることがある。新旧の本体と DLL が組み合わさって動くとは限らない。
+// imeCheck は、有効なバージョンが通常版で Meltype IME を登録済みなら、登録されている DLL が有効なバージョンのものかを調べる。
+// 本家の更新で本体だけが新しくなり、古いバージョンの DLL が残ることがある。新旧の本体と DLL が組み合わさって動くとは限らない。
 // 比べるのは、本家が DLL の隣に置く、署名する前の中身のハッシュ。調べないときは項目を出さない。
 func imeCheck(env *Env, root string, s localStatus) (check, bool) {
 	if s.Active == nil || s.Active.Variant != string(assets.Standard) || s.Pending != nil || env.IMERegistered == nil {
@@ -212,7 +212,7 @@ func imeCheck(env *Env, root string, s localStatus) (check, bool) {
 	}
 	if len(mismatched) > 0 {
 		return check{Name: "ime", Level: levelFail,
-			Message: fmt.Sprintf("登録されている Meltype IME の DLL (%s) が、有効版 %s のものではありません", strings.Join(mismatched, "、"), s.Active.Tag),
+			Message: fmt.Sprintf("登録されている Meltype IME の DLL (%s) が、有効なバージョン %s のものではありません", strings.Join(mismatched, "、"), s.Active.Tag),
 			Hint:    fmt.Sprintf("\"%s\" で、DLL も %s のものに入れ替えてください", reapplyCommand(s.Active), s.Active.Tag)}, true
 	}
 	return check{Name: "ime", Level: levelOK, Message: fmt.Sprintf("登録されている Meltype IME の DLL は %s のものです", s.Active.Tag)}, true

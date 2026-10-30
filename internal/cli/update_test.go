@@ -71,7 +71,7 @@ func TestCheck(t *testing.T) {
 			t.Errorf("code = %d\n%s%s", got.code, got.stdout, got.stderr)
 		}
 	})
-	t.Run("有効版がなければ use を案内する", func(t *testing.T) {
+	t.Run("有効なバージョンがなければ use を案内する", func(t *testing.T) {
 		l := newLocalEnv(t)
 
 		got := l.run(t, false, "", "check")
@@ -83,7 +83,7 @@ func TestCheck(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	t.Run("新しい版を取得して切り替える", func(t *testing.T) {
+	t.Run("新しいバージョンを取得して切り替える", func(t *testing.T) {
 		for _, name := range []string{"update", "up", "upgrade"} {
 			l := updateEnv(t)
 

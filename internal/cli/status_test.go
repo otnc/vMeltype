@@ -36,19 +36,19 @@ func (l *localEnv) status(t *testing.T) statusJSON {
 }
 
 func TestStatus(t *testing.T) {
-	t.Run("有効版がなければ、そう示す", func(t *testing.T) {
+	t.Run("有効なバージョンがなければ、そう示す", func(t *testing.T) {
 		l := newLocalEnv(t)
 
 		got := l.run(t, false, "", "status")
 
-		if got.code != ExitOK || !strings.Contains(got.stdout, "有効な版はありません") {
+		if got.code != ExitOK || !strings.Contains(got.stdout, "有効なバージョンはありません") {
 			t.Errorf("code = %d\n%s%s", got.code, got.stdout, got.stderr)
 		}
 		if s := l.status(t); s.Active != nil || s.Deployment != "none" {
 			t.Errorf("JSON が違う: %+v", s)
 		}
 	})
-	t.Run("有効版、直前の版、固定、配置、稼働、データ先を示す", func(t *testing.T) {
+	t.Run("有効なバージョン、直前のバージョン、固定、配置、稼働、データ先を示す", func(t *testing.T) {
 		l := pinnedEnv(t)
 		l.writeData(t, "userdict.txt", "辞書")
 		l.running = []string{filepath.Join(l.appDir(), "Meltype.exe")}
@@ -65,7 +65,7 @@ func TestStatus(t *testing.T) {
 			t.Errorf("JSON が違う: %+v", s)
 		}
 	})
-	t.Run("実行先のファイルが保持版と違えば、置き直し方を示す", func(t *testing.T) {
+	t.Run("実行先のファイルが保持バージョンと違えば、置き直し方を示す", func(t *testing.T) {
 		l := newLocalEnv(t)
 		l.storePortable(t, "v1.4.0", nil)
 		l.run(t, false, "", "use", "v1.4.0", "--portable", "-y")

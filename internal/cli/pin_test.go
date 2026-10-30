@@ -44,7 +44,7 @@ func pinnedEnv(t *testing.T) *localEnv {
 }
 
 func TestPin(t *testing.T) {
-	t.Run("有効版のタグ、variant、保持 ID を記録する", func(t *testing.T) {
+	t.Run("有効なバージョンのタグ、variant、保持 ID を記録する", func(t *testing.T) {
 		l := pinnedEnv(t)
 
 		pin := l.currentPin(t)
@@ -55,7 +55,7 @@ func TestPin(t *testing.T) {
 			t.Errorf("current が固定を示していない: %s", got.stdout)
 		}
 	})
-	t.Run("有効版と合う指定なら固定する", func(t *testing.T) {
+	t.Run("有効なバージョンと合う指定なら固定する", func(t *testing.T) {
 		l := newLocalEnv(t)
 		l.storePortable(t, "v1.4.0", nil)
 		l.run(t, false, "", "use", "v1.4.0", "--portable", "-y")
@@ -66,7 +66,7 @@ func TestPin(t *testing.T) {
 			t.Errorf("code = %d, stderr = %s", got.code, got.stderr)
 		}
 	})
-	t.Run("有効版と合わない指定は、固定せずに use を案内する", func(t *testing.T) {
+	t.Run("有効なバージョンと合わない指定は、固定せずに use を案内する", func(t *testing.T) {
 		l := newLocalEnv(t)
 		l.storePortable(t, "v1.4.0", nil)
 		l.storePortable(t, "v1.3.0", nil)
@@ -78,7 +78,7 @@ func TestPin(t *testing.T) {
 			t.Errorf("code = %d, stderr = %s", got.code, got.stderr)
 		}
 	})
-	t.Run("有効版がなければ固定しない", func(t *testing.T) {
+	t.Run("有効なバージョンがなければ固定しない", func(t *testing.T) {
 		l := newLocalEnv(t)
 
 		got := l.run(t, false, "", "pin")
@@ -103,8 +103,8 @@ func TestPinBlocksSwitchingToAnotherVersion(t *testing.T) {
 		name string
 		args []string
 	}{
-		{name: "use は別の版に切り替えない", args: []string{"use", "v1.3.0", "--portable", "-y"}},
-		{name: "rollback は直前の版に戻さない", args: []string{"rollback", "-y"}},
+		{name: "use は別のバージョンに切り替えない", args: []string{"use", "v1.3.0", "--portable", "-y"}},
+		{name: "rollback は直前のバージョンに戻さない", args: []string{"rollback", "-y"}},
 		{name: "--dry-run でも固定を示して止める", args: []string{"use", "v1.3.0", "--portable", "--dry-run"}},
 	}
 	for _, tt := range tests {
@@ -117,7 +117,7 @@ func TestPinBlocksSwitchingToAnotherVersion(t *testing.T) {
 				t.Errorf("code = %d, stderr = %s", got.code, got.stderr)
 			}
 			if l.read(t, "Meltype.exe") != "exe v1.4.0" {
-				t.Errorf("固定した版から切り替えた: %q", l.read(t, "Meltype.exe"))
+				t.Errorf("固定したバージョンから切り替えた: %q", l.read(t, "Meltype.exe"))
 			}
 		})
 	}
@@ -141,7 +141,7 @@ func TestOverridePin(t *testing.T) {
 		{"use", "v1.3.0", "--portable", "--override-pin", "-y"},
 		{"rollback", "--override-pin", "-y"},
 	} {
-		t.Run(args[0]+" は切り替えて、固定を新しい版に移す", func(t *testing.T) {
+		t.Run(args[0]+" は切り替えて、固定を新しいバージョンに移す", func(t *testing.T) {
 			l := pinnedEnv(t)
 
 			got := l.run(t, false, "", args...)
@@ -150,14 +150,14 @@ func TestOverridePin(t *testing.T) {
 				t.Fatalf("code = %d, stderr = %s", got.code, got.stderr)
 			}
 			if pin := l.currentPin(t); pin == nil || pin.Tag != "v1.3.0" {
-				t.Errorf("固定が新しい版に移っていない: %+v", pin)
+				t.Errorf("固定が新しいバージョンに移っていない: %+v", pin)
 			}
 		})
 	}
 }
 
 func TestUnpin(t *testing.T) {
-	t.Run("固定を解除すれば別の版に切り替えられる", func(t *testing.T) {
+	t.Run("固定を解除すれば別のバージョンに切り替えられる", func(t *testing.T) {
 		l := pinnedEnv(t)
 
 		got := l.run(t, false, "", "unpin")
@@ -166,7 +166,7 @@ func TestUnpin(t *testing.T) {
 			t.Fatalf("code = %d, stderr = %s", got.code, got.stderr)
 		}
 		if l.read(t, "Meltype.exe") != "exe v1.4.0" {
-			t.Errorf("unpin で有効版が変わった")
+			t.Errorf("unpin で有効なバージョンが変わった")
 		}
 		if next := l.run(t, false, "", "use", "v1.3.0", "--portable", "-y"); next.code != ExitOK {
 			t.Errorf("解除のあとに切り替えられない: %s", next.stderr)

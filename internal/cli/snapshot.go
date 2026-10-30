@@ -144,7 +144,7 @@ func runSnapshotList(env *Env) func(*cobra.Command, []string) error {
 			fmt.Fprintln(out, "スナップショットはありません。\"vmeltype snapshot create\" で作ります。")
 			return nil
 		}
-		rows := [][]string{{"ID", "作った日時", "理由", "有効だった版", "ファイル", "サイズ"}}
+		rows := [][]string{{"ID", "作った日時", "理由", "有効だったバージョン", "ファイル", "サイズ"}}
 		for _, m := range listed {
 			tag := m.ActiveTag
 			if tag == "" {
@@ -182,13 +182,13 @@ func runSnapshotInspect(env *Env) func(*cobra.Command, []string) error {
 }
 
 func writeSnapshotSummary(w io.Writer, m snapshot.Manifest) {
-	fmt.Fprintf(w, "スナップショット: %s\n", m.ID)
-	fmt.Fprintf(w, "作った日時:       %s (%s)\n", formatLocal(m.CreatedAt), reasonLabels[m.Reason])
+	fmt.Fprintf(w, "スナップショット:     %s\n", m.ID)
+	fmt.Fprintf(w, "作った日時:           %s (%s)\n", formatLocal(m.CreatedAt), reasonLabels[m.Reason])
 	if m.ActiveTag != "" {
-		fmt.Fprintf(w, "有効だった版:     %s\n", m.ActiveTag)
+		fmt.Fprintf(w, "有効だったバージョン: %s\n", m.ActiveTag)
 	}
-	fmt.Fprintf(w, "保存元:           %s\n", m.Source)
-	fmt.Fprintf(w, "中身:             %d ファイル、%s\n", len(m.Files), formatBytes(m.TotalBytes))
+	fmt.Fprintf(w, "保存元:               %s\n", m.Source)
+	fmt.Fprintf(w, "中身:                 %d ファイル、%s\n", len(m.Files), formatBytes(m.TotalBytes))
 }
 
 func runSnapshotVerify(env *Env) func(*cobra.Command, []string) error {
@@ -233,7 +233,7 @@ func runSnapshotRestore(env *Env) func(*cobra.Command, []string) error {
 		}
 		dataDir := place.dataDir
 		if from, to := dataKind(m.Source), dataKind(dataDir); from != to {
-			return fmt.Errorf("スナップショット %s は%sのデータ (%s) で、いまの有効版は%sなので、復元しません", id, variantLabels[from], m.Source, variantLabels[to])
+			return fmt.Errorf("スナップショット %s は%sのデータ (%s) で、いまの有効なバージョンは%sなので、復元しません", id, variantLabels[from], m.Source, variantLabels[to])
 		}
 
 		out := cmd.OutOrStdout()
@@ -247,7 +247,7 @@ func runSnapshotRestore(env *Env) func(*cobra.Command, []string) error {
 			return err
 		}
 		writeSnapshotSummary(planOut, m)
-		fmt.Fprintf(planOut, "復元先:           %s\n", dataDir)
+		fmt.Fprintf(planOut, "復元先:               %s\n", dataDir)
 		fmt.Fprintln(planOut, "いまの data は、置き換える前に別のスナップショットとして保存します。")
 		app.describe(planOut)
 		if dryRun {

@@ -184,7 +184,7 @@ func TestInstallOfStoredVersionDoesNotUseNetwork(t *testing.T) {
 		t.Errorf("code = %d\n%s%s", got.code, got.stdout, got.stderr)
 	}
 	if upstream.apiCalls.Load()+upstream.downloads.Load() != callsBefore {
-		t.Errorf("保持済みの版の install で通信した")
+		t.Errorf("保持済みのバージョンの install で通信した")
 	}
 }
 
@@ -375,12 +375,12 @@ func TestInstallVersionQuery(t *testing.T) {
 		args []string
 		want string
 	}{
-		{name: "版を省くと正式版の最新", args: []string{"install"}, want: "v1.4.0"},
-		{name: "v を省いた版", args: []string{"install", "1.3.0"}, want: "v1.3.0"},
+		{name: "バージョンを省くと正式版の最新", args: []string{"install"}, want: "v1.4.0"},
+		{name: "v を省いたバージョン", args: []string{"install", "1.3.0"}, want: "v1.3.0"},
 		{name: "範囲の指定で、その中の正式版の最新", args: []string{"install", "1.3"}, want: "v1.3.0"},
 		{name: "メジャーだけの指定", args: []string{"install", "1"}, want: "v1.4.0"},
 		{name: "--pre でプレリリースの最新", args: []string{"install", "--pre"}, want: "v1.4.1-pre.2"},
-		{name: "版と --pre で、その版のプレリリースの最新", args: []string{"install", "1.4.1", "--pre"}, want: "v1.4.1-pre.2"},
+		{name: "バージョンと --pre で、そのバージョンのプレリリースの最新", args: []string{"install", "1.4.1", "--pre"}, want: "v1.4.1-pre.2"},
 		{name: "明示したプレリリース", args: []string{"install", "1.4.1-pre.1"}, want: "v1.4.1-pre.1"},
 	}
 	for _, tt := range tests {
@@ -395,7 +395,7 @@ func TestInstallVersionQuery(t *testing.T) {
 		})
 	}
 
-	t.Run("合う版がなければ、指定の意味を示して止める", func(t *testing.T) {
+	t.Run("合うバージョンがなければ、指定の意味を示して止める", func(t *testing.T) {
 		got := upstream.run(t, t.TempDir(), false, "", "install", "2", "-y")
 		if got.code != ExitError || !strings.Contains(got.stderr, "2.x.x の正式版の最新") {
 			t.Errorf("code = %d, stderr = %s", got.code, got.stderr)

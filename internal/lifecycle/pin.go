@@ -7,13 +7,13 @@ import (
 )
 
 var (
-	// ErrPinned は、固定している版から別の版へ切り替えようとしたことを表す。
-	ErrPinned = errors.New("版を固定しているので、別の版に切り替えません")
-	// ErrNoActive は、有効版がなく、固定できないことを表す。
-	ErrNoActive = errors.New("有効な版がないので固定できません。先に \"vmeltype use <tag>\" で有効にしてください")
+	// ErrPinned は、固定しているバージョンから別のバージョンへ切り替えようとしたことを表す。
+	ErrPinned = errors.New("バージョンを固定しているので、別のバージョンに切り替えません")
+	// ErrNoActive は、有効なバージョンがなく、固定できないことを表す。
+	ErrNoActive = errors.New("有効なバージョンがないので固定できません。先に \"vmeltype use <tag>\" で有効にしてください")
 )
 
-// Pinned は、固定した版。同じタグでも variant や配布物が違えば別の版として扱うため、保持 ID で比べる。
+// Pinned は、固定したバージョン。同じタグでも variant や配布物が違えば別のバージョンとして扱うため、保持 ID で比べる。
 type Pinned struct {
 	StoreID  string    `json:"storeId"`
 	Tag      string    `json:"tag"`
@@ -21,7 +21,7 @@ type Pinned struct {
 	PinnedAt time.Time `json:"pinnedAt"`
 }
 
-// Pin は、有効版を固定する。呼び出し側は、管理ルートの排他を取り、未完了の処理記録がないことを確かめておく。
+// Pin は、有効なバージョンを固定する。呼び出し側は、管理ルートの排他を取り、未完了の処理記録がないことを確かめておく。
 func Pin(root string, now time.Time) (Pinned, error) {
 	state, err := LoadState(root)
 	if err != nil {
@@ -48,7 +48,7 @@ func Unpin(root string) (bool, error) {
 	return true, saveState(root, state)
 }
 
-// checkPin は、固定していれば、別の版への切り替えを ErrPinned で止める。同じ版の再適用は止めない。
+// checkPin は、固定していれば、別のバージョンへの切り替えを ErrPinned で止める。同じバージョンの再適用は止めない。
 func checkPin(state State, targetID string) error {
 	if state.Pin == nil || state.Pin.StoreID == targetID {
 		return nil

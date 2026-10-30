@@ -79,7 +79,7 @@ func updateBaseline(root string, change func(*Baseline)) error {
 //  2. データ先のスナップショットを作る
 //  3. 本家の自動更新を止める
 //
-// どれも途中で止まっても、実行先と有効版は変えていないので、もう一度 use すればよい。
+// どれも途中で止まっても、実行先と有効なバージョンは変えていないので、もう一度 use すればよい。
 func PrepareStandardData(root, dataDir, activeTag string, now time.Time) error {
 	if err := quarantineUpdates(root, dataDir, now); err != nil {
 		return err

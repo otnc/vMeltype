@@ -14,13 +14,13 @@ import (
 	"github.com/otnc/vmeltype/internal/versions"
 )
 
-const updateLong = `有効版より新しい版を公式一覧から探し、保持していなければ取得してから切り替えます。切り替えは use と同じで、計画を示して確認します。
+const updateLong = `有効なバージョンより新しいバージョンを公式一覧から探し、保持していなければ取得してから切り替えます。切り替えは use と同じで、計画を示して確認します。
 
-対象は有効版と同じ variant (通常版か portable 版) です。既定は正式版の最新で、--pre を付けるとプレリリースと正式版を合わせた最大を選びます。有効版より古い版には下げません。
-版を固定していれば、取得する前に止めます。越えるには --override-pin を付けます。`
+対象は有効なバージョンと同じ variant (通常版か portable 版) です。既定は正式版の最新で、--pre を付けるとプレリリースと正式版を合わせた最大を選びます。有効なバージョンより古いバージョンには下げません。
+バージョンを固定していれば、取得する前に止めます。越えるには --override-pin を付けます。`
 
-// errUpdateAvailable は、check が新しい版を見つけたことを表す。終了コードだけで知らせ、エラーとしては表示しない。
-var errUpdateAvailable = errors.New("新しい版があります")
+// errUpdateAvailable は、check が新しいバージョンを見つけたことを表す。終了コードだけで知らせ、エラーとしては表示しない。
+var errUpdateAvailable = errors.New("新しいバージョンがあります")
 
 func setupCheckFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool("pre", false, "プレリリースも含めて探す")
@@ -28,18 +28,18 @@ func setupCheckFlags(cmd *cobra.Command) {
 
 func setupUpdateFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool("pre", false, "プレリリースも含めて探す")
-	cmd.Flags().Bool("override-pin", false, "この一回に限って、版の固定を越えて切り替える")
+	cmd.Flags().Bool("override-pin", false, "この一回に限って、バージョンの固定を越えて切り替える")
 	addStopAppFlag(cmd)
 }
 
-// findUpdate は、有効版より新しい版を公式一覧から探す。この端末の、有効版と同じ variant の配布物があるリリースだけを候補にする。
+// findUpdate は、有効なバージョンより新しいバージョンを公式一覧から探す。この端末の、有効なバージョンと同じ variant の配布物があるリリースだけを候補にする。
 func findUpdate(cmd *cobra.Command, env *Env, root string) (*lifecycle.Activation, *catalog.Release, error) {
 	state, err := lifecycle.LoadState(root)
 	if err != nil {
 		return nil, nil, err
 	}
 	if state.Active == nil {
-		return nil, nil, errors.New("有効な版がないので、新しい版を探せません。先に \"vmeltype use <tag>\" で有効にしてください")
+		return nil, nil, errors.New("有効なバージョンがないので、新しいバージョンを探せません。先に \"vmeltype use <tag>\" で有効にしてください")
 	}
 	_, c, err := fetchCatalog(cmd, env, root)
 	if err != nil {
@@ -83,7 +83,7 @@ func runCheck(env *Env) func(*cobra.Command, []string) error {
 				return err
 			}
 		} else if release != nil {
-			fmt.Fprintf(out, "新しい版があります: %s (いまは %s)。\"vmeltype update\" で更新します。\n", release.Tag, active.Tag)
+			fmt.Fprintf(out, "新しいバージョンがあります: %s (いまは %s)。\"vmeltype update\" で更新します。\n", release.Tag, active.Tag)
 		} else {
 			fmt.Fprintf(out, "%s は最新です。\n", active.Tag)
 		}

@@ -97,7 +97,7 @@ func (l *localEnv) run(t *testing.T, interactive bool, stdin string, args ...str
 	return result{code: code, stdout: stdout.String(), stderr: stderr.String()}
 }
 
-// storeFiles は、取得を経ずに保持版を置く。files は、/ 区切りのパスと中身。
+// storeFiles は、取得を経ずに保持バージョンを置く。files は、/ 区切りのパスと中身。
 func (l *localEnv) storeFiles(t *testing.T, tag, variant string, files map[string]string) {
 	t.Helper()
 	s := store.Store{Root: l.root}
@@ -158,11 +158,11 @@ func TestUsePlacesPortableVersion(t *testing.T) {
 		t.Fatalf("code = %d, stderr = %s", got.code, got.stderr)
 	}
 	if l.read(t, "Meltype.exe") != "exe v1.4.0" || l.read(t, "dotnet/host.dll") != "dll v1.4.0" {
-		t.Errorf("実行先に版のファイルがない")
+		t.Errorf("実行先にバージョンのファイルがない")
 	}
 	current := l.run(t, false, "", "current")
 	if current.code != ExitOK || !strings.Contains(current.stdout, "v1.4.0") {
-		t.Errorf("current が有効版を示していない: %d\n%s%s", current.code, current.stdout, current.stderr)
+		t.Errorf("current が有効なバージョンを示していない: %d\n%s%s", current.code, current.stdout, current.stderr)
 	}
 }
 
@@ -181,13 +181,13 @@ func TestUseSwitchKeepsDataAndUnknownFiles(t *testing.T) {
 		t.Fatalf("code = %d, stderr = %s", got.code, got.stderr)
 	}
 	if l.read(t, "Meltype.exe") != "exe v1.3.0" {
-		t.Errorf("新しい版のファイルになっていない: %q", l.read(t, "Meltype.exe"))
+		t.Errorf("新しいバージョンのファイルになっていない: %q", l.read(t, "Meltype.exe"))
 	}
 	if l.read(t, "data/userdict.txt") != "辞書" || l.read(t, "memo.txt") != "利用者のメモ" {
 		t.Errorf("data か、管理していないファイルを引き継いでいない")
 	}
 	if l.read(t, "only-in-1.4.txt") != "<なし>" {
-		t.Errorf("前の版だけのファイルが残っている")
+		t.Errorf("前のバージョンだけのファイルが残っている")
 	}
 	entries, _ := os.ReadDir(filepath.Join(l.root, "portable"))
 	if len(entries) != 1 {
@@ -200,7 +200,7 @@ func TestUseSwitchKeepsDataAndUnknownFiles(t *testing.T) {
 	}
 	json.Unmarshal([]byte(l.run(t, false, "", "current", "--json").stdout), &current)
 	if current.Active.Tag != "v1.3.0" || current.Previous.Tag != "v1.4.0" {
-		t.Errorf("有効版と直前の版の記録が違う: %+v", current)
+		t.Errorf("有効なバージョンと直前のバージョンの記録が違う: %+v", current)
 	}
 }
 
@@ -241,23 +241,23 @@ func TestUseStopsBeforeChanging(t *testing.T) {
 		wantText string
 	}{
 		{
-			name:     "保持していない版は install を案内する",
+			name:     "保持していないバージョンは install を案内する",
 			args:     []string{"use", "v9.9.9", "--portable", "-y"},
 			wantCode: ExitError,
 			wantText: "vmeltype install",
 		},
 		{
-			name: "管理していないファイルが新しい版のファイルと同じ名前なら止める",
+			name: "管理していないファイルが新しいバージョンのファイルと同じ名前なら止める",
 			prepare: func(t *testing.T, l *localEnv) {
 				os.WriteFile(filepath.Join(l.appDir(), "new-file.txt"), []byte("利用者のもの"), 0o600)
-				l.storePortable(t, "v1.5.0", map[string]string{"new-file.txt": "版のもの"})
+				l.storePortable(t, "v1.5.0", map[string]string{"new-file.txt": "バージョンのもの"})
 			},
 			args:     []string{"use", "v1.5.0", "--portable", "-y"},
 			wantCode: ExitError,
 			wantText: "new-file.txt",
 		},
 		{
-			name: "保持版のファイルが manifest と一致しなければ止める",
+			name: "保持バージョンのファイルが manifest と一致しなければ止める",
 			prepare: func(t *testing.T, l *localEnv) {
 				path := filepath.Join(store.Store{Root: l.root}.Path(store.ID("v1.3.0", "windows", "amd64", "portable")), "files", "Meltype.exe")
 				os.WriteFile(path, []byte("書き換えられた"), 0o600)
@@ -288,7 +288,7 @@ func TestUseStopsBeforeChanging(t *testing.T) {
 			wantText: "v1.3.0",
 		},
 		{
-			name: "保持版に実行先へ置く本体がなければ止める",
+			name: "保持バージョンに実行先へ置く本体がなければ止める",
 			prepare: func(t *testing.T, l *localEnv) {
 				l.storeFiles(t, "v1.2.0", "standard", map[string]string{"Meltype.exe": "x"})
 			},
@@ -359,7 +359,7 @@ func TestVariantSelectionWhenBothAreStored(t *testing.T) {
 		got := l.run(t, false, "", "uninstall", "v1.4.0", "-y")
 		stored := storedIDs(t, l.root)
 		if got.code != ExitOK || len(stored) != 1 || stored[0] != "v1.4.0_windows-amd64_portable" {
-			t.Errorf("code = %d, 残った保持版 = %v, stderr = %s", got.code, stored, got.stderr)
+			t.Errorf("code = %d, 残った保持バージョン = %v, stderr = %s", got.code, stored, got.stderr)
 		}
 	})
 }
@@ -380,7 +380,7 @@ func storedIDs(t *testing.T, root string) []string {
 func TestCurrentWithoutActiveVersion(t *testing.T) {
 	got := newLocalEnv(t).run(t, false, "", "current")
 
-	if got.code != ExitOK || !strings.Contains(got.stdout, "有効な版はありません") {
+	if got.code != ExitOK || !strings.Contains(got.stdout, "有効なバージョンはありません") {
 		t.Errorf("code = %d\n%s%s", got.code, got.stdout, got.stderr)
 	}
 }
@@ -391,10 +391,10 @@ func TestUseVersionQuery(t *testing.T) {
 		args []string
 		want string
 	}{
-		{name: "版を省くと、保持している正式版の最新", args: []string{"use", "--portable"}, want: "exe v1.4.0"},
+		{name: "バージョンを省くと、保持している正式版の最新", args: []string{"use", "--portable"}, want: "exe v1.4.0"},
 		{name: "範囲の指定で、保持している中の正式版の最新", args: []string{"use", "1.3", "--portable"}, want: "exe v1.3.0"},
 		{name: "--pre で、保持しているプレリリースの最新", args: []string{"use", "--pre", "--portable"}, want: "exe v1.4.1-pre.1"},
-		{name: "v を省いた版", args: []string{"use", "1.3.0", "--portable"}, want: "exe v1.3.0"},
+		{name: "v を省いたバージョン", args: []string{"use", "1.3.0", "--portable"}, want: "exe v1.3.0"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -411,7 +411,7 @@ func TestUseVersionQuery(t *testing.T) {
 		})
 	}
 
-	t.Run("合う保持版がなければ、指定の意味と install を示す", func(t *testing.T) {
+	t.Run("合う保持バージョンがなければ、指定の意味と install を示す", func(t *testing.T) {
 		l := newLocalEnv(t)
 		l.storePortable(t, "v1.4.0", nil)
 		got := l.run(t, false, "", "use", "1.3", "--portable", "-y")
@@ -433,12 +433,12 @@ func TestUninstallRequiresExactVersion(t *testing.T) {
 				t.Errorf("code = %d, stderr = %s", got.code, got.stderr)
 			}
 			if len(storedTags(t, l.root)) != 1 {
-				t.Errorf("範囲の指定で保持版を削除した")
+				t.Errorf("範囲の指定で保持バージョンを削除した")
 			}
 		})
 	}
 
-	t.Run("v を省いた版で削除できる", func(t *testing.T) {
+	t.Run("v を省いたバージョンで削除できる", func(t *testing.T) {
 		l := newLocalEnv(t)
 		l.storePortable(t, "v1.3.0", nil)
 		got := l.run(t, false, "", "uninstall", "1.3.0", "--portable", "-y")
@@ -448,7 +448,7 @@ func TestUninstallRequiresExactVersion(t *testing.T) {
 	})
 }
 
-// imeCall は、IME の DLL の入れ替えを求められたときの、渡された切り替え先の版と、そのときの実行先の Meltype.exe の中身。
+// imeCall は、IME の DLL の入れ替えを求められたときの、渡された切り替え先のバージョンと、そのときの実行先の Meltype.exe の中身。
 type imeCall struct {
 	appDir   string
 	deployed string

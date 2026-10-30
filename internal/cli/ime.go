@@ -14,8 +14,8 @@ var (
 	errIMEFailed = errors.New("Meltype IME の DLL を登録できませんでした。実行先は変えていません。ほかのアプリが DLL を使っていないかを確かめて、もう一度実行してください")
 )
 
-// replaceIME は、登録済みの Meltype IME の DLL を、切り替え先の版のものに入れ替える。実行先を入れ替える前に呼ぶ。
-// 新しい版の本体と古い版の DLL が組み合わさらないよう、入れ替えられなければ切り替えない。
+// replaceIME は、登録済みの Meltype IME の DLL を、切り替え先のバージョンのものに入れ替える。実行先を入れ替える前に呼ぶ。
+// 新しいバージョンの本体と古いバージョンの DLL が組み合わさらないよう、入れ替えられなければ切り替えない。
 func replaceIME(env *Env, storedAppDir, tag string) error {
 	result, err := env.ReplaceIME(storedAppDir)
 	if err != nil {

@@ -16,9 +16,9 @@ import (
 	"github.com/otnc/vmeltype/internal/selfupdate"
 )
 
-const appUpdateLong = `vMeltype の新しい版を GitHub のリリース (otnc/vMeltype) から取得し、いま動いている vmeltype.exe を置き換えます。Meltype の版は変えません。
+const appUpdateLong = `vMeltype の新しいバージョンを GitHub のリリース (otnc/vMeltype) から取得し、いま動いている vmeltype.exe を置き換えます。Meltype のバージョンは変えません。
 
-既定は正式版の最新です。--pre を付けたときだけ、プレリリースも含めた最新を選びます。いまより古い版には下げません。
+既定は正式版の最新です。--pre を付けたときだけ、プレリリースも含めた最新を選びます。いまより古いバージョンには下げません。
 配布物は GitHub が示す SHA-256 と照合してから置き換えます。前の vmeltype.exe は vmeltype.exe.old に退避し、次の更新で消します。`
 
 func setupAppUpdateFlags(cmd *cobra.Command) {
@@ -63,11 +63,11 @@ func runAppUpdate(env *Env) func(*cobra.Command, []string) error {
 		if asJSON {
 			planOut = cmd.ErrOrStderr()
 		}
-		fmt.Fprintf(planOut, "いまの版:     %s\n", env.Version)
-		fmt.Fprintf(planOut, "新しい版:     %s\n", release.Tag)
-		fmt.Fprintf(planOut, "配布物:       %s (%s)\n", asset.Name, formatBytes(asset.Size))
-		fmt.Fprintf(planOut, "置き換え先:   %s\n", exe)
-		fmt.Fprintln(planOut, "GitHub が示す SHA-256 と照合してから置き換えます。Meltype の版は変えません。")
+		fmt.Fprintf(planOut, "いまのバージョン: %s\n", env.Version)
+		fmt.Fprintf(planOut, "新しいバージョン: %s\n", release.Tag)
+		fmt.Fprintf(planOut, "配布物:           %s (%s)\n", asset.Name, formatBytes(asset.Size))
+		fmt.Fprintf(planOut, "置き換え先:       %s\n", exe)
+		fmt.Fprintln(planOut, "GitHub が示す SHA-256 と照合してから置き換えます。Meltype のバージョンは変えません。")
 		if dryRun {
 			if asJSON {
 				return writeJSON(out, map[string]any{"dryRun": true, "current": env.Version, "latest": release.Tag, "executable": exe})

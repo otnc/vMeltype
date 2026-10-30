@@ -66,7 +66,7 @@ func Load(root string) (Settings, error) {
 	return s, nil
 }
 
-// Set は、1 つの設定を変える。知らない項目は、新しい版の vMeltype が書いたものかもしれないので消さない。
+// Set は、1 つの設定を変える。知らない項目は、新しいバージョンの vMeltype が書いたものかもしれないので消さない。
 func Set(root, key, value string) error {
 	if _, ok := keys[key]; !ok {
 		return fmt.Errorf("%w: %q (設定できるもの: %s)", ErrInvalid, key, strings.Join(keyNames(), "、"))

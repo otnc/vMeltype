@@ -10,7 +10,7 @@ import (
 )
 
 func TestRun(t *testing.T) {
-	t.Run("有効版の Meltype を起動する", func(t *testing.T) {
+	t.Run("有効なバージョンの Meltype を起動する", func(t *testing.T) {
 		l := newLocalEnv(t)
 		l.storePortable(t, "v1.4.0", nil)
 		l.run(t, false, "", "use", "v1.4.0", "--portable", "-y")
@@ -38,7 +38,7 @@ func TestRun(t *testing.T) {
 		wantText string
 	}{
 		{
-			name:     "有効版がなければ use を案内する",
+			name:     "有効なバージョンがなければ use を案内する",
 			prepare:  newLocalEnv,
 			wantCode: ExitError,
 			wantText: "vmeltype use",

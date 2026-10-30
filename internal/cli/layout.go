@@ -29,7 +29,7 @@ func layoutFor(env *Env, root, variant string) (layout, error) {
 	return layout{variant: variant, appDir: lifecycle.StandardAppDir(localAppData), dataDir: lifecycle.StandardDataDir(localAppData)}, nil
 }
 
-// activeLayout は、有効版の実行先とデータ先を返す。有効版がなければ portable 版のものを返す。
+// activeLayout は、有効なバージョンの実行先とデータ先を返す。有効なバージョンがなければ portable 版のものを返す。
 func activeLayout(env *Env, root string) (layout, error) {
 	state, err := lifecycle.LoadState(root)
 	if err != nil {
@@ -46,7 +46,7 @@ func activeLayout(env *Env, root string) (layout, error) {
 	return l, nil
 }
 
-// reapplyCommand は、有効版を同じ版のまま置き直すコマンドを返す。
+// reapplyCommand は、有効なバージョンを同じバージョンのまま置き直すコマンドを返す。
 func reapplyCommand(active *lifecycle.Activation) string {
 	if active.Variant == string(assets.Portable) {
 		return fmt.Sprintf("vmeltype use %s --portable --force", active.Tag)

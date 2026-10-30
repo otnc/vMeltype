@@ -19,15 +19,15 @@ import (
 )
 
 var (
-	// ErrEntryConflict は、引き継ぐファイルと新しい版のファイルの名前がぶつかることを表す。
-	ErrEntryConflict = errors.New("実行先にある管理していないファイルが、新しい版のファイルと同じ名前です")
-	// ErrCorruptStored は、保持版のファイルが manifest と一致しないことを表す。
-	ErrCorruptStored = errors.New("保持版のファイルが manifest と一致しません。\"vmeltype install <tag> --reinstall\" で取得し直してください")
+	// ErrEntryConflict は、引き継ぐファイルと新しいバージョンのファイルの名前がぶつかることを表す。
+	ErrEntryConflict = errors.New("実行先にある管理していないファイルが、新しいバージョンのファイルと同じ名前です")
+	// ErrCorruptStored は、保持バージョンのファイルが manifest と一致しないことを表す。
+	ErrCorruptStored = errors.New("保持バージョンのファイルが manifest と一致しません。\"vmeltype install <tag> --reinstall\" で取得し直してください")
 	// ErrNeedsRecover は、切り替えの途中で失敗し、recover での復旧が要ることを表す。
 	ErrNeedsRecover = errors.New("切り替えの途中で失敗しました。\"vmeltype recover\" で復旧してください")
 )
 
-// PortableAppDir は、portable 版の実行先。版を切り替えても場所を変えず、隣の data を引き継ぐ。
+// PortableAppDir は、portable 版の実行先。バージョンを切り替えても場所を変えず、隣の data を引き継ぐ。
 func PortableAppDir(root string) string {
 	return filepath.Join(root, "portable", "app")
 }
@@ -39,9 +39,9 @@ type UsePlan struct {
 	From   *Activation
 	// Carried は、前の実行先から引き継ぐ名前 (data と、vMeltype が置いていないもの)。
 	Carried []string
-	// Adopted は、取り込む本家のインストールのうち、新しい版で置き換える名前。取り込まないなら空。
+	// Adopted は、取り込む本家のインストールのうち、新しいバージョンで置き換える名前。取り込まないなら空。
 	Adopted []string
-	// UpToDate は、同じ版が有効で、実行先のファイルが manifest と一致していること。
+	// UpToDate は、同じバージョンが有効で、実行先のファイルが manifest と一致していること。
 	UpToDate bool
 }
 
@@ -50,12 +50,12 @@ type UseOptions struct {
 	// OverridePin は、利用者がこの操作に限って固定を越えると明示したときだけ true にする。
 	OverridePin bool
 	// Adopt は、vMeltype が管理していない実行先にある本家のインストールを取り込むこと。
-	// 新しい版と同じ名前のものを置き換え、ほか (アンインストール用のファイルなど) は引き継ぐ。
+	// 新しいバージョンと同じ名前のものを置き換え、ほか (アンインストール用のファイルなど) は引き継ぐ。
 	Adopt bool
 }
 
-// ErrNoAppFiles は、保持版に、実行先に置く本体がないことを表す。
-var ErrNoAppFiles = errors.New("保持版に、実行先に置く本体がありません。\"vmeltype install <tag> --reinstall\" で取得し直してください")
+// ErrNoAppFiles は、保持バージョンに、実行先に置く本体がないことを表す。
+var ErrNoAppFiles = errors.New("保持バージョンに、実行先に置く本体がありません。\"vmeltype install <tag> --reinstall\" で取得し直してください")
 
 // PlanPortableUse は、portable 版の切り替えの計画を作る。実行先は管理ルートの中に固定する。
 func PlanPortableUse(root string, target store.Stored, overridePin bool) (UsePlan, error) {
@@ -114,7 +114,7 @@ func PlanUse(root, appDir string, target store.Stored, opts UseOptions) (UsePlan
 	return plan, nil
 }
 
-// ExecuteUse は、新しい版を作業用のディレクトリで組み立ててから、rename で実行先を入れ替える。
+// ExecuteUse は、新しいバージョンを作業用のディレクトリで組み立ててから、rename で実行先を入れ替える。
 // 呼び出し側は、管理ルートの排他を取り、未完了の処理記録がないことと、実行先の Meltype が止まっていることを確かめておく。
 //
 // 前の実行先を退避する前に失敗したら、実行先は変えずに作業用のものを消す。
@@ -179,7 +179,7 @@ func ExecuteUse(root string, storedDir string, plan UsePlan, now time.Time) erro
 		}
 		os.RemoveAll(staging)
 		clearJournal(root)
-		return fmt.Errorf("新しい版を実行先に置けませんでした。実行先は元に戻しました: %w", err)
+		return fmt.Errorf("新しいバージョンを実行先に置けませんでした。実行先は元に戻しました: %w", err)
 	}
 	if err := journal.advance(root, PhaseNewPlaced); err != nil {
 		return errors.Join(ErrNeedsRecover, err)
@@ -196,7 +196,7 @@ func ExecuteUse(root string, storedDir string, plan UsePlan, now time.Time) erro
 	return finishUse(root, journal)
 }
 
-// finishUse は、有効版の記録を更新し、処理記録と退避した前の版のファイルを消す。
+// finishUse は、有効なバージョンの記録を更新し、処理記録と退避した前のバージョンのファイルを消す。
 func finishUse(root string, journal *Journal) error {
 	state, err := LoadState(root)
 	if err != nil {
@@ -207,7 +207,7 @@ func finishUse(root string, journal *Journal) error {
 	}
 	active := journal.To
 	state.Active = &active
-	// 固定を越えて切り替えたなら、固定を新しい版に移し、有効でない版への固定を残さない
+	// 固定を越えて切り替えたなら、固定を新しいバージョンに移し、有効でないバージョンへの固定を残さない
 	if state.Pin != nil && state.Pin.StoreID != active.StoreID {
 		pin := pinOf(active, active.ActivatedAt)
 		state.Pin = &pin
@@ -223,15 +223,15 @@ func finishUse(root string, journal *Journal) error {
 			return fmt.Errorf("切り替えは終わりましたが、置き換えた本家のファイル (%s) を管理前の記録にできませんでした: %w", journal.BackupDir, err)
 		}
 	} else if journal.BackupDir != "" {
-		// 退避先に残っているのは前の版のファイルだけで、保持版から作り直せる
+		// 退避先に残っているのは前のバージョンのファイルだけで、保持バージョンから作り直せる
 		if err := os.RemoveAll(journal.BackupDir); err != nil {
-			return fmt.Errorf("切り替えは終わりましたが、前の版のファイル (%s) を消せませんでした: %w", journal.BackupDir, err)
+			return fmt.Errorf("切り替えは終わりましたが、前のバージョンのファイル (%s) を消せませんでした: %w", journal.BackupDir, err)
 		}
 	}
 	return nil
 }
 
-// copyStoredFiles は、保持版のうち実行先に置くファイルを、照合しながら dstRoot に写す。
+// copyStoredFiles は、保持バージョンのうち実行先に置くファイルを、照合しながら dstRoot に写す。
 func copyStoredFiles(srcRoot, dstRoot string, s store.Stored) error {
 	prefix := appPrefix(s.Variant)
 	for _, f := range appFiles(s) {
@@ -255,7 +255,7 @@ func appPrefix(variant string) string {
 	return ""
 }
 
-// appFiles は、保持版のうち実行先に置くファイルを、実行先からの相対パスにして返す。
+// appFiles は、保持バージョンのうち実行先に置くファイルを、実行先からの相対パスにして返す。
 func appFiles(s store.Stored) []archive.File {
 	prefix := appPrefix(s.Variant)
 	var files []archive.File

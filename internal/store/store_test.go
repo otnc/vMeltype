@@ -66,7 +66,7 @@ func TestUnfinishedStagingIsNotListed(t *testing.T) {
 	got, problems, err := s.List()
 
 	if err != nil || len(got) != 0 || len(problems) != 0 {
-		t.Errorf("作業中の保持版を一覧に出した: %+v, %v, %v", got, problems, err)
+		t.Errorf("作業中の保持バージョンを一覧に出した: %+v, %v, %v", got, problems, err)
 	}
 	if err := staging.Discard(); err != nil {
 		t.Fatal(err)
@@ -91,7 +91,7 @@ func TestCommitReplacesExistingVersion(t *testing.T) {
 	}
 	entries, _ := os.ReadDir(filepath.Join(s.Root, "versions"))
 	if len(entries) != 1 {
-		t.Errorf("置き換え前の保持版が残っている: %v", entries)
+		t.Errorf("置き換え前の保持バージョンが残っている: %v", entries)
 	}
 }
 
@@ -106,10 +106,10 @@ func TestBrokenManifestIsReportedAsProblem(t *testing.T) {
 	got, problems, err := s.List()
 
 	if err != nil || len(got) != 1 {
-		t.Fatalf("壊れた保持版のせいで正常なものまで読めない: %+v, %v", got, err)
+		t.Fatalf("壊れた保持バージョンのせいで正常なものまで読めない: %+v, %v", got, err)
 	}
 	if len(problems) != 1 || problems[0].ID != "v1.3.0_windows-amd64_standard" {
-		t.Errorf("壊れた保持版を報告していない: %+v", problems)
+		t.Errorf("壊れた保持バージョンを報告していない: %+v", problems)
 	}
 }
 
@@ -140,12 +140,12 @@ func TestRemove(t *testing.T) {
 
 	got, _, _ := s.List()
 	if len(got) != 1 || got[0].Tag != "v1.4.0" {
-		t.Errorf("指定した保持版だけを消していない: %+v", got)
+		t.Errorf("指定した保持バージョンだけを消していない: %+v", got)
 	}
 	if entries, _ := os.ReadDir(filepath.Join(s.Root, "versions")); len(entries) != 1 {
 		t.Errorf("削除の途中のディレクトリが残っている: %v", entries)
 	}
 	if err := s.Remove(ID("v9.9.9", "windows", "amd64", "standard")); !errors.Is(err, ErrNotStored) {
-		t.Errorf("保持していない版: err = %v", err)
+		t.Errorf("保持していないバージョン: err = %v", err)
 	}
 }

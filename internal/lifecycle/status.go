@@ -4,17 +4,17 @@ import (
 	"github.com/otnc/vmeltype/internal/store"
 )
 
-// Deployment は、実行先の配置が、有効版の保持版と一致するか。
+// Deployment は、実行先の配置が、保持バージョンのうち有効なものと一致するか。
 type Deployment string
 
 const (
-	// DeploymentNone は、有効版がないこと。
+	// DeploymentNone は、有効なバージョンがないこと。
 	DeploymentNone Deployment = "none"
-	// DeploymentMatch は、保持版のファイルがすべて実行先にあり、中身も一致すること。
+	// DeploymentMatch は、保持バージョンのファイルがすべて実行先にあり、中身も一致すること。
 	DeploymentMatch Deployment = "match"
 	// DeploymentMismatch は、実行先にないか、中身の違うファイルがあること。
 	DeploymentMismatch Deployment = "mismatch"
-	// DeploymentUnknown は、有効版の保持版を読めず、比べられないこと。
+	// DeploymentUnknown は、保持バージョンのうち有効なものを読めず、比べられないこと。
 	DeploymentUnknown Deployment = "unknown"
 	// DeploymentPending は、中断した変更があり、実行先が定まっていないので比べないこと。
 	DeploymentPending Deployment = "pending"
@@ -26,13 +26,13 @@ type Status struct {
 	Previous   *Activation `json:"previous"`
 	Pin        *Pinned     `json:"pin"`
 	Deployment Deployment  `json:"deployment"`
-	// Mismatched は、実行先にないか、保持版と中身が違うファイルの、/ 区切りのパス。
+	// Mismatched は、実行先にないか、保持バージョンと中身が違うファイルの、/ 区切りのパス。
 	Mismatched []string `json:"mismatched"`
 	// Pending は、中断した変更の処理記録。なければ nil。
 	Pending *Journal `json:"pending"`
 }
 
-// Inspect は、有効版の記録と処理記録を読み、実行先の配置を保持版と比べる。排他は取らない。
+// Inspect は、有効なバージョンの記録と処理記録を読み、実行先の配置を保持バージョンと比べる。排他は取らない。
 func Inspect(root string) (Status, error) {
 	state, err := LoadState(root)
 	if err != nil {

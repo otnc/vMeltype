@@ -120,7 +120,7 @@ func TestAppUninstallQuestions(t *testing.T) {
 }
 
 func TestAppUninstallRemovesMeltype(t *testing.T) {
-	t.Run("本家のアンインストーラーで消し、有効版の保持版の uninstall.ps1 を予備として渡す", func(t *testing.T) {
+	t.Run("本家のアンインストーラーで消し、保持バージョンのうち有効なものの uninstall.ps1 を予備として渡す", func(t *testing.T) {
 		l := managedStandard(t)
 
 		got := l.run(t, false, "", "app", "uninstall", "--remove-meltype", "-y")

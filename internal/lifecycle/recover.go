@@ -10,7 +10,7 @@ import (
 // RecoverPlan は、中断した use をどう復旧するかの計画。
 type RecoverPlan struct {
 	Journal *Journal
-	// Complete は、新しい版を実行先に置いたあとなので、残りを終えること。false なら、元の実行先へ戻す。
+	// Complete は、新しいバージョンを実行先に置いたあとなので、残りを終えること。false なら、元の実行先へ戻す。
 	Complete bool
 }
 
@@ -29,7 +29,7 @@ func PlanRecover(root string) (*RecoverPlan, error) {
 	}
 	appExists := exists(journal.To.AppDir)
 	stagingExists := exists(journal.StagingDir)
-	// 作業用のものが実行先へ移っていれば、新しい版はもう置かれている
+	// 作業用のものが実行先へ移っていれば、新しいバージョンはもう置かれている
 	complete := appExists && !stagingExists
 	if !appExists && journal.BackupDir != "" && !exists(journal.BackupDir) {
 		return nil, fmt.Errorf("実行先も退避した前の実行先も見つかりません。手で確かめてください: %s", journalPath(root))

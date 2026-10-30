@@ -125,7 +125,7 @@ func TestUsageErrorsExitWithTwo(t *testing.T) {
 
 func TestVersion(t *testing.T) {
 	for _, args := range [][]string{{"--version"}, {"app", "version"}} {
-		t.Run(strings.Join(args, " ")+" で vMeltype の版を表示する", func(t *testing.T) {
+		t.Run(strings.Join(args, " ")+" で vMeltype のバージョンを表示する", func(t *testing.T) {
 			got := execute(t, args...)
 
 			if got.code != ExitOK || got.stdout != "vMeltype 1.2.3\n" {

@@ -17,7 +17,7 @@ func runList(env *Env) func(*cobra.Command, []string) error {
 		}
 		stored, problems, err := store.Store{Root: root}.List()
 		if err != nil {
-			return fmt.Errorf("保持版を読めませんでした: %w", err)
+			return fmt.Errorf("保持バージョンを読めませんでした: %w", err)
 		}
 
 		if asJSON, _ := cmd.Flags().GetBool("json"); asJSON {
@@ -29,7 +29,7 @@ func runList(env *Env) func(*cobra.Command, []string) error {
 		}
 		writeStored(cmd.OutOrStdout(), root, stored)
 		for _, p := range problems {
-			fmt.Fprintf(cmd.ErrOrStderr(), "警告: 保持版 %s を読めません: %s\n", p.ID, p.Reason)
+			fmt.Fprintf(cmd.ErrOrStderr(), "警告: 保持バージョン %s を読めません: %s\n", p.ID, p.Reason)
 		}
 		return nil
 	}
@@ -39,10 +39,10 @@ var variantLabels = map[string]string{"standard": "通常版", "portable": "port
 
 func writeStored(w io.Writer, root string, stored []store.Stored) {
 	if len(stored) == 0 {
-		fmt.Fprintln(w, "保持している版はありません。\"vmeltype install <tag>\" で取得します。")
+		fmt.Fprintln(w, "保持しているバージョンはありません。\"vmeltype install <tag>\" で取得します。")
 		return
 	}
-	fmt.Fprintf(w, "保持している版 (%s)\n\n", root)
+	fmt.Fprintf(w, "保持しているバージョン (%s)\n\n", root)
 	rows := [][]string{{"保持 ID", "タグ", "区分", "variant", "保持した日時"}}
 	for _, s := range stored {
 		kind := "正式版"

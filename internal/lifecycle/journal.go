@@ -13,11 +13,11 @@ var ErrPendingJournal = errors.New("中断した変更の処理記録が残っ�
 
 // 処理記録の段階。recover は、どこまで進んだかで、戻すか終えるかを決める。
 const (
-	// PhaseStaged は、新しい版を作業用のディレクトリに組み立てた段階。実行先はまだ変えていない。
+	// PhaseStaged は、新しいバージョンを作業用のディレクトリに組み立てた段階。実行先はまだ変えていない。
 	PhaseStaged = "staged"
 	// PhaseOldMoved は、前の実行先を退避した段階。実行先は空になっている。
 	PhaseOldMoved = "old-moved"
-	// PhaseNewPlaced は、新しい版を実行先に置いた段階。data などは、まだ退避先にある。
+	// PhaseNewPlaced は、新しいバージョンを実行先に置いた段階。data などは、まだ退避先にある。
 	PhaseNewPlaced = "new-placed"
 	// PhaseCarried は、data などを新しい実行先へ戻し終えた段階。
 	PhaseCarried = "carried"

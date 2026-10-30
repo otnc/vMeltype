@@ -18,13 +18,13 @@ import (
 // Repository は、管理する本家のリポジトリ。
 const Repository = "yksr-melt/Meltype"
 
-// SchemaVersion は、この版の vMeltype が読み書きする保存形式の版。
+// SchemaVersion は、このバージョンの vMeltype が読み書きする保存形式のバージョン。
 const SchemaVersion = 1
 
 var (
 	// ErrNotFetched は、公式一覧をまだ一度も保存していないことを表す。
 	ErrNotFetched = errors.New("公式一覧をまだ取得していません")
-	// ErrUnsupportedSchema は、新しい版の vMeltype が保存した形式で、読めないことを表す。
+	// ErrUnsupportedSchema は、新しいバージョンの vMeltype が保存した形式で、読めないことを表す。
 	ErrUnsupportedSchema = errors.New("保存済みの公式一覧は新しい形式なので読めません。vMeltype を更新してください")
 )
 

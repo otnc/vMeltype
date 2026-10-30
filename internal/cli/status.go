@@ -63,37 +63,37 @@ func runStatus(env *Env) func(*cobra.Command, []string) error {
 }
 
 func writeStatus(w io.Writer, s localStatus) {
-	fmt.Fprintf(w, "管理ルート:   %s\n", s.Root)
+	fmt.Fprintf(w, "管理ルート:       %s\n", s.Root)
 	if s.Pending != nil {
-		fmt.Fprintf(w, "未完了の処理: %s。\"vmeltype recover\" で復旧してください\n", describeJournal(s.Pending))
+		fmt.Fprintf(w, "未完了の処理:     %s。\"vmeltype recover\" で復旧してください\n", describeJournal(s.Pending))
 	}
 	if s.Active == nil {
-		fmt.Fprintln(w, "有効版:       有効な版はありません。\"vmeltype use <tag>\" で有効にします")
+		fmt.Fprintln(w, "有効なバージョン: 有効なバージョンはありません。\"vmeltype use <tag>\" で有効にします")
 		return
 	}
-	fmt.Fprintf(w, "有効版:       %s (%s、保持 ID: %s)\n", s.Active.Tag, variantLabels[s.Active.Variant], s.Active.StoreID)
+	fmt.Fprintf(w, "有効なバージョン: %s (%s、保持 ID: %s)\n", s.Active.Tag, variantLabels[s.Active.Variant], s.Active.StoreID)
 	previous := "なし"
 	if s.Previous != nil {
 		previous = s.Previous.Tag
 	}
-	fmt.Fprintf(w, "直前の版:     %s\n", previous)
+	fmt.Fprintf(w, "直前のバージョン: %s\n", previous)
 	pin := "なし"
 	if s.Pin != nil {
 		pin = s.Pin.Tag + " に固定しています"
 	}
-	fmt.Fprintf(w, "固定:         %s\n", pin)
-	fmt.Fprintf(w, "実行先:       %s\n", s.Active.AppDir)
-	fmt.Fprintf(w, "配置:         %s\n", describeDeployment(s.Status))
+	fmt.Fprintf(w, "固定:             %s\n", pin)
+	fmt.Fprintf(w, "実行先:           %s\n", s.Active.AppDir)
+	fmt.Fprintf(w, "配置:             %s\n", describeDeployment(s.Status))
 	running := "止まっています"
 	if len(s.Running) > 0 {
 		running = "動いています (" + strings.Join(s.Running, "、") + ")"
 	}
-	fmt.Fprintf(w, "稼働:         %s\n", running)
+	fmt.Fprintf(w, "稼働:             %s\n", running)
 	data := "まだありません"
 	if s.DataExists {
 		data = "あります"
 	}
-	fmt.Fprintf(w, "データ先:     %s (%s)\n", s.DataDir, data)
+	fmt.Fprintf(w, "データ先:         %s (%s)\n", s.DataDir, data)
 }
 
 func describeJournal(j *lifecycle.Journal) string {
@@ -107,13 +107,13 @@ func describeJournal(j *lifecycle.Journal) string {
 func describeDeployment(s lifecycle.Status) string {
 	switch s.Deployment {
 	case lifecycle.DeploymentMatch:
-		return "保持版と一致しています"
+		return "保持バージョンと一致しています"
 	case lifecycle.DeploymentMismatch:
-		return fmt.Sprintf("保持版と一致しません (%s)。\"%s\" で置き直せます", summarize(s.Mismatched), reapplyCommand(s.Active))
+		return fmt.Sprintf("保持バージョンと一致しません (%s)。\"%s\" で置き直せます", summarize(s.Mismatched), reapplyCommand(s.Active))
 	case lifecycle.DeploymentPending:
 		return "未完了の処理があるので調べていません"
 	default:
-		return fmt.Sprintf("保持版 %s を読めないので比べられません", s.Active.StoreID)
+		return fmt.Sprintf("保持バージョン %s を読めないので比べられません", s.Active.StoreID)
 	}
 }
 

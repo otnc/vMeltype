@@ -1,4 +1,4 @@
-// vmeltype は、Meltype の複数の版を保持し、切り替える CLI。
+// vmeltype は、Meltype の複数のバージョンを保持し、切り替える CLI。
 package main
 
 import (
