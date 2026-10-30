@@ -25,8 +25,12 @@ func inspectLocal(env *Env, root string) (localStatus, error) {
 	if err != nil {
 		return localStatus{}, err
 	}
-	s := localStatus{Root: root, Status: status, Running: []string{}, DataDir: portableDataDir(root)}
-	running, err := env.RunningUnder(lifecycle.PortableAppDir(root))
+	place, err := activeLayout(env, root)
+	if err != nil {
+		return localStatus{}, err
+	}
+	s := localStatus{Root: root, Status: status, Running: []string{}, DataDir: place.dataDir}
+	running, err := env.RunningUnder(place.appDir)
 	if err != nil {
 		return localStatus{}, fmt.Errorf("実行先の Meltype が動いているかを確かめられませんでした: %w", err)
 	}
@@ -105,7 +109,7 @@ func describeDeployment(s lifecycle.Status) string {
 	case lifecycle.DeploymentMatch:
 		return "保持版と一致しています"
 	case lifecycle.DeploymentMismatch:
-		return fmt.Sprintf("保持版と一致しません (%s)。\"vmeltype use %s --portable --force\" で置き直せます", summarize(s.Mismatched), s.Active.Tag)
+		return fmt.Sprintf("保持版と一致しません (%s)。\"%s\" で置き直せます", summarize(s.Mismatched), reapplyCommand(s.Active))
 	case lifecycle.DeploymentPending:
 		return "未完了の処理があるので調べていません"
 	default:

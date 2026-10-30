@@ -37,6 +37,10 @@ type Env struct {
 	StopApp func(appDir string) error
 	// StartApp は、実行先の Meltype を起動し、終わるのを待たない。
 	StartApp func(appDir string) error
+	// LocalAppData は、通常版の実行先とデータ先を決める、このユーザーの LocalAppData を返す。
+	LocalAppData func() (string, error)
+	// IMERegistered は、Meltype IME が PC に登録されているかを返す。
+	IMERegistered func() (bool, error)
 }
 
 const usageTemplate = `使い方:{{if .Runnable}}

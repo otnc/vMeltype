@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/otnc/vmeltype/internal/archive"
+	"github.com/otnc/vmeltype/internal/assets"
 	"github.com/otnc/vmeltype/internal/privatefs"
 	"github.com/otnc/vmeltype/internal/store"
 )
@@ -31,32 +32,54 @@ func PortableAppDir(root string) string {
 	return filepath.Join(root, "portable", "app")
 }
 
-// UsePlan は、portable 版の use の計画。
+// UsePlan は、use の計画。
 type UsePlan struct {
 	Target store.Stored
 	AppDir string
 	From   *Activation
 	// Carried は、前の実行先から引き継ぐ名前 (data と、vMeltype が置いていないもの)。
 	Carried []string
+	// Adopted は、取り込む本家のインストールのうち、新しい版で置き換える名前。取り込まないなら空。
+	Adopted []string
 	// UpToDate は、同じ版が有効で、実行先のファイルが manifest と一致していること。
 	UpToDate bool
 }
 
-// PlanPortableUse は、実行先を変えずに、切り替えの計画を作る。固定に反するか、名前がぶつかるなら、この時点で止める。
-// overridePin は、利用者がこの操作に限って固定を越えると明示したときだけ true にする。
+// UseOptions は、計画の作り方の指定。
+type UseOptions struct {
+	// OverridePin は、利用者がこの操作に限って固定を越えると明示したときだけ true にする。
+	OverridePin bool
+	// Adopt は、vMeltype が管理していない実行先にある本家のインストールを取り込むこと。
+	// 新しい版と同じ名前のものを置き換え、ほか (アンインストール用のファイルなど) は引き継ぐ。
+	Adopt bool
+}
+
+// ErrNoAppFiles は、保持版に、実行先に置く本体がないことを表す。
+var ErrNoAppFiles = errors.New("保持版に、実行先に置く本体がありません。\"vmeltype install <tag> --reinstall\" で取得し直してください")
+
+// PlanPortableUse は、portable 版の切り替えの計画を作る。実行先は管理ルートの中に固定する。
 func PlanPortableUse(root string, target store.Stored, overridePin bool) (UsePlan, error) {
+	return PlanUse(root, PortableAppDir(root), target, UseOptions{OverridePin: overridePin})
+}
+
+// PlanUse は、実行先を変えずに、切り替えの計画を作る。固定に反するか、名前がぶつかるなら、この時点で止める。
+func PlanUse(root, appDir string, target store.Stored, opts UseOptions) (UsePlan, error) {
 	state, err := LoadState(root)
 	if err != nil {
 		return UsePlan{}, err
 	}
-	if !overridePin {
+	if !opts.OverridePin {
 		if err := checkPin(state, target.ID); err != nil {
 			return UsePlan{}, err
 		}
 	}
-	appDir := PortableAppDir(root)
+	targetEntries := topLevelEntries(appFiles(target))
+	if len(targetEntries) == 0 {
+		return UsePlan{}, fmt.Errorf("%w (%s)", ErrNoAppFiles, target.ID)
+	}
+	managed := state.Active != nil && strings.EqualFold(state.Active.AppDir, appDir)
 	var owned []string
-	if state.Active != nil && state.Active.AppDir == appDir {
+	if managed {
 		owned = state.Active.OwnedEntries
 	}
 
@@ -64,14 +87,18 @@ func PlanPortableUse(root string, target store.Stored, overridePin bool) (UsePla
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return UsePlan{}, err
 	}
-	var carried []string
+	var carried, adopted []string
 	for _, e := range entries {
-		if !containsFold(owned, e.Name()) {
+		switch {
+		case containsFold(owned, e.Name()):
+		case opts.Adopt && !managed && containsFold(targetEntries, e.Name()):
+			adopted = append(adopted, e.Name())
+		default:
 			carried = append(carried, e.Name())
 		}
 	}
 	var conflicts []string
-	for _, name := range topLevelEntries(target.Files) {
+	for _, name := range targetEntries {
 		if containsFold(carried, name) {
 			conflicts = append(conflicts, name)
 		}
@@ -80,19 +107,19 @@ func PlanPortableUse(root string, target store.Stored, overridePin bool) (UsePla
 		return UsePlan{}, fmt.Errorf("%w: %s (%s)", ErrEntryConflict, strings.Join(conflicts, "、"), appDir)
 	}
 
-	plan := UsePlan{Target: target, AppDir: appDir, From: state.Active, Carried: carried}
-	if state.Active != nil && state.Active.StoreID == target.ID {
-		plan.UpToDate = deployedMatches(appDir, target.Files)
+	plan := UsePlan{Target: target, AppDir: appDir, From: state.Active, Carried: carried, Adopted: adopted}
+	if managed && state.Active.StoreID == target.ID {
+		plan.UpToDate = deployedMatches(appDir, appFiles(target))
 	}
 	return plan, nil
 }
 
-// ExecutePortableUse は、新しい版を作業用のディレクトリで組み立ててから、rename で実行先を入れ替える。
+// ExecuteUse は、新しい版を作業用のディレクトリで組み立ててから、rename で実行先を入れ替える。
 // 呼び出し側は、管理ルートの排他を取り、未完了の処理記録がないことと、実行先の Meltype が止まっていることを確かめておく。
 //
 // 前の実行先を退避する前に失敗したら、実行先は変えずに作業用のものを消す。
 // 退避したあとに失敗したら、できる限りその場で戻し、戻せなければ処理記録を残して ErrNeedsRecover を返す。
-func ExecutePortableUse(root string, storedDir string, plan UsePlan, now time.Time) error {
+func ExecuteUse(root string, storedDir string, plan UsePlan, now time.Time) error {
 	parent := filepath.Dir(plan.AppDir)
 	if err := privatefs.MkdirAll(parent); err != nil {
 		return err
@@ -102,7 +129,7 @@ func ExecutePortableUse(root string, storedDir string, plan UsePlan, now time.Ti
 	if err != nil {
 		return err
 	}
-	if err := copyStoredFiles(filepath.Join(storedDir, "files"), staging, plan.Target.Files); err != nil {
+	if err := copyStoredFiles(filepath.Join(storedDir, "files"), staging, plan.Target); err != nil {
 		os.RemoveAll(staging)
 		return err
 	}
@@ -116,11 +143,12 @@ func ExecutePortableUse(root string, storedDir string, plan UsePlan, now time.Ti
 			Tag:          plan.Target.Tag,
 			Variant:      plan.Target.Variant,
 			AppDir:       plan.AppDir,
-			OwnedEntries: topLevelEntries(plan.Target.Files),
+			OwnedEntries: topLevelEntries(appFiles(plan.Target)),
 			ActivatedAt:  now.UTC(),
 		},
 		StagingDir: staging,
 		Carried:    nonNil(plan.Carried),
+		Adopted:    plan.Adopted,
 	}
 	_, statErr := os.Stat(plan.AppDir)
 	hasOld := statErr == nil
@@ -190,7 +218,11 @@ func finishUse(root string, journal *Journal) error {
 	if err := clearJournal(root); err != nil {
 		return err
 	}
-	if journal.BackupDir != "" {
+	if journal.BackupDir != "" && len(journal.Adopted) > 0 {
+		if err := keepAdoptedApp(root, journal); err != nil {
+			return fmt.Errorf("切り替えは終わりましたが、置き換えた本家のファイル (%s) を管理前の記録にできませんでした: %w", journal.BackupDir, err)
+		}
+	} else if journal.BackupDir != "" {
 		// 退避先に残っているのは前の版のファイルだけで、保持版から作り直せる
 		if err := os.RemoveAll(journal.BackupDir); err != nil {
 			return fmt.Errorf("切り替えは終わりましたが、前の版のファイル (%s) を消せませんでした: %w", journal.BackupDir, err)
@@ -199,18 +231,41 @@ func finishUse(root string, journal *Journal) error {
 	return nil
 }
 
-func copyStoredFiles(srcRoot, dstRoot string, files []archive.File) error {
-	for _, f := range files {
-		rel := filepath.FromSlash(f.Path)
-		dst := filepath.Join(dstRoot, rel)
+// copyStoredFiles は、保持版のうち実行先に置くファイルを、照合しながら dstRoot に写す。
+func copyStoredFiles(srcRoot, dstRoot string, s store.Stored) error {
+	prefix := appPrefix(s.Variant)
+	for _, f := range appFiles(s) {
+		dst := filepath.Join(dstRoot, filepath.FromSlash(f.Path))
 		if err := privatefs.MkdirAll(filepath.Dir(dst)); err != nil {
 			return err
 		}
-		if err := copyVerified(filepath.Join(srcRoot, rel), dst, f); err != nil {
+		if err := copyVerified(filepath.Join(srcRoot, filepath.FromSlash(prefix+f.Path)), dst, f); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// appPrefix は、配布物の中で、実行先に置く本体があるディレクトリ。
+// 通常版の ZIP は app の下に本体があり、隣にインストール用のスクリプトなどがある。portable 版は ZIP の直下が本体。
+func appPrefix(variant string) string {
+	if variant == string(assets.Standard) {
+		return "app/"
+	}
+	return ""
+}
+
+// appFiles は、保持版のうち実行先に置くファイルを、実行先からの相対パスにして返す。
+func appFiles(s store.Stored) []archive.File {
+	prefix := appPrefix(s.Variant)
+	var files []archive.File
+	for _, f := range s.Files {
+		if rel, ok := strings.CutPrefix(f.Path, prefix); ok && rel != "" {
+			f.Path = rel
+			files = append(files, f)
+		}
+	}
+	return files
 }
 
 func copyVerified(src, dst string, want archive.File) error {

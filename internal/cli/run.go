@@ -36,7 +36,7 @@ func runRun(env *Env) func(*cobra.Command, []string) error {
 		}
 		appDir := state.Active.AppDir
 		if _, err := os.Stat(filepath.Join(appDir, appctl.ExeName)); err != nil {
-			return fmt.Errorf("実行先に %s がありません。\"vmeltype use %s --portable --force\" で置き直してください: %w", appctl.ExeName, state.Active.Tag, err)
+			return fmt.Errorf("実行先に %s がありません。\"%s\" で置き直してください: %w", appctl.ExeName, reapplyCommand(state.Active), err)
 		}
 
 		out := cmd.OutOrStdout()

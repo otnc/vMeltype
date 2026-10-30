@@ -98,7 +98,7 @@ func deploymentCheck(s localStatus) check {
 		c.Level = levelWarn
 	case lifecycle.DeploymentMismatch:
 		c.Level, c.Message = levelFail, fmt.Sprintf("実行先の %s が保持版と一致しません (%s)", s.Active.Tag, summarize(s.Mismatched))
-		c.Hint = fmt.Sprintf("\"vmeltype use %s --portable --force\" で置き直してください", s.Active.Tag)
+		c.Hint = fmt.Sprintf("\"%s\" で置き直してください", reapplyCommand(s.Active))
 	default:
 		c.Level = levelFail
 		c.Hint = fmt.Sprintf("\"%s\" で取得し直してください", installCommand(s.Active.Tag, s.Active.Variant))

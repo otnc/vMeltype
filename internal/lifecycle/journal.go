@@ -35,6 +35,8 @@ type Journal struct {
 	BackupDir     string      `json:"backupDir,omitempty"`
 	// Carried は、前の実行先から新しい実行先へ引き継ぐ名前 (data など)。
 	Carried []string `json:"carried"`
+	// Adopted は、取り込んだ本家のインストールのうち置き換えた名前。空でなければ、退避したものを管理前の記録として残す。
+	Adopted []string `json:"adopted,omitempty"`
 }
 
 func journalPath(root string) string {
