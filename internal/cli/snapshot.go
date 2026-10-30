@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/otnc/vmeltype/internal/assets"
+	"github.com/otnc/vmeltype/internal/config"
 	"github.com/otnc/vmeltype/internal/lifecycle"
 	"github.com/otnc/vmeltype/internal/prompt"
 	"github.com/otnc/vmeltype/internal/snapshot"
@@ -18,8 +19,9 @@ import (
 
 const snapshotLong = `Meltype のデータを保存し、検査し、復元します。通信しません。
 
-いまは portable 版のデータ (管理ルートの portable\app\data) だけを扱います。
-本家のバックアップと違い、未知のものも含めて data の通常のファイルをすべて保存し、各ファイルの SHA-256 を記録します。`
+有効なバージョンのデータ先 (通常版は %LOCALAPPDATA%\Meltype、portable 版は管理ルートの portable\app\data) を扱います。
+本家のバックアップと違い、未知のものも含めてデータ先の通常のファイルをすべて保存し、各ファイルの SHA-256 を記録します。
+通常版の切り替えの前と、復元の前には自動で作ります。自動で作ったものは、新しいほうから設定 auto-snapshot-keep の数 (既定は 10) だけ残し、古いものを消します。手動で作ったものと取り込んだものは消しません。`
 
 var reasonLabels = map[snapshot.Reason]string{
 	snapshot.ReasonManual:        "手動",
@@ -291,6 +293,7 @@ func runSnapshotRestore(env *Env) func(*cobra.Command, []string) error {
 		if err := snapshot.Restore(root, id, dataDir); err != nil {
 			return err
 		}
+		pruneAutoSnapshots(cmd, root, id)
 		if asJSON {
 			return writeJSON(out, map[string]any{"restored": id, "before": before.ID})
 		}
@@ -349,6 +352,162 @@ func runSnapshotImport(env *Env) func(*cobra.Command, []string) error {
 
 // dataKind は、データ先が portable 版のもの (実行先の隣の data) か、通常版のものかを返す。
 // 別の PC で作ったスナップショットはデータ先のパスが違うので、パスではなく種類で比べる。
+func runSnapshotRemove(env *Env) func(*cobra.Command, []string) error {
+	return func(cmd *cobra.Command, args []string) error {
+		flags := cmd.Flags()
+		dryRun, _ := flags.GetBool("dry-run")
+		yes, _ := flags.GetBool("yes")
+		asJSON, _ := flags.GetBool("json")
+		root, err := managementRoot(cmd, env)
+		if err != nil {
+			return err
+		}
+		m, err := snapshot.Get(root, args[0])
+		if err != nil {
+			return err
+		}
+		out := cmd.OutOrStdout()
+		planOut := out
+		if asJSON {
+			planOut = cmd.ErrOrStderr()
+		}
+		fmt.Fprintf(planOut, "削除するスナップショット: %s\n", describeSnapshot(m))
+		if dryRun {
+			if asJSON {
+				return writeJSON(out, map[string]any{"dryRun": true, "remove": []string{m.ID}})
+			}
+			return nil
+		}
+		confirmer := prompt.Confirmer{In: cmd.InOrStdin(), Out: cmd.ErrOrStderr(), Interactive: env.Interactive && !asJSON, AssumeYes: yes}
+		if err := confirmer.Confirm(fmt.Sprintf("スナップショット %s を削除しますか？", m.ID), prompt.DefaultNo); err != nil {
+			return err
+		}
+		lock, err := lifecycle.AcquireLock(root)
+		if err != nil {
+			return err
+		}
+		defer lock.Release()
+		if err := snapshot.Remove(root, m.ID); err != nil {
+			return err
+		}
+		if asJSON {
+			return writeJSON(out, map[string]any{"removed": []string{m.ID}})
+		}
+		fmt.Fprintf(out, "スナップショット %s を削除しました。\n", m.ID)
+		return nil
+	}
+}
+
+func runSnapshotPrune(env *Env) func(*cobra.Command, []string) error {
+	return func(cmd *cobra.Command, _ []string) error {
+		flags := cmd.Flags()
+		dryRun, _ := flags.GetBool("dry-run")
+		yes, _ := flags.GetBool("yes")
+		asJSON, _ := flags.GetBool("json")
+		keep, _ := flags.GetInt("keep")
+		if flags.Changed("keep") && keep < 1 {
+			return usageError{fmt.Errorf("--keep には 1 以上の数を指定してください: %d", keep)}
+		}
+		root, err := managementRoot(cmd, env)
+		if err != nil {
+			return err
+		}
+		if !flags.Changed("keep") {
+			settings, err := config.Load(root)
+			if err != nil {
+				return err
+			}
+			keep = settings.AutoSnapshotKeep
+		}
+		out := cmd.OutOrStdout()
+		planOut := out
+		if asJSON {
+			planOut = cmd.ErrOrStderr()
+		}
+		if keep == 0 {
+			fmt.Fprintln(planOut, "設定 auto-snapshot-keep が 0 なので、消しません。消すなら --keep で残す数を指定します。")
+			if asJSON {
+				return writeJSON(out, map[string]any{"removed": []string{}})
+			}
+			return nil
+		}
+		targets, err := snapshot.PruneTargets(root, keep)
+		if err != nil {
+			return err
+		}
+		ids := []string{}
+		for _, m := range targets {
+			ids = append(ids, m.ID)
+		}
+		if len(targets) == 0 {
+			fmt.Fprintf(planOut, "自動で作ったスナップショットは %d 個以下なので、消すものはありません。\n", keep)
+			if asJSON {
+				return writeJSON(out, map[string]any{"removed": ids})
+			}
+			return nil
+		}
+		fmt.Fprintf(planOut, "自動で作ったスナップショットのうち、新しい %d 個より古い次のものを消します。手動で作ったものと取り込んだものは消しません。\n", keep)
+		for _, m := range targets {
+			fmt.Fprintf(planOut, "  %s\n", describeSnapshot(m))
+		}
+		if dryRun {
+			if asJSON {
+				return writeJSON(out, map[string]any{"dryRun": true, "remove": ids})
+			}
+			return nil
+		}
+		confirmer := prompt.Confirmer{In: cmd.InOrStdin(), Out: cmd.ErrOrStderr(), Interactive: env.Interactive && !asJSON, AssumeYes: yes}
+		if err := confirmer.Confirm(fmt.Sprintf("%d 個のスナップショットを削除しますか？", len(targets)), prompt.DefaultNo); err != nil {
+			return err
+		}
+		lock, err := lifecycle.AcquireLock(root)
+		if err != nil {
+			return err
+		}
+		defer lock.Release()
+		removed, err := snapshot.Prune(root, keep)
+		if err != nil {
+			return err
+		}
+		ids = []string{}
+		for _, m := range removed {
+			ids = append(ids, m.ID)
+		}
+		if asJSON {
+			return writeJSON(out, map[string]any{"removed": ids})
+		}
+		fmt.Fprintf(out, "%d 個のスナップショットを削除しました。\n", len(removed))
+		return nil
+	}
+}
+
+// describeSnapshot は、スナップショットを 1 行で示す。
+func describeSnapshot(m snapshot.Manifest) string {
+	reason := reasonLabels[m.Reason]
+	if m.ImportedAt != nil {
+		reason += "、取り込み"
+	}
+	return fmt.Sprintf("%s (%s、%s)", m.ID, formatLocal(m.CreatedAt), reason)
+}
+
+// pruneAutoSnapshots は、自動で作ったスナップショットのうち、設定の数より古いものを消す。protected (いま復元したものなど) は消さない。
+// 呼び出し元の操作はもう終わっているので、消せなくても失敗にはせず、警告だけを出す。
+func pruneAutoSnapshots(cmd *cobra.Command, root string, protected ...string) {
+	warn := cmd.ErrOrStderr()
+	settings, err := config.Load(root)
+	if err != nil {
+		fmt.Fprintf(warn, "警告: 設定を読めないので、古い自動のスナップショットを消しませんでした: %v\n", err)
+		return
+	}
+	removed, err := snapshot.Prune(root, settings.AutoSnapshotKeep, protected...)
+	if len(removed) > 0 {
+		fmt.Fprintf(warn, "自動で作ったスナップショットが %d 個を超えたので、古いものを %d 個消しました。残す数は \"vmeltype app config set auto-snapshot-keep <数>\" で変えられます。\n", settings.AutoSnapshotKeep, len(removed))
+	}
+	if err != nil {
+		fmt.Fprintf(warn, "警告: 古い自動のスナップショットを消せませんでした: %v\n", err)
+	}
+}
+
 // dataKindMismatch は、スナップショットのデータの種類 (通常版か portable 版か) が、いまの戻し先と違うことを表すエラーを返す。
 // 有効なバージョンがなければ戻し先は portable 版の data になるので、通常版のデータは、通常版を有効にしてから戻すよう案内する。
 func dataKindMismatch(root, id, source, kind string) error {

@@ -194,6 +194,9 @@ func switchVersion(cmd *cobra.Command, env *Env, root string, st store.Store, ta
 		}
 		return err
 	}
+	if standard {
+		pruneAutoSnapshots(cmd, root)
+	}
 	if asJSON {
 		return writeJSON(out, map[string]any{"changed": true, "active": target.ID, "appDir": plan.AppDir})
 	}
