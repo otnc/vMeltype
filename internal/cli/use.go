@@ -32,6 +32,7 @@ func setupUseFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool("pre", false, "正式版ではなく、保持しているプレリリースから最新を選ぶ")
 	cmd.Flags().String("id", "", "保持 ID で保持版を選ぶ")
 	cmd.Flags().Bool("portable", false, "portable 版を対象にする。付けなければ通常版を対象にする")
+	addOverridePinFlag(cmd)
 }
 
 func runUse(env *Env) func(*cobra.Command, []string) error {
@@ -102,7 +103,8 @@ func switchVersion(cmd *cobra.Command, env *Env, root string, st store.Store, ta
 		return lifecycle.ErrPendingJournal
 	}
 
-	plan, err := lifecycle.PlanPortableUse(root, target)
+	overridePin, _ := flags.GetBool("override-pin")
+	plan, err := lifecycle.PlanPortableUse(root, target, overridePin)
 	if err != nil {
 		return err
 	}
@@ -409,7 +411,7 @@ func runCurrent(env *Env) func(*cobra.Command, []string) error {
 		}
 		out := cmd.OutOrStdout()
 		if asJSON, _ := cmd.Flags().GetBool("json"); asJSON {
-			return writeJSON(out, map[string]any{"active": state.Active, "previous": state.Previous})
+			return writeJSON(out, map[string]any{"active": state.Active, "previous": state.Previous, "pin": state.Pin})
 		}
 		if state.Active == nil {
 			fmt.Fprintln(out, "有効な版はありません。\"vmeltype use <tag>\" で有効にします。")
@@ -418,6 +420,9 @@ func runCurrent(env *Env) func(*cobra.Command, []string) error {
 		variant := variantLabels[state.Active.Variant]
 		fmt.Fprintf(out, "%s (%s、保持 ID: %s)\n", state.Active.Tag, variant, state.Active.StoreID)
 		fmt.Fprintf(out, "実行先: %s\n", state.Active.AppDir)
+		if state.Pin != nil {
+			fmt.Fprintf(out, "固定: %s (%s)\n", state.Pin.Tag, state.Pin.StoreID)
+		}
 		return nil
 	}
 }

@@ -58,9 +58,9 @@ func commandSpecs(env *Env) []commandSpec {
 		{use: "uninstall <tag>", aliases: []string{"un"}, short: "有効でない保持版を削除する。版は省略せずに指定する。実行先と data には触れない", args: exactArgs(1), flags: change, setup: setupUninstallFlags, run: runUninstall(env)},
 		{use: "check", short: "新しい版があるかを確かめる。適用しない", flags: []commonFlag{flagJSON}},
 		{use: "update", aliases: []string{"up"}, short: "新しい版を取得して有効にする", flags: change},
-		{use: "pin [tag]", short: "有効な版を固定する", args: maxArgs(1), flags: []commonFlag{flagJSON}},
-		{use: "unpin", short: "版の固定を解除する", flags: []commonFlag{flagJSON}},
-		{use: "rollback", short: "直前に有効にした版へ戻す。データは戻さない", flags: change, run: runRollback(env)},
+		{use: "pin [tag]", short: "有効な版を固定する。通信しない", long: pinLong, args: maxArgs(1), flags: []commonFlag{flagJSON}, run: runPin(env)},
+		{use: "unpin", short: "版の固定を解除する。有効な版は変えない", flags: []commonFlag{flagJSON}, run: runUnpin(env)},
+		{use: "rollback", short: "直前に有効にした版へ戻す。データは戻さない", flags: change, setup: addOverridePinFlag, run: runRollback(env)},
 		{use: "recover", short: "中断した変更を処理記録から復旧する", flags: change, run: runRecover(env)},
 		{use: "snapshot", short: "データの保存と復元。通信しない", long: snapshotLong, subs: []commandSpec{
 			{use: "create", short: "Meltype が止まっていることを確かめてデータを保存する", flags: change, run: runSnapshotCreate(env)},

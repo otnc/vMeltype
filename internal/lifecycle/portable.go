@@ -42,11 +42,17 @@ type UsePlan struct {
 	UpToDate bool
 }
 
-// PlanPortableUse は、実行先を変えずに、切り替えの計画を作る。名前がぶつかるなら、この時点で止める。
-func PlanPortableUse(root string, target store.Stored) (UsePlan, error) {
+// PlanPortableUse は、実行先を変えずに、切り替えの計画を作る。固定に反するか、名前がぶつかるなら、この時点で止める。
+// overridePin は、利用者がこの操作に限って固定を越えると明示したときだけ true にする。
+func PlanPortableUse(root string, target store.Stored, overridePin bool) (UsePlan, error) {
 	state, err := LoadState(root)
 	if err != nil {
 		return UsePlan{}, err
+	}
+	if !overridePin {
+		if err := checkPin(state, target.ID); err != nil {
+			return UsePlan{}, err
+		}
 	}
 	appDir := PortableAppDir(root)
 	var owned []string
@@ -173,6 +179,11 @@ func finishUse(root string, journal *Journal) error {
 	}
 	active := journal.To
 	state.Active = &active
+	// 固定を越えて切り替えたなら、固定を新しい版に移し、有効でない版への固定を残さない
+	if state.Pin != nil && state.Pin.StoreID != active.StoreID {
+		pin := pinOf(active, active.ActivatedAt)
+		state.Pin = &pin
+	}
 	if err := saveState(root, state); err != nil {
 		return errors.Join(ErrNeedsRecover, err)
 	}

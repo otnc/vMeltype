@@ -28,11 +28,12 @@ type Activation struct {
 	ActivatedAt  time.Time `json:"activatedAt"`
 }
 
-// State は、有効版と直前の版の記録。
+// State は、有効版と直前の版、固定の記録。
 type State struct {
 	SchemaVersion int         `json:"schemaVersion"`
 	Active        *Activation `json:"active,omitempty"`
 	Previous      *Activation `json:"previous,omitempty"`
+	Pin           *Pinned     `json:"pin,omitempty"`
 }
 
 func stateDir(root string) string {
