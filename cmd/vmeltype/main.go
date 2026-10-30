@@ -17,6 +17,7 @@ import (
 	"github.com/otnc/vmeltype/internal/cli"
 	"github.com/otnc/vmeltype/internal/osproc"
 	"github.com/otnc/vmeltype/internal/rootdir"
+	"github.com/otnc/vmeltype/internal/upstreamremove"
 	"github.com/otnc/vmeltype/internal/winime"
 	"github.com/otnc/vmeltype/internal/winsys"
 )
@@ -26,6 +27,9 @@ var version = "dev"
 
 // stopAppTimeout は、Meltype に終了を求めてから終わるまで待つ時間。本家は合図のあと学習データを書いてから終わる。
 const stopAppTimeout = 15 * time.Second
+
+// removeMeltypeTimeout は、本家のアンインストーラーが Meltype を消し終えるまで待つ時間。本家の画面で確認に答える時間も含める。
+const removeMeltypeTimeout = 10 * time.Minute
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -59,6 +63,10 @@ func main() {
 			return winime.Replace(ctx, appDir)
 		},
 		Executable: os.Executable,
+		RemoveMeltype: func(appDir, fallbackScript string, interactive bool) error {
+			_, err := upstreamremove.Run(ctx, appDir, fallbackScript, interactive, removeMeltypeTimeout)
+			return err
+		},
 	}
 	code := cli.RunContext(ctx, os.Args[1:], env)
 	stop()
