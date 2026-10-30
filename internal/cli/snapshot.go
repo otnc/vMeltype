@@ -91,7 +91,7 @@ func runSnapshotCreate(env *Env) func(*cobra.Command, []string) error {
 			if err := app.confirmable(interactive); err != nil {
 				return err
 			}
-			confirmer := prompt.Confirmer{In: cmd.InOrStdin(), Out: cmd.ErrOrStderr(), Interactive: interactive}
+			confirmer := env.confirmer(cmd, interactive, false)
 			if err := confirmer.Confirm(app.question("data を保存しますか？"), prompt.DefaultYes); err != nil {
 				return err
 			}
@@ -269,7 +269,7 @@ func runSnapshotRestore(env *Env) func(*cobra.Command, []string) error {
 		if err := app.confirmable(interactive); err != nil {
 			return err
 		}
-		confirmer := prompt.Confirmer{In: cmd.InOrStdin(), Out: cmd.ErrOrStderr(), Interactive: interactive, AssumeYes: app.assumeYes(yes)}
+		confirmer := env.confirmer(cmd, interactive, app.assumeYes(yes))
 		if err := confirmer.Confirm(app.question(fmt.Sprintf("data を %s の時点に戻しますか？", id)), prompt.DefaultNo); err != nil {
 			return err
 		}
@@ -378,7 +378,7 @@ func runSnapshotRemove(env *Env) func(*cobra.Command, []string) error {
 			}
 			return nil
 		}
-		confirmer := prompt.Confirmer{In: cmd.InOrStdin(), Out: cmd.ErrOrStderr(), Interactive: env.Interactive && !asJSON, AssumeYes: yes}
+		confirmer := env.confirmer(cmd, env.Interactive && !asJSON, yes)
 		if err := confirmer.Confirm(fmt.Sprintf("スナップショット %s を削除しますか？", m.ID), prompt.DefaultNo); err != nil {
 			return err
 		}
@@ -456,7 +456,7 @@ func runSnapshotPrune(env *Env) func(*cobra.Command, []string) error {
 			}
 			return nil
 		}
-		confirmer := prompt.Confirmer{In: cmd.InOrStdin(), Out: cmd.ErrOrStderr(), Interactive: env.Interactive && !asJSON, AssumeYes: yes}
+		confirmer := env.confirmer(cmd, env.Interactive && !asJSON, yes)
 		if err := confirmer.Confirm(fmt.Sprintf("%d 個のスナップショットを削除しますか？", len(targets)), prompt.DefaultNo); err != nil {
 			return err
 		}

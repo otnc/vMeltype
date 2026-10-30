@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/otnc/vmeltype/internal/assets"
+	"github.com/otnc/vmeltype/internal/prompt"
 	"github.com/otnc/vmeltype/internal/winime"
 )
 
@@ -51,6 +52,13 @@ type Env struct {
 	Executable func() (string, error)
 	// RemoveMeltype は、通常版の Meltype を本家のアンインストーラーで削除する。fallbackScript は、インストール先にアンインストーラーがないときに使う uninstall.ps1。
 	RemoveMeltype func(appDir, fallbackScript string, interactive bool) error
+	// ListenKeys は、端末を 1 キーずつ読む。nil なら、確認は 1 行ずつ読む。入力が端末のときだけ渡す。
+	ListenKeys prompt.ListenKeys
+}
+
+// confirmer は、変更の前の確認を作る。確認は標準エラーに出し、端末なら y か n を押すだけで答えられる。
+func (env *Env) confirmer(cmd *cobra.Command, interactive, assumeYes bool) prompt.Confirmer {
+	return prompt.Confirmer{In: cmd.InOrStdin(), Out: cmd.ErrOrStderr(), Interactive: interactive, AssumeYes: assumeYes, ListenKeys: env.ListenKeys}
 }
 
 const usageTemplate = `使い方:{{if .Runnable}}
