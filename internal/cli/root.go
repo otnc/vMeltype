@@ -104,8 +104,8 @@ func RunContext(ctx context.Context, args []string, env Env) int {
 func newRootCommand(env *Env) *cobra.Command {
 	root := &cobra.Command{
 		Use:   "vmeltype",
-		Short: "Meltype の複数のバージョンを保持し、切り替える",
-		Long: `vMeltype は、Meltype の正式版、プレリリース、古いバージョンを保持し、選んで切り替えるバージョンの管理ツールです。
+		Short: "Meltype のバージョン管理をはじめとした、外付けの多機能ツール",
+		Long: `vMeltype は、日本語入力 Meltype のバージョン管理をはじめとした、外付けの多機能ツールです。正式版、プレリリース、古いバージョンを保持して切り替えるほか、データのスナップショットや中断からの復旧も扱います。
 install で取得して保持し、use で有効にします。use、list、current などのローカル操作は通信しません。`,
 		Version:               env.Version,
 		Args:                  rejectUnknownSubcommand,
