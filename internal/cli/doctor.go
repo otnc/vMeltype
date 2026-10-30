@@ -88,19 +88,19 @@ func journalCheck(s localStatus) check {
 }
 
 func deploymentCheck(s localStatus) check {
-	c := check{Name: "deployment", Message: describeDeployment(s.Status)}
+	c := check{Name: "deployment"}
 	switch s.Deployment {
 	case lifecycle.DeploymentNone:
 		c.Level, c.Message = levelOK, "有効な版はありません"
 	case lifecycle.DeploymentMatch:
 		c.Level, c.Message = levelOK, fmt.Sprintf("実行先の %s は保持版と一致しています", s.Active.Tag)
 	case lifecycle.DeploymentPending:
-		c.Level = levelWarn
+		c.Level, c.Message = levelWarn, describeDeployment(s.Status)
 	case lifecycle.DeploymentMismatch:
 		c.Level, c.Message = levelFail, fmt.Sprintf("実行先の %s が保持版と一致しません (%s)", s.Active.Tag, summarize(s.Mismatched))
 		c.Hint = fmt.Sprintf("\"%s\" で置き直してください", reapplyCommand(s.Active))
 	default:
-		c.Level = levelFail
+		c.Level, c.Message = levelFail, describeDeployment(s.Status)
 		c.Hint = fmt.Sprintf("\"%s\" で取得し直してください", installCommand(s.Active.Tag, s.Active.Variant))
 	}
 	return c

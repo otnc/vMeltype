@@ -40,6 +40,22 @@ func (l *localEnv) doctor(t *testing.T) (result, doctorJSON) {
 	return got, d
 }
 
+func TestDoctorWithoutAnything(t *testing.T) {
+	l := newLocalEnv(t)
+
+	got := l.run(t, false, "", "doctor")
+
+	if got.code != ExitOK || !strings.Contains(got.stdout, "有効な版はありません") {
+		t.Errorf("code = %d\n%s%s", got.code, got.stdout, got.stderr)
+	}
+	if _, err := os.Stat(l.root); err != nil {
+		t.Fatal(err)
+	}
+	if entries, _ := os.ReadDir(l.root); len(entries) != 0 {
+		t.Errorf("診断で管理ルートに書いた: %v", entries)
+	}
+}
+
 func TestDoctorHealthy(t *testing.T) {
 	l := pinnedEnv(t)
 
