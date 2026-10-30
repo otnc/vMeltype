@@ -63,13 +63,15 @@ func TestHelpHidesUnimplementedCommands(t *testing.T) {
 
 func TestAliasesBehaveLikeTheirCommands(t *testing.T) {
 	aliases := map[string]string{
-		"ls":  "list",
-		"i":   "install",
-		"un":  "uninstall",
-		"u":   "use",
-		"rel": "releases",
-		"c":   "current",
-		"up":  "update",
+		"ls":      "list",
+		"i":       "install",
+		"un":      "uninstall",
+		"u":       "use",
+		"rel":     "releases",
+		"c":       "current",
+		"up":      "update",
+		"upgrade": "update",
+		"self":    "app",
 	}
 	for alias, name := range aliases {
 		t.Run(alias+" は "+name+" と同じ", func(t *testing.T) {
@@ -81,6 +83,14 @@ func TestAliasesBehaveLikeTheirCommands(t *testing.T) {
 			}
 		})
 	}
+	t.Run("self upgrade は app update と同じ", func(t *testing.T) {
+		viaAlias := execute(t, "self", "upgrade", "--help")
+		viaName := execute(t, "app", "update", "--help")
+
+		if viaAlias.code != ExitOK || viaAlias.stdout != viaName.stdout {
+			t.Errorf("短縮名のヘルプが正式名と異なる\n%s\n%s", viaAlias.stdout, viaName.stdout)
+		}
+	})
 }
 
 func TestUsageErrorsExitWithTwo(t *testing.T) {

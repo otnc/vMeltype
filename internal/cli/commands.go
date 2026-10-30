@@ -57,7 +57,7 @@ func commandSpecs(env *Env) []commandSpec {
 		{use: "apply", short: "保存済みの対象を適用、修復する。通信しない", flags: append([]commonFlag{flagForce}, change...)},
 		{use: "uninstall <tag>", aliases: []string{"un"}, short: "有効でない保持版を削除する。版は省略せずに指定する。実行先と data には触れない", args: exactArgs(1), flags: change, setup: setupUninstallFlags, run: runUninstall(env)},
 		{use: "check", short: "新しい版があるかを確かめる。適用しない", flags: []commonFlag{flagJSON}},
-		{use: "update", aliases: []string{"up"}, short: "新しい版を取得して有効にする", flags: change},
+		{use: "update", aliases: []string{"up", "upgrade"}, short: "新しい版を取得して有効にする", flags: change},
 		{use: "pin [tag]", short: "有効な版を固定する。通信しない", long: pinLong, args: maxArgs(1), flags: []commonFlag{flagJSON}, run: runPin(env)},
 		{use: "unpin", short: "版の固定を解除する。有効な版は変えない", flags: []commonFlag{flagJSON}, run: runUnpin(env)},
 		{use: "rollback", short: "直前に有効にした版へ戻す。データは戻さない", flags: change, setup: setupRollbackFlags, run: runRollback(env)},
@@ -77,10 +77,10 @@ func commandSpecs(env *Env) []commandSpec {
 			{use: "enable", short: "追従を有効にする", flags: []commonFlag{flagJSON}},
 			{use: "disable", short: "追従を無効にする", flags: []commonFlag{flagJSON}},
 		}},
-		{use: "app", short: "vMeltype 自身の操作", subs: []commandSpec{
+		{use: "app", aliases: []string{"self"}, short: "vMeltype 自身の操作", subs: []commandSpec{
 			{use: "version", short: "vMeltype の版を表示する", run: printVersion(env.Version)},
 			{use: "doctor", short: "vMeltype 自身と管理ルートを診断する", flags: []commonFlag{flagJSON}},
-			{use: "update", short: "vMeltype 自身を更新する", flags: change},
+			{use: "update", aliases: []string{"upgrade"}, short: "vMeltype 自身を更新する", flags: change},
 			{use: "uninstall", short: "Meltype を管理前に戻してから vMeltype を削除する", flags: change},
 			{use: "config", short: "vMeltype の設定", subs: []commandSpec{
 				{use: "show", short: "設定を表示する", flags: []commonFlag{flagJSON}, run: runConfigShow(env)},
