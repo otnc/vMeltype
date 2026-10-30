@@ -146,3 +146,21 @@ func TestUpdate(t *testing.T) {
 		}
 	})
 }
+
+func TestCheckSuggestsPreForPrerelease(t *testing.T) {
+	l := updateEnv(t)
+	l.run(t, false, "", "update", "--pre", "-y")
+
+	for _, args := range [][]string{{"check"}, {"update", "-y"}} {
+		got := l.run(t, false, "", args...)
+
+		if got.code != ExitOK || !strings.Contains(got.stdout, "最新") || !strings.Contains(got.stdout, "--pre") {
+			t.Errorf("%v: プレリリースを使っているのに --pre を案内していない: code = %d\n%s%s", args, got.code, got.stdout, got.stderr)
+		}
+	}
+	stable := updateEnv(t)
+	stable.run(t, false, "", "update", "-y")
+	if got := stable.run(t, false, "", "check"); strings.Contains(got.stdout, "--pre") {
+		t.Errorf("正式版を使っているのに --pre を案内した: %s", got.stdout)
+	}
+}

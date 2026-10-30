@@ -86,6 +86,7 @@ func commandSpecs(env *Env) []commandSpec {
 		{use: "app", aliases: []string{"self"}, short: "vMeltype 自身の操作", subs: []commandSpec{
 			{use: "version", short: "vMeltype のバージョンを表示する", run: printVersion(env.Version)},
 			{use: "doctor", short: "vMeltype 自身と管理ルートを診断する", flags: []commonFlag{flagJSON}},
+			{use: "check", short: "vMeltype 自身の新しいバージョンがあるかを確かめる。置き換えない", flags: []commonFlag{flagJSON}, setup: setupAppUpdateFlags, run: runAppCheck(env)},
 			{use: "update", aliases: []string{"upgrade"}, short: "vMeltype 自身を新しいバージョンに置き換える", long: appUpdateLong, flags: change, setup: setupAppUpdateFlags, run: runAppUpdate(env)},
 			{use: "uninstall", short: "vMeltype をやめる。Meltype を残すか消すかを選べる", long: appUninstallLong, flags: change, setup: setupAppUninstallFlags, run: runAppUninstall(env)},
 			{use: "config", short: "vMeltype の設定", subs: []commandSpec{

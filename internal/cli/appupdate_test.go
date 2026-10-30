@@ -169,3 +169,40 @@ func TestAppUpdate(t *testing.T) {
 		}
 	})
 }
+
+func TestAppCheck(t *testing.T) {
+	t.Run("新しい正式版があれば、終了コード 10 で示し、置き換えない", func(t *testing.T) {
+		for _, args := range [][]string{{"app", "check"}, {"self", "check"}} {
+			e := newSelfUpdateEnv(t, "0.1.0-pre.2", selfZip(t, "v0.1.0-pre.2"), selfZip(t, "v0.1.0"))
+
+			got := e.run(t, args...)
+
+			if got.code != ExitUpdateAvailable || !strings.Contains(got.stdout, "v0.1.0") || !strings.Contains(got.stdout, "app update") || readFile(e.exe) != "vmeltype 0.1.0-pre.2" {
+				t.Errorf("%v: code = %d, exe = %q\n%s%s", args, got.code, readFile(e.exe), got.stdout, got.stderr)
+			}
+		}
+	})
+	t.Run("--pre ではプレリリースも含め、--json で結果を返す", func(t *testing.T) {
+		e := newSelfUpdateEnv(t, "0.1.0", selfZip(t, "v0.1.0"), selfZip(t, "v0.2.0-pre.1"))
+
+		got := e.run(t, "app", "check", "--pre", "--json")
+
+		var body struct {
+			Current, Latest string
+			UpdateAvailable bool
+		}
+		json.Unmarshal([]byte(got.stdout), &body)
+		if got.code != ExitUpdateAvailable || body.Current != "0.1.0" || body.Latest != "v0.2.0-pre.1" || !body.UpdateAvailable {
+			t.Errorf("code = %d, body = %+v\n%s", got.code, body, got.stderr)
+		}
+	})
+	t.Run("最新なら終了コード 0 で、プレリリースを使っていれば --pre を案内する", func(t *testing.T) {
+		e := newSelfUpdateEnv(t, "0.1.0-pre.2", selfZip(t, "v0.1.0-pre.2"))
+
+		got := e.run(t, "app", "check")
+
+		if got.code != ExitOK || !strings.Contains(got.stdout, "最新") || !strings.Contains(got.stdout, "--pre") {
+			t.Errorf("code = %d\n%s%s", got.code, got.stdout, got.stderr)
+		}
+	})
+}

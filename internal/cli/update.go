@@ -86,6 +86,8 @@ func runCheck(env *Env) func(*cobra.Command, []string) error {
 			fmt.Fprintf(out, "新しいバージョンがあります: %s (いまは %s)。\"vmeltype update\" で更新します。\n", release.Tag, active.Tag)
 		} else {
 			fmt.Fprintf(out, "%s は最新です。\n", active.Tag)
+			pre, _ := cmd.Flags().GetBool("pre")
+			suggestPre(out, active.Tag, pre)
 		}
 		if release != nil {
 			return errUpdateAvailable
@@ -115,6 +117,8 @@ func runUpdate(env *Env) func(*cobra.Command, []string) error {
 				return writeJSON(out, map[string]any{"changed": false, "active": active.StoreID})
 			}
 			fmt.Fprintf(out, "%s は最新です。\n", active.Tag)
+			pre, _ := flags.GetBool("pre")
+			suggestPre(out, active.Tag, pre)
 			return nil
 		}
 		// 固定していれば、取得の手間をかける前に止める
