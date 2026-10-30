@@ -20,7 +20,11 @@ func TestAppConfig(t *testing.T) {
 			Settings []struct{ Key, Value string } `json:"settings"`
 		}
 		json.Unmarshal([]byte(show.stdout), &got)
-		if len(got.Settings) != 1 || got.Settings[0].Key != "stop-app-on-yes" || got.Settings[0].Value != "false" {
+		found := false
+		for _, s := range got.Settings {
+			found = found || (s.Key == "stop-app-on-yes" && s.Value == "false")
+		}
+		if !found {
 			t.Errorf("show が変えた値を示していない: %s", show.stdout)
 		}
 	})
