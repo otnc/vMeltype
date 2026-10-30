@@ -42,7 +42,7 @@ vmeltype app update         # vMeltype 自身を新しいバージョンにす�
 
 `--pre` を付けるとプレリリース、`--portable` を付けると portable 版を対象にします。各コマンドの説明は `vmeltype <コマンド> --help` で表示します。
 
-変更の前の確認は、y か n を押すだけで答えられます。Enter は既定 (`[Y/n]` なら y、`[y/N]` なら n) を選び、Esc で中止します。確認せずに進めるには `-y` を付けます。
+変更の前の確認は、y か n を押すだけで答えられます。Enter は既定 (`[Y/n]` なら y、`[y/N]` なら n) を選び、Esc で中止します。確認せずに進めるには `-y` を付けます。エラーや警告などには、出力先が端末のときだけ色を付けます。環境変数 `NO_COLOR` があれば色を付けません。
 
 通常版の切り替えでは、本家と同じ場所 (`%LOCALAPPDATA%\Programs\Meltype` と `%LOCALAPPDATA%\Meltype`) を使い、次のことを行います。
 
