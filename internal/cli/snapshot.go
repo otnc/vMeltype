@@ -136,7 +136,7 @@ func runSnapshotList(env *Env) func(*cobra.Command, []string) error {
 			return err
 		}
 		for _, p := range problems {
-			fmt.Fprintf(cmd.ErrOrStderr(), "警告: スナップショット %s を読めません: %v\n", p.ID, p.Err)
+			env.warnf("スナップショット %s を読めません: %v", p.ID, p.Err)
 		}
 		out := cmd.OutOrStdout()
 		if asJSON {
@@ -158,7 +158,7 @@ func runSnapshotList(env *Env) func(*cobra.Command, []string) error {
 			}
 			rows = append(rows, []string{m.ID, formatLocal(m.CreatedAt), reason, tag, strconv.Itoa(len(m.Files)) + " 件", formatBytes(m.TotalBytes)})
 		}
-		writeTable(out, rows)
+		writeTable(out, env.outStyle(), rows)
 		return nil
 	}
 }
@@ -293,7 +293,7 @@ func runSnapshotRestore(env *Env) func(*cobra.Command, []string) error {
 		if err := snapshot.Restore(root, id, dataDir); err != nil {
 			return err
 		}
-		pruneAutoSnapshots(cmd, root, id)
+		pruneAutoSnapshots(cmd, env, root, id)
 		if asJSON {
 			return writeJSON(out, map[string]any{"restored": id, "before": before.ID})
 		}
@@ -492,11 +492,11 @@ func describeSnapshot(m snapshot.Manifest) string {
 
 // pruneAutoSnapshots は、自動で作ったスナップショットのうち、設定の数より古いものを消す。protected (いま復元したものなど) は消さない。
 // 呼び出し元の操作はもう終わっているので、消せなくても失敗にはせず、警告だけを出す。
-func pruneAutoSnapshots(cmd *cobra.Command, root string, protected ...string) {
+func pruneAutoSnapshots(cmd *cobra.Command, env *Env, root string, protected ...string) {
 	warn := cmd.ErrOrStderr()
 	settings, err := config.Load(root)
 	if err != nil {
-		fmt.Fprintf(warn, "警告: 設定を読めないので、古い自動のスナップショットを消しませんでした: %v\n", err)
+		env.warnf("設定を読めないので、古い自動のスナップショットを消しませんでした: %v", err)
 		return
 	}
 	removed, err := snapshot.Prune(root, settings.AutoSnapshotKeep, protected...)
@@ -504,7 +504,7 @@ func pruneAutoSnapshots(cmd *cobra.Command, root string, protected ...string) {
 		fmt.Fprintf(warn, "自動で作ったスナップショットが %d 個を超えたので、古いものを %d 個消しました。残す数は \"vmeltype app config set auto-snapshot-keep <数>\" で変えられます。\n", settings.AutoSnapshotKeep, len(removed))
 	}
 	if err != nil {
-		fmt.Fprintf(warn, "警告: 古い自動のスナップショットを消せませんでした: %v\n", err)
+		env.warnf("古い自動のスナップショットを消せませんでした: %v", err)
 	}
 }
 

@@ -28,7 +28,7 @@ func runConfigShow(env *Env) func(*cobra.Command, []string) error {
 		for _, item := range items {
 			rows = append(rows, []string{item.Key, item.Value, item.Default, item.Description})
 		}
-		writeTable(out, rows)
+		writeTable(out, env.outStyle(), rows)
 		return nil
 	}
 }

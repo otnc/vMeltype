@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/fatih/color"
 )
 
 // ErrInterrupted は、確認の途中で Ctrl+C などで中断されたことを表す。
@@ -39,7 +41,7 @@ type ListenKeys func(handle func(Key) (stop bool)) error
 // askByKey は、y か n を押した時点で答えを決め、表示の [y/N] を選んだ文字に書き換える。
 // Enter は既定を選び、Esc と入力の終わりは中止、Ctrl+C は中断にする。ほかのキーは何も出さずに無視する。
 func (c Confirmer) askByKey(question, suffix string, def Default) (bool, error) {
-	fmt.Fprintf(c.Out, "%s %s ", question, suffix)
+	fmt.Fprintf(c.Out, "%s %s ", question, c.paint(colorSuffix, suffix))
 	answer, result := "", ErrCanceled
 	err := c.ListenKeys(func(key Key) bool {
 		switch {
@@ -65,6 +67,29 @@ func (c Confirmer) askByKey(question, suffix string, def Default) (bool, error) 
 	}
 	// \b で [y/N] の先頭まで戻って答えを書き、残りを空白で消す。ANSI の制御に対応していない端末でも崩れない
 	width := len(suffix) + 1
-	fmt.Fprintf(c.Out, "%s%s%s\n", strings.Repeat("\b", width), answer, strings.Repeat(" ", width-1))
+	shown := c.paint(colorYes, answer)
+	if answer == "n" {
+		shown = c.paint(colorNo, answer)
+	}
+	fmt.Fprintf(c.Out, "%s%s%s\n", strings.Repeat("\b", width), shown, strings.Repeat(" ", width-1))
 	return answer == "y", nil
+}
+
+// 確認の色。色を付けるかは Confirmer.Color で決めるので、fatih/color 自身の判定 (標準出力だけを見る) は使わない。
+var (
+	colorSuffix = forced(color.New(color.Faint))
+	colorYes    = forced(color.New(color.FgGreen, color.Bold))
+	colorNo     = forced(color.New(color.FgYellow, color.Bold))
+)
+
+func forced(c *color.Color) *color.Color {
+	c.EnableColor()
+	return c
+}
+
+func (c Confirmer) paint(col *color.Color, text string) string {
+	if !c.Color {
+		return text
+	}
+	return col.Sprint(text)
 }

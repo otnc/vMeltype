@@ -5,9 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 	"time"
-	"unicode"
 
 	"github.com/spf13/cobra"
 
@@ -102,7 +100,7 @@ func runReleases(env *Env) func(*cobra.Command, []string) error {
 				Releases:      nonNil(shown),
 			})
 		}
-		writeReleases(cmd.OutOrStdout(), c, shown, len(releases)-len(shown), cached, env.Now())
+		writeReleases(cmd.OutOrStdout(), env.outStyle(), c, shown, len(releases)-len(shown), cached, env.Now())
 		return nil
 	}
 }
@@ -142,7 +140,7 @@ func fetchCatalog(cmd *cobra.Command, env *Env, root string) (previous, fetched 
 	return previous, fetched, nil
 }
 
-func writeReleases(w io.Writer, c *catalog.Catalog, shown []catalog.Release, hidden int, cached bool, now time.Time) {
+func writeReleases(w io.Writer, s style, c *catalog.Catalog, shown []catalog.Release, hidden int, cached bool, now time.Time) {
 	if cached {
 		fmt.Fprintf(w, "保存済みの公式一覧 (%s)。最新とは限りません\n", c.Repository)
 		fmt.Fprintf(w, "最後に確かめた日時: %s (%s)\n\n", formatLocal(c.RevalidatedAt), formatAge(now.Sub(c.RevalidatedAt)))
@@ -165,43 +163,11 @@ func writeReleases(w io.Writer, c *catalog.Catalog, shown []catalog.Release, hid
 			}
 			rows = append(rows, []string{r.Tag, kind, r.PublishedAt.Local().Format("2006-01-02"), assets, r.URL})
 		}
-		writeTable(w, rows)
+		writeTable(w, s, rows)
 	}
 	if hidden > 0 {
 		fmt.Fprintf(w, "\nプレリリースを %d 件省きました。--all で表示します。\n", hidden)
 	}
-}
-
-func writeTable(w io.Writer, rows [][]string) {
-	widths := make([]int, len(rows[0]))
-	for _, row := range rows {
-		for i, cell := range row {
-			widths[i] = max(widths[i], displayWidth(cell))
-		}
-	}
-	for _, row := range rows {
-		var line strings.Builder
-		for i, cell := range row {
-			line.WriteString(cell)
-			if i < len(row)-1 {
-				line.WriteString(strings.Repeat(" ", widths[i]-displayWidth(cell)+2))
-			}
-		}
-		fmt.Fprintln(w, strings.TrimRight(line.String(), " "))
-	}
-}
-
-// displayWidth は、端末で日本語が半角 2 文字分の幅を取ることを考えた、表示の幅を返す。
-func displayWidth(s string) int {
-	width := 0
-	for _, r := range s {
-		if unicode.In(r, unicode.Han, unicode.Hiragana, unicode.Katakana) || (r >= '！' && r <= '｠') || (r >= '　' && r <= '〿') {
-			width += 2
-		} else {
-			width++
-		}
-	}
-	return width
 }
 
 func countReleases(releases []catalog.Release) (stable, pre int) {

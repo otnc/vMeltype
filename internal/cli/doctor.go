@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
 	"github.com/otnc/vmeltype/internal/assets"
@@ -30,6 +31,8 @@ const (
 )
 
 var levelLabels = map[checkLevel]string{levelOK: "OK", levelWarn: "警告", levelFail: "要対応"}
+
+var levelColors = map[checkLevel]*color.Color{levelOK: colorOK, levelWarn: colorWarn, levelFail: colorError}
 
 // check は、doctor の 1 つの診断。Name は JSON で項目を区別する英語の名前。
 type check struct {
@@ -58,7 +61,7 @@ func runDoctor(env *Env) func(*cobra.Command, []string) error {
 				return err
 			}
 		} else {
-			writeChecks(out, root, checks)
+			writeChecks(out, env.outStyle(), root, checks)
 		}
 		if !ok {
 			return errDoctorFailed
@@ -170,10 +173,10 @@ func installCommand(tag, variant string) string {
 	return "vmeltype install " + tag
 }
 
-func writeChecks(w io.Writer, root string, checks []check) {
+func writeChecks(w io.Writer, s style, root string, checks []check) {
 	fmt.Fprintf(w, "管理ルート: %s\n\n", root)
 	for _, c := range checks {
-		fmt.Fprintf(w, "[%s] %s\n", levelLabels[c.Level], c.Message)
+		fmt.Fprintf(w, "[%s] %s\n", s.paint(levelColors[c.Level], levelLabels[c.Level]), c.Message)
 		if c.Hint != "" {
 			fmt.Fprintf(w, "    対処: %s\n", c.Hint)
 		}

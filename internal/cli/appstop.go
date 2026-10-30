@@ -108,7 +108,7 @@ func restartApp(cmd *cobra.Command, env *Env, appDir string, err error) {
 		return
 	}
 	if startErr := env.StartApp(appDir); startErr != nil {
-		fmt.Fprintf(w, "警告: %v\n", startErr)
+		env.warnf("%v", startErr)
 		return
 	}
 	fmt.Fprintln(w, "Meltype を起動し直しました。")

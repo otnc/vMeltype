@@ -27,9 +27,9 @@ func runList(env *Env) func(*cobra.Command, []string) error {
 				"problems": nonNil(problems),
 			})
 		}
-		writeStored(cmd.OutOrStdout(), root, stored)
+		writeStored(cmd.OutOrStdout(), env.outStyle(), root, stored)
 		for _, p := range problems {
-			fmt.Fprintf(cmd.ErrOrStderr(), "警告: 保持バージョン %s を読めません: %s\n", p.ID, p.Reason)
+			env.warnf("保持バージョン %s を読めません: %s", p.ID, p.Reason)
 		}
 		return nil
 	}
@@ -37,7 +37,7 @@ func runList(env *Env) func(*cobra.Command, []string) error {
 
 var variantLabels = map[string]string{"standard": "通常版", "portable": "portable"}
 
-func writeStored(w io.Writer, root string, stored []store.Stored) {
+func writeStored(w io.Writer, s style, root string, stored []store.Stored) {
 	if len(stored) == 0 {
 		fmt.Fprintln(w, "保持しているバージョンはありません。\"vmeltype install <tag>\" で取得します。")
 		return
@@ -55,5 +55,5 @@ func writeStored(w io.Writer, root string, stored []store.Stored) {
 		}
 		rows = append(rows, []string{s.ID, s.Tag, kind, variant, formatLocal(s.StoredAt)})
 	}
-	writeTable(w, rows)
+	writeTable(w, s, rows)
 }
