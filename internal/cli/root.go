@@ -33,6 +33,10 @@ type Env struct {
 	Platform assets.Platform
 	// RunningUnder は、ディレクトリの下の実行ファイルから動いているプロセスを返す。
 	RunningUnder func(dir string) ([]string, error)
+	// StopApp は、実行先の Meltype に終了を求め、終わるまで待つ。終わらなくても強制終了しない。
+	StopApp func(appDir string) error
+	// StartApp は、実行先の Meltype を起動し、終わるのを待たない。
+	StartApp func(appDir string) error
 }
 
 const usageTemplate = `使い方:{{if .Runnable}}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/otnc/vmeltype/internal/appctl"
 	"github.com/otnc/vmeltype/internal/lifecycle"
 	"github.com/otnc/vmeltype/internal/prompt"
 )
@@ -34,7 +35,7 @@ func exitCodeOf(err error) int {
 		return ExitUsage
 	case errors.Is(err, prompt.ErrNeedsConfirmation), errors.Is(err, errAppRunning),
 		errors.Is(err, lifecycle.ErrPendingJournal), errors.Is(err, lifecycle.ErrNeedsRecover), errors.Is(err, lifecycle.ErrLocked),
-		errors.Is(err, lifecycle.ErrPinned):
+		errors.Is(err, lifecycle.ErrPinned), errors.Is(err, appctl.ErrStillRunning):
 		return ExitNeedsAction
 	case errors.Is(err, prompt.ErrCanceled), errors.Is(err, context.Canceled):
 		return ExitCanceled

@@ -113,7 +113,7 @@ func TestSnapshotRestore(t *testing.T) {
 		{name: "対話で空の Enter なら中止する", interactive: true, stdin: "\n", wantCode: ExitCanceled},
 		{name: "非 TTY で -y がなければ止まる", wantCode: ExitNeedsAction},
 		{name: "--dry-run は変えない", extra: []string{"--dry-run"}, wantCode: ExitOK},
-		{name: "Meltype が動いていれば止まる", extra: []string{"-y"}, running: true, wantCode: ExitNeedsAction},
+		{name: "動いている Meltype が終わらなければ止まる", extra: []string{"-y"}, running: true, wantCode: ExitNeedsAction},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -122,6 +122,7 @@ func TestSnapshotRestore(t *testing.T) {
 			l.writeData(t, "userdict.txt", "いまの辞書")
 			if tt.running {
 				l.running = []string{filepath.Join(l.appDir(), "Meltype.exe")}
+				l.stopFails = true
 			}
 
 			got := l.run(t, tt.interactive, tt.stdin, append([]string{"snapshot", "restore", id}, tt.extra...)...)

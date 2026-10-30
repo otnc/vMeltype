@@ -6,7 +6,6 @@ import (
 	"io"
 	"path/filepath"
 	"strconv"
-	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -28,18 +27,6 @@ var reasonLabels = map[snapshot.Reason]string{
 // portableDataDir は、portable 版の data の場所を返す。本家の portable 版は、Meltype.exe の隣の data を使う。
 func portableDataDir(root string) string {
 	return filepath.Join(lifecycle.PortableAppDir(root), "data")
-}
-
-// ensureMeltypeStopped は、保存の途中で Meltype が書き込まないよう、実行先から動いていないことを確かめる。
-func ensureMeltypeStopped(env *Env, root string) error {
-	running, err := env.RunningUnder(lifecycle.PortableAppDir(root))
-	if err != nil {
-		return fmt.Errorf("実行先の Meltype が動いているかを確かめられませんでした: %w", err)
-	}
-	if len(running) > 0 {
-		return fmt.Errorf("%w (%s)", errAppRunning, strings.Join(running, "、"))
-	}
-	return nil
 }
 
 // lockForDataChange は、管理ルートを排他し、未完了の切り替えがあれば止める。
@@ -76,13 +63,30 @@ func runSnapshotCreate(env *Env) func(*cobra.Command, []string) error {
 			return err
 		}
 		dataDir := portableDataDir(root)
+		appDir := lifecycle.PortableAppDir(root)
+		app, err := inspectApp(cmd, env, root, appDir)
+		if err != nil {
+			return err
+		}
 		out := cmd.OutOrStdout()
 		if dryRun {
 			if asJSON {
-				return writeJSON(out, map[string]any{"dryRun": true, "source": dataDir})
+				return writeJSON(out, map[string]any{"dryRun": true, "source": dataDir, "stopApp": app.needed()})
 			}
 			fmt.Fprintf(out, "%s を保存します。\n", dataDir)
+			app.describe(out)
 			return nil
+		}
+		// 保存は何も失わないので確認しないが、Meltype を終了させるなら聞く
+		if app.needed() && !app.consented {
+			interactive := env.Interactive && !asJSON
+			if err := app.confirmable(interactive); err != nil {
+				return err
+			}
+			confirmer := prompt.Confirmer{In: cmd.InOrStdin(), Out: cmd.ErrOrStderr(), Interactive: interactive}
+			if err := confirmer.Confirm(app.question("data を保存しますか？"), prompt.DefaultYes); err != nil {
+				return err
+			}
 		}
 
 		lock, err := lockForDataChange(root)
@@ -90,7 +94,11 @@ func runSnapshotCreate(env *Env) func(*cobra.Command, []string) error {
 			return err
 		}
 		defer lock.Release()
-		if err := ensureMeltypeStopped(env, root); err != nil {
+		stopped, err := app.stop(env)
+		if stopped {
+			defer func() { restartApp(cmd, env, appDir, err) }()
+		}
+		if err != nil {
 			return err
 		}
 		m, err := snapshot.Create(root, dataDir, snapshot.Meta{Reason: snapshot.ReasonManual, ActiveTag: activeTag(root)}, env.Now())
@@ -220,17 +228,27 @@ func runSnapshotRestore(env *Env) func(*cobra.Command, []string) error {
 		if asJSON {
 			planOut = cmd.ErrOrStderr()
 		}
+		appDir := lifecycle.PortableAppDir(root)
+		app, err := inspectApp(cmd, env, root, appDir)
+		if err != nil {
+			return err
+		}
 		writeSnapshotSummary(planOut, m)
 		fmt.Fprintf(planOut, "復元先:           %s\n", dataDir)
 		fmt.Fprintln(planOut, "いまの data は、置き換える前に別のスナップショットとして保存します。")
+		app.describe(planOut)
 		if dryRun {
 			if asJSON {
-				return writeJSON(out, map[string]any{"dryRun": true, "id": id, "destination": dataDir})
+				return writeJSON(out, map[string]any{"dryRun": true, "id": id, "destination": dataDir, "stopApp": app.needed()})
 			}
 			return nil
 		}
-		confirmer := prompt.Confirmer{In: cmd.InOrStdin(), Out: cmd.ErrOrStderr(), Interactive: env.Interactive && !asJSON, AssumeYes: yes}
-		if err := confirmer.Confirm(fmt.Sprintf("data を %s の時点に戻しますか？", id), prompt.DefaultNo); err != nil {
+		interactive := env.Interactive && !asJSON
+		if err := app.confirmable(interactive); err != nil {
+			return err
+		}
+		confirmer := prompt.Confirmer{In: cmd.InOrStdin(), Out: cmd.ErrOrStderr(), Interactive: interactive, AssumeYes: app.assumeYes(yes)}
+		if err := confirmer.Confirm(app.question(fmt.Sprintf("data を %s の時点に戻しますか？", id)), prompt.DefaultNo); err != nil {
 			return err
 		}
 
@@ -239,7 +257,11 @@ func runSnapshotRestore(env *Env) func(*cobra.Command, []string) error {
 			return err
 		}
 		defer lock.Release()
-		if err := ensureMeltypeStopped(env, root); err != nil {
+		stopped, err := app.stop(env)
+		if stopped {
+			defer func() { restartApp(cmd, env, appDir, err) }()
+		}
+		if err != nil {
 			return err
 		}
 		before, err := snapshot.Create(root, dataDir, snapshot.Meta{Reason: snapshot.ReasonBeforeRestore, ActiveTag: activeTag(root)}, env.Now())

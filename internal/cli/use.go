@@ -22,7 +22,9 @@ const useLong = `保持版を有効にします。通信しません。保持し
 
 portable 版は --portable を付けたときだけ対象にします。付けなければ通常版 (IME の登録を伴うもの) だけを探し、portable 版しか保持していなくても選びません。
 いまは Windows の portable 版だけに対応しています。portable 版は実行先 (管理ルートの portable\app) を固定し、版を切り替えるときはアプリのファイルだけを入れ替えます。隣の data と、vMeltype が置いていないファイルはそのまま引き継ぎます。
-同じ版が有効で配置も一致していれば何もしません。--force を付けると、一致していても入れ替えます。`
+同じ版が有効で配置も一致していれば何もしません。--force を付けると、一致していても入れ替えます。
+
+実行先の Meltype が動いていれば、正常に終了させてから切り替え、終わったら起動し直します。終了させるのは、--stop-app を付けたとき、-y を付けたとき (設定 stop-app-on-yes が true のとき)、対話で終了してよいと答えたときです。終わらなければ、強制終了せずに止めます。`
 
 // errAppRunning は、実行先の Meltype が動いていて、切り替えられないことを表す。
 var errAppRunning = errors.New("実行先の Meltype が動いています。Meltype を終了してから、もう一度実行してください")
@@ -33,6 +35,12 @@ func setupUseFlags(cmd *cobra.Command) {
 	cmd.Flags().String("id", "", "保持 ID で保持版を選ぶ")
 	cmd.Flags().Bool("portable", false, "portable 版を対象にする。付けなければ通常版を対象にする")
 	addOverridePinFlag(cmd)
+	addStopAppFlag(cmd)
+}
+
+func setupRollbackFlags(cmd *cobra.Command) {
+	addOverridePinFlag(cmd)
+	addStopAppFlag(cmd)
 }
 
 func runUse(env *Env) func(*cobra.Command, []string) error {
@@ -117,36 +125,47 @@ func switchVersion(cmd *cobra.Command, env *Env, root string, st store.Store, ta
 		return nil
 	}
 
+	app, err := inspectApp(cmd, env, root, plan.AppDir)
+	if err != nil {
+		return err
+	}
 	planOut := out
 	if asJSON {
 		planOut = cmd.ErrOrStderr()
 	}
 	writeUsePlan(planOut, plan)
+	app.describe(planOut)
 	if dryRun {
 		if asJSON {
-			return writeJSON(out, map[string]any{"dryRun": true, "target": target.ID, "appDir": plan.AppDir, "carried": nonNil(plan.Carried)})
+			return writeJSON(out, map[string]any{"dryRun": true, "target": target.ID, "appDir": plan.AppDir, "carried": nonNil(plan.Carried), "stopApp": app.needed()})
 		}
 		return nil
 	}
-	confirmer := prompt.Confirmer{In: cmd.InOrStdin(), Out: cmd.ErrOrStderr(), Interactive: env.Interactive && !asJSON, AssumeYes: yes}
-	if err := confirmer.Confirm(fmt.Sprintf(question, target.Tag), prompt.DefaultYes); err != nil {
+	interactive := env.Interactive && !asJSON
+	if err := app.confirmable(interactive); err != nil {
+		return err
+	}
+	confirmer := prompt.Confirmer{In: cmd.InOrStdin(), Out: cmd.ErrOrStderr(), Interactive: interactive, AssumeYes: app.assumeYes(yes)}
+	if err := confirmer.Confirm(app.question(fmt.Sprintf(question, target.Tag)), prompt.DefaultYes); err != nil {
 		return err
 	}
 
-	// 確認を待つ間に起動されることがあるので、入れ替える直前に確かめる
-	running, err := env.RunningUnder(plan.AppDir)
+	stopped, err := app.stop(env)
+	if stopped {
+		defer func() { restartApp(cmd, env, plan.AppDir, err) }()
+	}
 	if err != nil {
-		return fmt.Errorf("実行先の Meltype が動いているかを確かめられませんでした: %w", err)
+		return err
 	}
-	if len(running) > 0 {
-		return fmt.Errorf("%w (%s)", errAppRunning, strings.Join(running, "、"))
-	}
-
-	if err := lifecycle.ExecutePortableUse(root, st.Path(target.ID), plan, env.Now()); err != nil {
+	if err = lifecycle.ExecutePortableUse(root, st.Path(target.ID), plan, env.Now()); err != nil {
 		return err
 	}
 	if asJSON {
 		return writeJSON(out, map[string]any{"changed": true, "active": target.ID, "appDir": plan.AppDir})
+	}
+	if stopped {
+		fmt.Fprintf(out, "%s に切り替えました。\n", target.Tag)
+		return nil
 	}
 	fmt.Fprintf(out, "%s に切り替えました。起動するには %s を実行します。\n", target.Tag, filepath.Join(plan.AppDir, "Meltype.exe"))
 	return nil

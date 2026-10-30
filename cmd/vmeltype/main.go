@@ -11,6 +11,7 @@ import (
 
 	"golang.org/x/term"
 
+	"github.com/otnc/vmeltype/internal/appctl"
 	"github.com/otnc/vmeltype/internal/assets"
 	"github.com/otnc/vmeltype/internal/catalog/remote"
 	"github.com/otnc/vmeltype/internal/cli"
@@ -20,6 +21,9 @@ import (
 
 // version は、配布のビルドで -ldflags "-X main.version=..." で埋め込む。
 var version = "dev"
+
+// stopAppTimeout は、Meltype に終了を求めてから終わるまで待つ時間。本家は合図のあと学習データを書いてから終わる。
+const stopAppTimeout = 15 * time.Second
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -43,6 +47,10 @@ func main() {
 		GitHubAPIURL: remote.DefaultBaseURL,
 		Platform:     assets.Platform{OS: runtime.GOOS, Arch: runtime.GOARCH},
 		RunningUnder: osproc.RunningUnder,
+		StopApp: func(appDir string) error {
+			return appctl.Stop(ctx, appDir, osproc.RunningUnder, stopAppTimeout)
+		},
+		StartApp: appctl.Start,
 	}
 	code := cli.RunContext(ctx, os.Args[1:], env)
 	stop()
