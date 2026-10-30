@@ -8,7 +8,7 @@ updates:
       day: monday
       time: '10:00'
       timezone: Asia/Tokyo
-    # 公開から 3 日たっていない版は取り込まない
+    # 公開から 3 日たっていないバージョンは取り込まない
     cooldown:
       default-days: 3
     commit-message:

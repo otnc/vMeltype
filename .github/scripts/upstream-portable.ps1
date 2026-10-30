@@ -48,7 +48,7 @@ function Assert-Running([string] $Tag) {
     $version = (Get-Item $exe).VersionInfo.ProductVersion
     Write-Host "動いている Meltype: $version"
     if (-not $version.StartsWith($Tag.TrimStart('v'))) {
-        throw "実行先の Meltype の版が $version で、$Tag ではありません"
+        throw "実行先の Meltype のバージョンが $version で、$Tag ではありません"
     }
 }
 
@@ -83,7 +83,7 @@ Assert-Running $To
 Assert-Marker $true
 $current = Invoke-Vmeltype current --json | ConvertFrom-Json
 if ($current.active.tag.TrimStart('v') -ne $To.TrimStart('v')) {
-    throw "有効版の記録が $($current.active.tag) です"
+    throw "有効なバージョンの記録が $($current.active.tag) です"
 }
 
 Write-Host '--- rollback で戻す'
@@ -92,7 +92,7 @@ Assert-Running $From
 Assert-Marker $true
 
 Write-Host '--- 動いている Meltype の状態を調べる'
-# Meltype が動いて data に書いても、実行先の配置は保持版と一致したままになる
+# Meltype が動いて data に書いても、実行先の配置は保持バージョンと一致したままになる
 $status = Invoke-Vmeltype status --json | ConvertFrom-Json
 if ($status.deployment -ne 'match' -or $status.running.Count -eq 0 -or -not $status.dataExists) {
     throw "status が違います: deployment = $($status.deployment)、running = $($status.running.Count)、dataExists = $($status.dataExists)"
