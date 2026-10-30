@@ -79,7 +79,7 @@ func (c Confirmer) askByKey(question, suffix string, def Default) (bool, error) 
 var (
 	colorSuffix = forced(color.New(color.Faint))
 	colorYes    = forced(color.New(color.FgGreen, color.Bold))
-	colorNo     = forced(color.New(color.FgYellow, color.Bold))
+	colorNo     = forced(color.New(color.FgRed, color.Bold))
 )
 
 func forced(c *color.Color) *color.Color {
