@@ -1,8 +1,7 @@
 name: リリース
 
-# 版を入れて手で起動すると、CI が通った main のコミットから配布物を作り、GitHub のリリースを作る。
-# 版に - があれば (0.1.0-pre.1 など)、プレリリースとしてそのまま公開する (タグもこのとき作られる)。
-# 正式版は下書きにし、作者が内容を確かめてからリリースの画面で公開する
+# 版を入れて手で起動すると、CI が通った main のコミットから配布物を作り、GitHub のリリースとタグを作って公開する。
+# 作者が版を入れて起動することを公開の承認とし、下書きは挟まない。版に - があれば (0.1.0-pre.1 など) プレリリースにする
 on:
   workflow_dispatch:
     inputs:
@@ -28,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
-      # リリースを作る。プレリリースは公開するのでタグも作る
+      # リリースとタグを作る
       contents: write
       # 配布物の証明 (artifact attestation) を作る
       id-token: write
@@ -85,6 +84,7 @@ jobs:
           subject-path: ${{ env.ASSET }}
       - name: リリースを作る
         run: |
-          if [[ "$VERSION" == *-* ]]; then flags=(--prerelease); else flags=(--draft); fi
+          flags=()
+          if [[ "$VERSION" == *-* ]]; then flags+=(--prerelease); fi
           gh release create "v$VERSION" "$ASSET" "$ASSET.sha256" \
             --target "$SHA" --title "vMeltype $VERSION" --generate-notes "${flags[@]}"
