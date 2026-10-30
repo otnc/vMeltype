@@ -115,26 +115,9 @@ func runInstall(env *Env) func(*cobra.Command, []string) error {
 			return fmt.Errorf("%s は保持していないので、--offline では取得できません", release.Tag)
 		}
 
-		expected := ""
-		if hex, ok := strings.CutPrefix(asset.Digest, "sha256:"); ok {
-			expected = strings.ToLower(hex)
-		}
-		if expected == "" && !allowUnverified {
-			return fmt.Errorf("%s には公式の期待値 (SHA-256) がないので保持しません。未検証として保持するなら --allow-unverified を指定してください", asset.Name)
-		}
-		if asset.Name != filepath.Base(asset.Name) || strings.ContainsAny(asset.Name, `:\/`) {
-			return fmt.Errorf("配布物の名前 %q はファイル名に使えません", asset.Name)
-		}
-
-		plan := installPlan{
-			ID:             id,
-			Tag:            release.Tag,
-			Prerelease:     release.Prerelease,
-			Asset:          asset.Name,
-			Size:           asset.Size,
-			Destination:    st.Path(id),
-			ExpectedSHA256: expected,
-			Reinstall:      reinstall,
+		plan, err := newInstallPlan(st, id, release, asset, reinstall, allowUnverified)
+		if err != nil {
+			return err
 		}
 		planOut := out
 		if asJSON {
@@ -163,6 +146,30 @@ func runInstall(env *Env) func(*cobra.Command, []string) error {
 		fmt.Fprintf(out, "%s を保持しました (保持 ID: %s)。有効にするには \"vmeltype use %s\" を実行します。\n", stored.Tag, stored.ID, stored.Tag)
 		return nil
 	}
+}
+
+// newInstallPlan は、取得の計画を作る。公式の期待値がない配布物は、allowUnverified のときだけ受け付ける。
+func newInstallPlan(st store.Store, id string, release catalog.Release, asset catalog.Asset, reinstall, allowUnverified bool) (installPlan, error) {
+	expected := ""
+	if hex, ok := strings.CutPrefix(asset.Digest, "sha256:"); ok {
+		expected = strings.ToLower(hex)
+	}
+	if expected == "" && !allowUnverified {
+		return installPlan{}, fmt.Errorf("%s には公式の期待値 (SHA-256) がないので保持しません。未検証として保持するなら --allow-unverified を指定してください", asset.Name)
+	}
+	if asset.Name != filepath.Base(asset.Name) || strings.ContainsAny(asset.Name, `:\/`) {
+		return installPlan{}, fmt.Errorf("配布物の名前 %q はファイル名に使えません", asset.Name)
+	}
+	return installPlan{
+		ID:             id,
+		Tag:            release.Tag,
+		Prerelease:     release.Prerelease,
+		Asset:          asset.Name,
+		Size:           asset.Size,
+		Destination:    st.Path(id),
+		ExpectedSHA256: expected,
+		Reinstall:      reinstall,
+	}, nil
 }
 
 // downloadAndStore は、作業用のディレクトリで取得、照合、展開を終えてから保持版として置く。
