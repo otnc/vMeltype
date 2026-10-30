@@ -33,6 +33,8 @@ func exitCodeOf(err error) int {
 		return ExitOK
 	case errors.As(err, &usage):
 		return ExitUsage
+	case errors.Is(err, errUpdateAvailable):
+		return ExitUpdateAvailable
 	case errors.Is(err, prompt.ErrNeedsConfirmation), errors.Is(err, errAppRunning),
 		errors.Is(err, lifecycle.ErrPendingJournal), errors.Is(err, lifecycle.ErrNeedsRecover), errors.Is(err, lifecycle.ErrLocked),
 		errors.Is(err, lifecycle.ErrPinned), errors.Is(err, appctl.ErrStillRunning), errors.Is(err, errDoctorFailed),

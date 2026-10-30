@@ -33,6 +33,8 @@ type localEnv struct {
 	// imeResult は、IME の DLL の入れ替えの結果。imeCalls は、入れ替えを求められた記録。
 	imeResult winime.Result
 	imeCalls  []imeCall
+	// upstream は、公式一覧と配布物を返す偽の GitHub。nil なら通信しない。
+	upstream *fakeUpstream
 }
 
 func newLocalEnv(t *testing.T) *localEnv {
@@ -71,6 +73,10 @@ func (l *localEnv) run(t *testing.T, interactive bool, stdin string, args ...str
 			l.imeCalls = append(l.imeCalls, imeCall{appDir: appDir, deployed: readFile(filepath.Join(l.standardAppDir(), "Meltype.exe"))})
 			return l.imeResult, nil
 		},
+	}
+	if l.upstream != nil {
+		env.HTTPClient = l.upstream.server.Client()
+		env.GitHubAPIURL = l.upstream.server.URL
 	}
 	code := Run(args, env)
 	return result{code: code, stdout: stdout.String(), stderr: stderr.String()}
