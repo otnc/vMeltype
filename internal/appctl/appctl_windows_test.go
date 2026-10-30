@@ -97,6 +97,20 @@ func TestStop(t *testing.T) {
 			t.Errorf("まだ動いている: %v", running)
 		}
 	})
+	t.Run("起動した直後で合図を受け取れなければ、送り直す", func(t *testing.T) {
+		appDir := placeFake(t)
+		os.WriteFile(filepath.Join(appDir, "slow-start"), nil, 0o600)
+		startFake(t, appDir)
+
+		err := Stop(context.Background(), appDir, osproc.RunningUnder, 10*time.Second)
+
+		if err != nil {
+			t.Fatal(err)
+		}
+		if running, _ := osproc.RunningUnder(appDir); len(running) != 0 {
+			t.Errorf("まだ動いている: %v", running)
+		}
+	})
 	t.Run("終わらなければ、強制終了せずにあきらめる", func(t *testing.T) {
 		appDir := placeFake(t)
 		os.WriteFile(filepath.Join(appDir, "ignore-exit"), nil, 0o600)
