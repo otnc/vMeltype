@@ -243,19 +243,29 @@ func copyVerified(src, dst string, want archive.File) error {
 
 // deployedMatches は、実行先のファイルが manifest と一致するかを返す。
 func deployedMatches(appDir string, files []archive.File) bool {
+	return len(mismatchedFiles(appDir, files)) == 0
+}
+
+// mismatchedFiles は、実行先にないか、manifest と中身が違うファイルの、/ 区切りのパスを返す。
+func mismatchedFiles(appDir string, files []archive.File) []string {
+	var mismatched []string
 	for _, f := range files {
-		data, err := os.Open(filepath.Join(appDir, filepath.FromSlash(f.Path)))
-		if err != nil {
-			return false
-		}
-		hash := sha256.New()
-		n, err := io.Copy(hash, data)
-		data.Close()
-		if err != nil || n != f.Size || hex.EncodeToString(hash.Sum(nil)) != f.SHA256 {
-			return false
+		if !fileMatches(filepath.Join(appDir, filepath.FromSlash(f.Path)), f) {
+			mismatched = append(mismatched, f.Path)
 		}
 	}
-	return true
+	return mismatched
+}
+
+func fileMatches(path string, want archive.File) bool {
+	data, err := os.Open(path)
+	if err != nil {
+		return false
+	}
+	defer data.Close()
+	hash := sha256.New()
+	n, err := io.Copy(hash, data)
+	return err == nil && n == want.Size && hex.EncodeToString(hash.Sum(nil)) == want.SHA256
 }
 
 func topLevelEntries(files []archive.File) []string {
