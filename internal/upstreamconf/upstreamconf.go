@@ -4,13 +4,13 @@ package upstreamconf
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
-	"strconv"
+
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 )
 
 const autoUpdateKey = "AutoUpdate"
@@ -49,7 +49,8 @@ func RestoreAutoUpdate(path string, original Original) error {
 	return err
 }
 
-// setAutoUpdate は、自動更新の値だけを置き換える。項目がなければ先頭に足す。書き換える前の状態を返す。
+// setAutoUpdate は、自動更新の値だけを置き換える。項目がなければ足す。書き換える前の状態を返す。
+// 書き換えは tidwall/sjson に任せ、ほかの項目、並び、空白は変えない。
 func setAutoUpdate(path string, want bool) (Original, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -58,114 +59,25 @@ func setAutoUpdate(path string, want bool) (Original, error) {
 	original := Original{FileExisted: true}
 	body := bytes.TrimPrefix(data, utf8BOM)
 	bom := data[:len(data)-len(body)]
-	literal := strconv.FormatBool(want)
 
-	value, err := locateTopLevel(body, autoUpdateKey)
-	if err != nil {
-		return Original{}, fmt.Errorf("本家の設定 (%s) を読めないので、自動更新を変えられません: %w", path, err)
+	if !gjson.ValidBytes(body) || !gjson.ParseBytes(body).IsObject() {
+		return Original{}, fmt.Errorf("本家の設定 (%s) が JSON のオブジェクトとして読めないので、自動更新を変えられません", path)
 	}
-	var updated []byte
-	if value == nil {
-		insertAt := bytes.IndexByte(body, '{') + 1
-		entry := `"AutoUpdate": ` + literal
-		if !emptyObject(body[insertAt:]) {
-			entry += ","
-		}
-		updated = splice(body, insertAt, insertAt, entry)
-	} else {
-		var current bool
-		if err := json.Unmarshal(body[value.start:value.end], &current); err != nil {
+	if current := gjson.GetBytes(body, autoUpdateKey); current.Exists() {
+		if current.Type != gjson.True && current.Type != gjson.False {
 			return Original{}, fmt.Errorf("本家の設定 (%s) の %s が真偽値ではないので、自動更新を変えられません", path, autoUpdateKey)
 		}
-		original.AutoUpdate = &current
-		if current == want {
+		value := current.Bool()
+		original.AutoUpdate = &value
+		if value == want {
 			return original, nil
 		}
-		updated = splice(body, value.start, value.end, literal)
 	}
-	if err := verifyOnlyAutoUpdateChanged(body, updated, literal); err != nil {
-		return Original{}, err
+	updated, err := sjson.SetBytes(body, autoUpdateKey, want)
+	if err != nil {
+		return Original{}, fmt.Errorf("本家の設定 (%s) の自動更新を変えられませんでした: %w", path, err)
 	}
 	return original, writeAtomic(path, append(append([]byte{}, bom...), updated...))
-}
-
-type span struct{ start, end int }
-
-// locateTopLevel は、オブジェクトの直下の key の値の位置を返す。なければ nil を返す。
-func locateTopLevel(body []byte, key string) (*span, error) {
-	dec := json.NewDecoder(bytes.NewReader(body))
-	if tok, err := dec.Token(); err != nil {
-		return nil, err
-	} else if tok != json.Delim('{') {
-		return nil, errors.New("JSON のオブジェクトではありません")
-	}
-	var found *span
-	for dec.More() {
-		tok, err := dec.Token()
-		if err != nil {
-			return nil, err
-		}
-		afterKey := int(dec.InputOffset())
-		var raw json.RawMessage
-		if err := dec.Decode(&raw); err != nil {
-			return nil, err
-		}
-		if tok == key {
-			end := int(dec.InputOffset())
-			start := afterKey + bytes.IndexByte(body[afterKey:end], ':') + 1
-			for start < end && isSpace(body[start]) {
-				start++
-			}
-			found = &span{start, end}
-		}
-	}
-	if _, err := dec.Token(); err != nil {
-		return nil, err
-	}
-	if _, err := dec.Token(); err != io.EOF {
-		return nil, errors.New("JSON の後ろに余計なものがあります")
-	}
-	return found, nil
-}
-
-// verifyOnlyAutoUpdateChanged は、書き換えたあとも JSON として読め、自動更新が want になり、ほかは同じ値であることを確かめる。
-func verifyOnlyAutoUpdateChanged(before, after []byte, want string) error {
-	var b, a map[string]json.RawMessage
-	if err := json.Unmarshal(before, &b); err != nil {
-		return err
-	}
-	if err := json.Unmarshal(after, &a); err != nil {
-		return fmt.Errorf("本家の設定を書き換えた結果が JSON として読めません: %w", err)
-	}
-	delete(b, autoUpdateKey)
-	if string(a[autoUpdateKey]) != want {
-		return errors.New("本家の設定の自動更新を変えられませんでした")
-	}
-	delete(a, autoUpdateKey)
-	if len(a) != len(b) {
-		return errors.New("本家の設定の自動更新のほかの項目が変わってしまいます")
-	}
-	for k, v := range b {
-		if !bytes.Equal(a[k], v) {
-			return fmt.Errorf("本家の設定の %s が変わってしまいます", k)
-		}
-	}
-	return nil
-}
-
-func splice(body []byte, start, end int, text string) []byte {
-	out := make([]byte, 0, len(body)+len(text))
-	out = append(out, body[:start]...)
-	out = append(out, text...)
-	return append(out, body[end:]...)
-}
-
-func emptyObject(rest []byte) bool {
-	return bytes.HasPrefix(bytes.TrimLeft(rest, " \t\r\n"), []byte("}"))
-}
-
-func isSpace(c byte) bool {
-	return c == ' ' || c == '\t' || c == '\r' || c == '\n'
 }
 
 // writeAtomic は、同じディレクトリの一時ファイルへ書いてから置き換え、本家が書きかけの設定を読まないようにする。
