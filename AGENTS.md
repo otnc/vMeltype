@@ -4,7 +4,7 @@
 
 ## プロジェクトの概要
 
-vMeltype は、日本語入力の [Meltype](https://github.com/yksr-melt/Meltype) (以下、本家) の複数の版を保持し、正式版、プレリリース、旧版を選んで切り替える版の管理ツールです。CLI は `vmeltype` で、Go で書きます。fnm や nvm のように、取得する `install` と有効にする `use` を分けます。Windows を最優先にし、macOS と Linux も本家の配布の範囲で扱います。GUI は任意で、作るときは CLI と同じ Go の処理を呼びます。
+vMeltype は、日本語入力の [Meltype](https://github.com/yksr-melt/Meltype) (以下、本家) の複数のバージョンを保持し、正式版、プレリリース、古いバージョンを選んで切り替えるバージョンの管理ツールです。CLI は `vmeltype` で、Go で書きます。fnm や nvm のように、取得する `install` と有効にする `use` を分けます。Windows を最優先にし、macOS と Linux も本家の配布の範囲で扱います。GUI は任意で、作るときは CLI と同じ Go の処理を呼びます。
 
 大事にする順は、利用者のデータの保護、中断からの復旧、通信しないローカル操作です。
 

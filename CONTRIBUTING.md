@@ -7,8 +7,8 @@ vMeltype の開発に参加する人に向けた決まりと手順です。文�
 ### 用意するもの
 
 - Git
-- Go。版は `go.mod` の `go` の行に書いたものを使います
-- Node.js と pnpm。コミットメッセージの検査 (commitlint) だけに使い、製品には含めません。Node.js の版は `.nvmrc`、pnpm の版は `package.json` の `packageManager` に書いています
+- Go。バージョンは `go.mod` の `go` の行に書いたものを使います
+- Node.js と pnpm。コミットメッセージの検査 (commitlint) だけに使い、製品には含めません。Node.js のバージョンは `.nvmrc`、pnpm のバージョンは `package.json` の `packageManager` に書いています
 
 ### 初回の手順
 
@@ -89,11 +89,11 @@ docs: CONTRIBUTING にブランチ名の決まりを追記
 
 | スコープ | 領域 |
 | --- | --- |
-| `core` | 版の比較、計画など、OS と通信に依らない共通の処理 |
+| `core` | バージョンの比較、計画など、OS と通信に依らない共通の処理 |
 | `cli` | `vmeltype` のコマンド、引数、表示、確認 |
 | `gui` | 任意の GUI |
 | `catalog` | 公式一覧の取得と保存 |
-| `store` | 保持版、manifest、管理ルート |
+| `store` | 保持バージョン、manifest、管理ルート |
 | `snapshot` | データの保存と復元 |
 | `lifecycle` | use、apply、rollback、recover、journal、baseline、自身の削除 |
 | `windows`、`macos`、`linux` | OS ごとの適用と helper |
@@ -164,11 +164,11 @@ PR を作ったあとにコミットを分け直すときは、自分のブラ�
 
 ## リリース
 
-GitHub Actions の "リリース" のワークフローを、版 (`0.1.0`、`0.1.0-pre.1` など) を入れて手で起動します。main への push で CI が通ったコミットからだけ配布物を作ります。リリースとタグを作ってそのまま公開します。版に `-` があればプレリリースにします。
+GitHub Actions の "リリース" のワークフローを、バージョン (`0.1.0`、`0.1.0-pre.1` など) を入れて手で起動します。main への push で CI が通ったコミットからだけ配布物を作ります。リリースとタグを作ってそのまま公開します。バージョンに `-` があればプレリリースにします。
 
 ## 依存の更新
 
-Dependabot が、Go の module、pnpm の依存、GitHub Actions の更新を、毎週 PR にします。公開から 3 日たっていない版は取り込みません。自動ではマージしないので、変更点を読んでからマージします。
+Dependabot が、Go の module、pnpm の依存、GitHub Actions の更新を、毎週 PR にします。公開から 3 日たっていないバージョンは取り込みません。自動ではマージしないので、変更点を読んでからマージします。
 
 ## AI エージェントを使うとき
 
