@@ -144,10 +144,34 @@ if (-not (Test-Path $marker)) {
     throw 'データ先に置いたファイルが消えました'
 }
 
-Write-Host '--- 後片付け'
-# 起動し直した直後の Meltype は合図の受け口がまだなく、--exit が 1 で終わるので、届くまで送り直す
-Wait-Until {
-    (Start-Process -FilePath $exe -ArgumentList '--exit' -Wait -PassThru).ExitCode -eq 0
-} 'Meltype に終了の合図を送れません'
-Wait-Until { (Get-Running).Count -eq 0 } 'Meltype が終わりません'
+Write-Host '--- Meltype を残して vMeltype をやめる'
+Invoke-Vmeltype app uninstall -y | Out-Null
+if (Test-Path $root) {
+    throw '管理ルートが残っています'
+}
+$config = Get-Content -LiteralPath (Join-Path $dataDir 'config.json') -Raw | ConvertFrom-Json
+if ($config.AutoUpdate -ne $true) {
+    throw "本家の自動更新を戻していません: $($config.AutoUpdate)"
+}
+Assert-Running $From
+if (-not (Test-Path $marker)) {
+    throw 'データ先に置いたファイルが消えました'
+}
+
+Write-Host '--- もう一度取り込み、Meltype も削除して vMeltype をやめる'
+Invoke-Vmeltype install $To -y | Out-Null
+Invoke-Vmeltype use $To -y | Out-Null
+Assert-Running $To
+Invoke-Vmeltype app uninstall --remove-meltype -y | Out-Null
+foreach ($path in $root, $appDir, $uninstallKey) {
+    if (Test-Path $path) {
+        throw "$path が残っています"
+    }
+}
+if ($Ime -and (Test-Path $tipKey)) {
+    throw 'Meltype IME の登録が残っています'
+}
+if ((Get-Running).Count -ne 0) {
+    throw 'Meltype が動いています'
+}
 Write-Host '通しの検査が終わりました'
