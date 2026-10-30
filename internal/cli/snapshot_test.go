@@ -204,8 +204,33 @@ func TestSnapshotExportImport(t *testing.T) {
 
 		got := to.run(t, false, "", "snapshot", "restore", m.ID, "-y")
 
-		if got.code != ExitError || !strings.Contains(got.stderr, "通常版") || portableUserdict(to) != "保存した辞書" {
+		if got.code != ExitError || !strings.Contains(got.stderr, "いまの有効なバージョンは portable 版") || portableUserdict(to) != "保存した辞書" {
 			t.Errorf("code = %d\n%s", got.code, got.stderr)
+		}
+	})
+	t.Run("有効なバージョンがなければ、通常版のデータを復元せずに use を案内する", func(t *testing.T) {
+		from := managedStandard(t)
+		id := from.createSnapshot(t)
+		file := filepath.Join(t.TempDir(), "data.vmeltype-snapshot")
+		from.run(t, false, "", "snapshot", "export", id, file)
+		to := newLocalEnv(t)
+		var m struct{ ID string }
+		json.Unmarshal([]byte(to.run(t, false, "", "snapshot", "import", file, "--json").stdout), &m)
+
+		got := to.run(t, false, "", "snapshot", "restore", m.ID, "-y")
+
+		if got.code != ExitError || !strings.Contains(got.stderr, "有効なバージョンがない") || !strings.Contains(got.stderr, "vmeltype use") || strings.Contains(got.stderr, "いまの有効なバージョンは") {
+			t.Errorf("code = %d\n%s", got.code, got.stderr)
+		}
+	})
+	t.Run("通常版の復元の計画では、data でなくデータと書く", func(t *testing.T) {
+		l := managedStandard(t)
+		id := l.createSnapshot(t)
+
+		got := l.run(t, false, "", "snapshot", "restore", id, "--dry-run")
+
+		if got.code != ExitOK || !strings.Contains(got.stdout, "いまのデータは") {
+			t.Errorf("code = %d\n%s", got.code, got.stdout)
 		}
 	})
 }

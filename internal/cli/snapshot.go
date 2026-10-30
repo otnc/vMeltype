@@ -233,7 +233,7 @@ func runSnapshotRestore(env *Env) func(*cobra.Command, []string) error {
 		}
 		dataDir := place.dataDir
 		if from, to := dataKind(m.Source), dataKind(dataDir); from != to {
-			return fmt.Errorf("スナップショット %s は%sのデータ (%s) で、いまの有効なバージョンは%sなので、復元しません", id, variantLabels[from], m.Source, variantLabels[to])
+			return dataKindMismatch(root, id, m.Source, from)
 		}
 
 		out := cmd.OutOrStdout()
@@ -248,7 +248,7 @@ func runSnapshotRestore(env *Env) func(*cobra.Command, []string) error {
 		}
 		writeSnapshotSummary(planOut, m)
 		fmt.Fprintf(planOut, "復元先:               %s\n", dataDir)
-		fmt.Fprintln(planOut, "いまの data は、置き換える前に別のスナップショットとして保存します。")
+		fmt.Fprintln(planOut, "いまのデータは、置き換える前に別のスナップショットとして保存します。")
 		app.describe(planOut)
 		if dryRun {
 			if asJSON {
@@ -342,6 +342,22 @@ func runSnapshotImport(env *Env) func(*cobra.Command, []string) error {
 
 // dataKind は、データ先が portable 版のもの (実行先の隣の data) か、通常版のものかを返す。
 // 別の PC で作ったスナップショットはデータ先のパスが違うので、パスではなく種類で比べる。
+// dataKindMismatch は、スナップショットのデータの種類 (通常版か portable 版か) が、いまの戻し先と違うことを表すエラーを返す。
+// 有効なバージョンがなければ戻し先は portable 版の data になるので、通常版のデータは、通常版を有効にしてから戻すよう案内する。
+func dataKindMismatch(root, id, source, kind string) error {
+	if kind == string(assets.Portable) {
+		return fmt.Errorf("スナップショット %s は portable 版のデータ (%s) で、いまの有効なバージョンは通常版なので、復元しません", id, source)
+	}
+	state, err := lifecycle.LoadState(root)
+	if err != nil {
+		return err
+	}
+	if state.Active == nil {
+		return fmt.Errorf("スナップショット %s は通常版のデータ (%s) ですが、有効なバージョンがないので、戻し先を決められません。先に \"vmeltype use <tag>\" で通常版を有効にしてください", id, source)
+	}
+	return fmt.Errorf("スナップショット %s は通常版のデータ (%s) で、いまの有効なバージョンは portable 版なので、復元しません", id, source)
+}
+
 func dataKind(path string) string {
 	clean := filepath.Clean(path)
 	if strings.EqualFold(filepath.Base(clean), "data") &&
