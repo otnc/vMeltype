@@ -25,6 +25,8 @@ Get-FileHash vMeltype-0.1.0-pre.1-windows.zip -Algorithm SHA256
 vmeltype releases           # 公式のリリースの一覧を表示する
 vmeltype install 1.4.0      # 取得して保持する。有効な版は変えない
 vmeltype use 1.4.0          # 保持した版に切り替える。通信しない
+vmeltype check              # 新しい版があるかを確かめる
+vmeltype update             # 新しい版を取得して切り替える (upgrade でも同じ)
 vmeltype rollback           # 直前の版に戻す
 vmeltype pin                # いまの版から切り替えないよう固定する
 vmeltype snapshot create    # Meltype のデータを保存する
