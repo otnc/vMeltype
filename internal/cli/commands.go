@@ -70,7 +70,7 @@ func commandSpecs(env *Env) []commandSpec {
 			{use: "restore <id>", short: "いまのデータを保存してからスナップショットを復元する", args: exactArgs(1), flags: change, setup: addStopAppFlag, run: runSnapshotRestore(env)},
 		}},
 		{use: "doctor", short: "管理ルートを診断し、直し方を示す。通信しない", flags: []commonFlag{flagJSON}, run: runDoctor(env)},
-		{use: "run", short: "有効な版の Meltype を起動する"},
+		{use: "run", short: "有効な版の Meltype を起動する。通信しない", run: runRun(env)},
 		{use: "detach", short: "いまの環境を残して管理をやめる", flags: change},
 		{use: "track", short: "新しい版への自動の追従", subs: []commandSpec{
 			{use: "status", short: "追従の設定を表示する", flags: []commonFlag{flagJSON}},
