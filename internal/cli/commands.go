@@ -60,14 +60,14 @@ func commandSpecs(env *Env) []commandSpec {
 		{use: "update", aliases: []string{"up"}, short: "新しい版を取得して有効にする", flags: change},
 		{use: "pin [tag]", short: "有効な版を固定する。通信しない", long: pinLong, args: maxArgs(1), flags: []commonFlag{flagJSON}, run: runPin(env)},
 		{use: "unpin", short: "版の固定を解除する。有効な版は変えない", flags: []commonFlag{flagJSON}, run: runUnpin(env)},
-		{use: "rollback", short: "直前に有効にした版へ戻す。データは戻さない", flags: change, setup: addOverridePinFlag, run: runRollback(env)},
+		{use: "rollback", short: "直前に有効にした版へ戻す。データは戻さない", flags: change, setup: setupRollbackFlags, run: runRollback(env)},
 		{use: "recover", short: "中断した変更を処理記録から復旧する", flags: change, run: runRecover(env)},
 		{use: "snapshot", short: "データの保存と復元。通信しない", long: snapshotLong, subs: []commandSpec{
-			{use: "create", short: "Meltype が止まっていることを確かめてデータを保存する", flags: change, run: runSnapshotCreate(env)},
+			{use: "create", short: "Meltype が止まっていることを確かめてデータを保存する。動いていれば終了させてから保存する", flags: change, setup: addStopAppFlag, run: runSnapshotCreate(env)},
 			{use: "list", short: "保存したスナップショットを表示する", flags: []commonFlag{flagJSON}, run: runSnapshotList(env)},
 			{use: "inspect <id>", short: "スナップショットの範囲を表示する", args: exactArgs(1), flags: []commonFlag{flagJSON}, run: runSnapshotInspect(env)},
 			{use: "verify <id>", short: "スナップショットの中身を記録と照合する", args: exactArgs(1), flags: []commonFlag{flagJSON}, run: runSnapshotVerify(env)},
-			{use: "restore <id>", short: "いまのデータを保存してからスナップショットを復元する", args: exactArgs(1), flags: change, run: runSnapshotRestore(env)},
+			{use: "restore <id>", short: "いまのデータを保存してからスナップショットを復元する", args: exactArgs(1), flags: change, setup: addStopAppFlag, run: runSnapshotRestore(env)},
 		}},
 		{use: "doctor", short: "依存、権限、登録、データ先、復旧できるかを診断する", flags: []commonFlag{flagJSON}},
 		{use: "run", short: "有効な版の Meltype を起動する"},
@@ -83,8 +83,8 @@ func commandSpecs(env *Env) []commandSpec {
 			{use: "update", short: "vMeltype 自身を更新する", flags: change},
 			{use: "uninstall", short: "Meltype を管理前に戻してから vMeltype を削除する", flags: change},
 			{use: "config", short: "vMeltype の設定", subs: []commandSpec{
-				{use: "show", short: "設定を表示する", flags: []commonFlag{flagJSON}},
-				{use: "set <key> <value>", short: "設定を変える。既存のファイルは移動しない", args: exactArgs(2), flags: []commonFlag{flagJSON}},
+				{use: "show", short: "設定を表示する", flags: []commonFlag{flagJSON}, run: runConfigShow(env)},
+				{use: "set <key> <value>", short: "設定を変える。既存のファイルは移動しない", args: exactArgs(2), flags: []commonFlag{flagJSON}, run: runConfigSet(env)},
 			}},
 		}},
 	}

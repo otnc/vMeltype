@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/otnc/vmeltype/internal/appctl"
 	"github.com/otnc/vmeltype/internal/archive"
 	"github.com/otnc/vmeltype/internal/assets"
 	"github.com/otnc/vmeltype/internal/store"
@@ -20,6 +21,10 @@ import (
 type localEnv struct {
 	root    string
 	running []string
+	// stopFails は、終了の合図に応えない Meltype を真似る。
+	stopFails bool
+	// stopped と started は、実行先の Meltype を終了させた回数と、起動した回数。
+	stopped, started int
 }
 
 func newLocalEnv(t *testing.T) *localEnv {
@@ -40,6 +45,18 @@ func (l *localEnv) run(t *testing.T, interactive bool, stdin string, args ...str
 		DefaultRoot:  func() (string, error) { return l.root, nil },
 		Platform:     assets.Platform{OS: "windows", Arch: "amd64"},
 		RunningUnder: func(string) ([]string, error) { return l.running, nil },
+		StopApp: func(string) error {
+			if l.stopFails {
+				return appctl.ErrStillRunning
+			}
+			l.stopped++
+			l.running = nil
+			return nil
+		},
+		StartApp: func(string) error {
+			l.started++
+			return nil
+		},
 	}
 	code := Run(args, env)
 	return result{code: code, stdout: stdout.String(), stderr: stderr.String()}
@@ -193,15 +210,6 @@ func TestUseStopsBeforeChanging(t *testing.T) {
 			args:     []string{"use", "v9.9.9", "--portable", "-y"},
 			wantCode: ExitError,
 			wantText: "vmeltype install",
-		},
-		{
-			name: "実行先の Meltype が動いていれば止める",
-			prepare: func(t *testing.T, l *localEnv) {
-				l.running = []string{filepath.Join(l.appDir(), "Meltype.exe")}
-			},
-			args:     []string{"use", "v1.3.0", "--portable", "-y"},
-			wantCode: ExitNeedsAction,
-			wantText: "終了",
 		},
 		{
 			name: "管理していないファイルが新しい版のファイルと同じ名前なら止める",

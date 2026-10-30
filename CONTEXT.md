@@ -56,6 +56,7 @@ vMeltype で使う用語と、コードで使う英語の名前の対応です�
 | --- | --- | --- |
 | 管理解除 | `detach` | 本家を vMeltype に依存しない配置へ引き継ぎ、管理をやめること |
 | 自身の削除 | `appUninstall` | 本家を管理前か独立した状態へ戻してから、vMeltype を削除すること |
+| 設定 | `config` | 管理ルートの `config.json` に置く vMeltype の設定。`app config` で表示、変更する。知らない項目は消さない |
 | OS アダプター | `osAdapter` | OS ごとの配置と登録を扱う境界 |
 | helper | `helper` | 昇格や OS の API のために分けた、別の実行ファイル |
 | 共有 IME | `sharedIME` | Windows の IME DLL と HKLM の登録など、PC の全ユーザーで共有する資材 |
