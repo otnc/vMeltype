@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"sort"
@@ -35,6 +36,9 @@ type localEnv struct {
 	imeCalls  []imeCall
 	// upstream は、公式一覧と配布物を返す偽の GitHub。nil なら通信しない。
 	upstream *fakeUpstream
+	// removeCalls は、本家のアンインストーラーで Meltype の削除を求められた記録。removeFails なら削除に失敗する。
+	removeCalls []removeCall
+	removeFails bool
 }
 
 func newLocalEnv(t *testing.T) *localEnv {
@@ -69,6 +73,14 @@ func (l *localEnv) run(t *testing.T, interactive bool, stdin string, args ...str
 		},
 		LocalAppData:  func() (string, error) { return l.localAppData, nil },
 		IMERegistered: func() (bool, error) { return l.imeRegistered, nil },
+		Executable:    func() (string, error) { return `C:	oolsvmeltype.exe`, nil },
+		RemoveMeltype: func(appDir, fallback string, interactive bool) error {
+			l.removeCalls = append(l.removeCalls, removeCall{appDir: appDir, fallback: fallback, interactive: interactive})
+			if l.removeFails {
+				return errors.New("本家のアンインストーラーが失敗しました")
+			}
+			return os.RemoveAll(appDir)
+		},
 		ReplaceIME: func(appDir string) (winime.Result, error) {
 			l.imeCalls = append(l.imeCalls, imeCall{appDir: appDir, deployed: readFile(filepath.Join(l.standardAppDir(), "Meltype.exe"))})
 			return l.imeResult, nil
@@ -437,4 +449,10 @@ func TestUninstallRequiresExactVersion(t *testing.T) {
 type imeCall struct {
 	appDir   string
 	deployed string
+}
+
+// removeCall は、本家のアンインストーラーで Meltype の削除を求められたときに渡されたもの。
+type removeCall struct {
+	appDir, fallback string
+	interactive      bool
 }

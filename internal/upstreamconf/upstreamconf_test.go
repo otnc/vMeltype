@@ -115,3 +115,37 @@ func ptr(b bool) *bool { return &b }
 func sameBool(a, b *bool) bool {
 	return (a == nil && b == nil) || (a != nil && b != nil && *a == *b)
 }
+
+func TestRestoreAutoUpdate(t *testing.T) {
+	tests := []struct {
+		name     string
+		original Original
+		want     string
+	}{
+		{name: "管理前が true なら true に戻し、ほかの項目は変えない", original: Original{FileExisted: true, AutoUpdate: ptr(true)}, want: "{\n  \"Enabled\": true,\n  \"AutoUpdate\": true\n}"},
+		{name: "管理前に項目がなければ、本家の既定の true に戻す", original: Original{FileExisted: true}, want: "{\n  \"Enabled\": true,\n  \"AutoUpdate\": true\n}"},
+		{name: "管理前が false なら false のまま", original: Original{FileExisted: true, AutoUpdate: ptr(false)}, want: "{\n  \"Enabled\": true,\n  \"AutoUpdate\": false\n}"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			path := writeConfig(t, "{\n  \"Enabled\": true,\n  \"AutoUpdate\": false\n}")
+
+			if err := RestoreAutoUpdate(path, tt.original); err != nil {
+				t.Fatal(err)
+			}
+			if got := read(t, path); got != tt.want {
+				t.Errorf("中身 = %q, want %q", got, tt.want)
+			}
+		})
+	}
+	t.Run("ファイルがなければ作らない", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "config.json")
+
+		if err := RestoreAutoUpdate(path, Original{AutoUpdate: ptr(true)}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			t.Errorf("設定を作った")
+		}
+	})
+}

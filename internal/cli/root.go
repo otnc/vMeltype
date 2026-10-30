@@ -47,6 +47,8 @@ type Env struct {
 	ReplaceIME func(appDir string) (winime.Result, error)
 	// Executable は、いま動いている vmeltype の実行ファイルのパスを返す。app update が置き換える。
 	Executable func() (string, error)
+	// RemoveMeltype は、通常版の Meltype を本家のアンインストーラーで削除する。fallbackScript は、インストール先にアンインストーラーがないときに使う uninstall.ps1。
+	RemoveMeltype func(appDir, fallbackScript string, interactive bool) error
 }
 
 const usageTemplate = `使い方:{{if .Runnable}}

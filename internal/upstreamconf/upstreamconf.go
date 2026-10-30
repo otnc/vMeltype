@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 )
 
 const autoUpdateKey = "AutoUpdate"
@@ -27,25 +28,46 @@ type Original struct {
 // ファイルがなければ、自動更新だけを止めた設定を作る (本家はないときだけ既定の設定を保存するので、そのままだと自動更新が有効になる)。
 // 呼び出し側は、書き換えの間に本家が保存しないよう、Meltype を止めておく。
 func DisableAutoUpdate(path string) (Original, error) {
-	data, err := os.ReadFile(path)
-	if errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
 		return Original{}, writeAtomic(path, []byte(`{"AutoUpdate": false}`))
 	}
+	return setAutoUpdate(path, false)
+}
+
+// RestoreAutoUpdate は、本家の自動更新を、DisableAutoUpdate が記録した管理前の値に戻す。管理前に項目がなければ、本家の既定の true にする。
+// ほかの項目、並び、空白は変えない。ファイルがなければ、本家が次の起動で既定の設定を作るので、何もしない。
+// 呼び出し側は、書き換えの間に本家が保存しないよう、Meltype を止めておく。
+func RestoreAutoUpdate(path string, original Original) error {
+	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	value := true
+	if original.AutoUpdate != nil {
+		value = *original.AutoUpdate
+	}
+	_, err := setAutoUpdate(path, value)
+	return err
+}
+
+// setAutoUpdate は、自動更新の値だけを置き換える。項目がなければ先頭に足す。書き換える前の状態を返す。
+func setAutoUpdate(path string, want bool) (Original, error) {
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return Original{}, fmt.Errorf("本家の設定を読めませんでした: %w", err)
 	}
 	original := Original{FileExisted: true}
 	body := bytes.TrimPrefix(data, utf8BOM)
 	bom := data[:len(data)-len(body)]
+	literal := strconv.FormatBool(want)
 
 	value, err := locateTopLevel(body, autoUpdateKey)
 	if err != nil {
-		return Original{}, fmt.Errorf("本家の設定 (%s) を読めないので、自動更新を止められません: %w", path, err)
+		return Original{}, fmt.Errorf("本家の設定 (%s) を読めないので、自動更新を変えられません: %w", path, err)
 	}
 	var updated []byte
 	if value == nil {
 		insertAt := bytes.IndexByte(body, '{') + 1
-		entry := `"AutoUpdate": false`
+		entry := `"AutoUpdate": ` + literal
 		if !emptyObject(body[insertAt:]) {
 			entry += ","
 		}
@@ -53,15 +75,15 @@ func DisableAutoUpdate(path string) (Original, error) {
 	} else {
 		var current bool
 		if err := json.Unmarshal(body[value.start:value.end], &current); err != nil {
-			return Original{}, fmt.Errorf("本家の設定 (%s) の %s が真偽値ではないので、自動更新を止められません", path, autoUpdateKey)
+			return Original{}, fmt.Errorf("本家の設定 (%s) の %s が真偽値ではないので、自動更新を変えられません", path, autoUpdateKey)
 		}
 		original.AutoUpdate = &current
-		if !current {
+		if current == want {
 			return original, nil
 		}
-		updated = splice(body, value.start, value.end, "false")
+		updated = splice(body, value.start, value.end, literal)
 	}
-	if err := verifyOnlyAutoUpdateChanged(body, updated); err != nil {
+	if err := verifyOnlyAutoUpdateChanged(body, updated, literal); err != nil {
 		return Original{}, err
 	}
 	return original, writeAtomic(path, append(append([]byte{}, bom...), updated...))
@@ -106,8 +128,8 @@ func locateTopLevel(body []byte, key string) (*span, error) {
 	return found, nil
 }
 
-// verifyOnlyAutoUpdateChanged は、書き換えたあとも JSON として読め、自動更新のほかは同じ値であることを確かめる。
-func verifyOnlyAutoUpdateChanged(before, after []byte) error {
+// verifyOnlyAutoUpdateChanged は、書き換えたあとも JSON として読め、自動更新が want になり、ほかは同じ値であることを確かめる。
+func verifyOnlyAutoUpdateChanged(before, after []byte, want string) error {
 	var b, a map[string]json.RawMessage
 	if err := json.Unmarshal(before, &b); err != nil {
 		return err
@@ -116,8 +138,8 @@ func verifyOnlyAutoUpdateChanged(before, after []byte) error {
 		return fmt.Errorf("本家の設定を書き換えた結果が JSON として読めません: %w", err)
 	}
 	delete(b, autoUpdateKey)
-	if string(a[autoUpdateKey]) != "false" {
-		return errors.New("本家の設定の自動更新を止められませんでした")
+	if string(a[autoUpdateKey]) != want {
+		return errors.New("本家の設定の自動更新を変えられませんでした")
 	}
 	delete(a, autoUpdateKey)
 	if len(a) != len(b) {
