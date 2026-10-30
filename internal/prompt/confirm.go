@@ -34,6 +34,8 @@ type Confirmer struct {
 	Out         io.Writer
 	Interactive bool
 	AssumeYes   bool
+	// ListenKeys は、端末を 1 キーずつ読む。nil なら In から 1 行ずつ読む。入力が端末のときだけ渡す。
+	ListenKeys ListenKeys
 }
 
 // Confirm は、実行してよければ nil を返す。
@@ -60,13 +62,17 @@ func (c Confirmer) Confirm(question string, def Default) error {
 
 // Ask は、y か n で答える質問をし、答えを返す。空の Enter は def を選ぶ。
 // EOF と Esc は、n とは区別して ErrCanceled を返す (入力が閉じた環境で、どちらかを勝手に選ばない)。
-// 続けて聞いたときに次の答えを読み落とさないよう、1 行ずつだけ読む。呼び出し側は、対話できることを確かめておく。
+// ListenKeys があれば y か n を押すだけで答えられ、なければ、続けて聞いたときに次の答えを読み落とさないよう 1 行ずつだけ読む。
+// 呼び出し側は、対話できることを確かめておく。
 //
 //	removeData, err := c.Ask("データも削除しますか？", prompt.DefaultNo)
 func (c Confirmer) Ask(question string, def Default) (bool, error) {
 	suffix := "[Y/n]"
 	if def == DefaultNo {
 		suffix = "[y/N]"
+	}
+	if c.ListenKeys != nil {
+		return c.askByKey(question, suffix, def)
 	}
 	for {
 		fmt.Fprintf(c.Out, "%s %s ", question, suffix)
