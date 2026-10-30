@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/otnc/vmeltype/internal/snapshot"
+	"github.com/otnc/vmeltype/internal/store"
 	"github.com/otnc/vmeltype/internal/winime"
 )
 
@@ -245,6 +246,31 @@ func TestUseStandardStopsWhenIMECannotBeReplaced(t *testing.T) {
 				t.Errorf("終了させた本家を起動し直していない")
 			}
 		})
+	}
+}
+
+func TestUseStandardRestoresIMEWhenSwitchFails(t *testing.T) {
+	l := newLocalEnv(t)
+	l.storeStandard(t, "v1.3.0")
+	l.storeStandard(t, "v1.4.0")
+	l.imeRegistered = true
+	l.imeResult = winime.ResultReplaced
+	if got := l.run(t, false, "", "use", "1.3.0", "-y"); got.code != ExitOK {
+		t.Fatal(got.stderr)
+	}
+	stored := store.Store{Root: l.root}.Path(store.ID("v1.4.0", "windows", "amd64", "standard"))
+	if err := os.WriteFile(filepath.Join(stored, "files", "app", "Meltype.exe"), []byte("壊れた本体"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	l.imeCalls = nil
+
+	got := l.run(t, false, "", "use", "1.4.0", "-y")
+
+	if got.code == ExitOK || readFile(filepath.Join(l.standardAppDir(), "Meltype.exe")) != "exe v1.3.0" {
+		t.Fatalf("code = %d, 実行先 = %s\n%s", got.code, readFile(filepath.Join(l.standardAppDir(), "Meltype.exe")), got.stderr)
+	}
+	if len(l.imeCalls) != 2 || l.imeCalls[1].appDir != l.standardAppDir() || l.imeCalls[1].deployed != "exe v1.3.0" {
+		t.Errorf("入れ替えに失敗したのに、DLL を実行先のバージョンに戻していない: %+v", l.imeCalls)
 	}
 }
 
