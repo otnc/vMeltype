@@ -45,6 +45,8 @@ type Env struct {
 	IMERegistered func() (bool, error)
 	// ReplaceIME は、登録済みの Meltype IME の DLL を、appDir (切り替え先の版の、本家の ZIP の app に当たるディレクトリ) のものに入れ替える。
 	ReplaceIME func(appDir string) (winime.Result, error)
+	// Executable は、いま動いている vmeltype の実行ファイルのパスを返す。app update が置き換える。
+	Executable func() (string, error)
 }
 
 const usageTemplate = `使い方:{{if .Runnable}}

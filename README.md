@@ -32,6 +32,7 @@ vmeltype pin                # いまの版から切り替えないよう固定�
 vmeltype snapshot create    # Meltype のデータを保存する
 vmeltype status             # 有効版、配置、データ先を表示する
 vmeltype doctor             # 問題がないかを調べ、直し方を示す
+vmeltype app update         # vMeltype 自身を新しい版にする (self upgrade でも同じ)
 ```
 
 `--pre` を付けるとプレリリース、`--portable` を付けると portable 版を対象にします。各コマンドの説明は `vmeltype <コマンド> --help` で表示します。
