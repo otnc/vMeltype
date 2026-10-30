@@ -1,16 +1,11 @@
 package cli
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/otnc/vmeltype/internal/assets"
 	"github.com/otnc/vmeltype/internal/lifecycle"
 )
-
-// errIMERegistered は、Meltype IME を登録済みの PC で、通常版を切り替えようとしたことを表す。
-// 新しい版の本体と古い版の IME の DLL が組み合わさらないよう、DLL の入れ替えを作るまでは止める。
-var errIMERegistered = errors.New("この PC には Meltype IME が登録されています。登録済みの PC での通常版の切り替え (IME の DLL の入れ替え) には、まだ対応していません")
 
 // layout は、variant ごとの実行先とデータ先。
 type layout struct {
@@ -49,18 +44,6 @@ func activeLayout(env *Env, root string) (layout, error) {
 	}
 	l.appDir = state.Active.AppDir
 	return l, nil
-}
-
-// checkIMENotRegistered は、通常版の切り替えの前に、Meltype IME が登録されていないことを確かめる。
-func checkIMENotRegistered(env *Env) error {
-	registered, err := env.IMERegistered()
-	if err != nil {
-		return err
-	}
-	if registered {
-		return errIMERegistered
-	}
-	return nil
 }
 
 // reapplyCommand は、有効版を同じ版のまま置き直すコマンドを返す。

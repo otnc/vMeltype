@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/otnc/vmeltype/internal/snapshot"
+	"github.com/otnc/vmeltype/internal/winime"
 )
 
 func (l *localEnv) standardAppDir() string {
@@ -164,22 +165,84 @@ func TestUseStandard(t *testing.T) {
 	})
 }
 
-func TestUseStandardStopsWhenIMERegistered(t *testing.T) {
-	l := newLocalEnv(t)
-	l.storeStandard(t, "v1.4.0")
-	l.installUpstream(t)
-	l.imeRegistered = true
+func TestUseStandardReplacesRegisteredIME(t *testing.T) {
+	t.Run("登録済みなら、実行先を入れ替える前に、切り替え先の版の DLL に入れ替える", func(t *testing.T) {
+		l := newLocalEnv(t)
+		l.storeStandard(t, "v1.4.0")
+		l.installUpstream(t)
+		l.imeRegistered = true
+		l.imeResult = winime.ResultReplaced
 
-	got := l.run(t, false, "", "use", "1.4.0", "-y")
+		got := l.run(t, false, "", "use", "1.4.0", "-y")
 
-	if got.code != ExitError || !strings.Contains(got.stderr, "Meltype IME") {
-		t.Errorf("code = %d, stderr = %s", got.code, got.stderr)
+		if got.code != ExitOK || readFile(filepath.Join(l.standardAppDir(), "Meltype.exe")) != "exe v1.4.0" {
+			t.Fatalf("code = %d, stderr = %s", got.code, got.stderr)
+		}
+		if len(l.imeCalls) != 1 || readFile(filepath.Join(l.imeCalls[0].appDir, "tip", "x64", "MeltypeTip.dll")) != "tip v1.4.0" {
+			t.Errorf("切り替え先の版の DLL を渡していない: %+v", l.imeCalls)
+		}
+		if l.imeCalls[0].deployed != "exe 本家の 1.2.0" {
+			t.Errorf("実行先を入れ替えてから DLL を入れ替えた")
+		}
+	})
+	t.Run("登録していなければ、DLL に触れない", func(t *testing.T) {
+		l := newLocalEnv(t)
+		l.storeStandard(t, "v1.4.0")
+
+		l.run(t, false, "", "use", "1.4.0", "-y")
+
+		if len(l.imeCalls) != 0 {
+			t.Errorf("登録していないのに DLL を入れ替えた")
+		}
+	})
+	t.Run("--dry-run は入れ替えることを示すだけ", func(t *testing.T) {
+		l := newLocalEnv(t)
+		l.storeStandard(t, "v1.4.0")
+		l.imeRegistered = true
+
+		got := l.run(t, false, "", "use", "1.4.0", "--dry-run")
+
+		if got.code != ExitOK || !strings.Contains(got.stdout, "Meltype IME") || len(l.imeCalls) != 0 {
+			t.Errorf("code = %d, calls = %d\n%s", got.code, len(l.imeCalls), got.stdout)
+		}
+	})
+}
+
+func TestUseStandardStopsWhenIMECannotBeReplaced(t *testing.T) {
+	tests := []struct {
+		result   winime.Result
+		wantCode int
+		wantText string
+	}{
+		{result: winime.ResultCanceled, wantCode: ExitNeedsAction, wantText: "管理者権限"},
+		{result: winime.ResultFailed, wantCode: ExitNeedsAction, wantText: "登録できませんでした"},
+		{result: winime.ResultUnsupported, wantCode: ExitError, wantText: "対応していません"},
+		{result: winime.ResultCorrupt, wantCode: ExitError, wantText: "--reinstall"},
 	}
-	if readFile(filepath.Join(l.standardAppDir(), "Meltype.exe")) != "exe 本家の 1.2.0" || !strings.Contains(readFile(filepath.Join(l.standardDataDir(), "config.json")), "\"AutoUpdate\": true") {
-		t.Errorf("止めるべきなのに変えた")
-	}
-	if listed, _, _ := snapshot.List(l.root); len(listed) != 0 {
-		t.Errorf("止めるべきなのにスナップショットを作った")
+	for _, tt := range tests {
+		t.Run(string(tt.result)+" なら実行先を変えずに止める", func(t *testing.T) {
+			l := newLocalEnv(t)
+			l.storeStandard(t, "v1.4.0")
+			l.installUpstream(t)
+			l.imeRegistered = true
+			l.imeResult = tt.result
+			l.running = []string{filepath.Join(l.standardAppDir(), "Meltype.exe")}
+
+			got := l.run(t, false, "", "use", "1.4.0", "-y")
+
+			if got.code != tt.wantCode || !strings.Contains(got.stderr, tt.wantText) {
+				t.Errorf("code = %d, want %d\n%s", got.code, tt.wantCode, got.stderr)
+			}
+			if readFile(filepath.Join(l.standardAppDir(), "Meltype.exe")) != "exe 本家の 1.2.0" {
+				t.Errorf("止めるべきなのに実行先を変えた")
+			}
+			if s := l.status(t); s.Active != nil {
+				t.Errorf("止めるべきなのに有効版を記録した: %+v", s)
+			}
+			if l.started != 1 {
+				t.Errorf("終了させた本家を起動し直していない")
+			}
+		})
 	}
 }
 

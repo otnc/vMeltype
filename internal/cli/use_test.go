@@ -16,6 +16,7 @@ import (
 	"github.com/otnc/vmeltype/internal/archive"
 	"github.com/otnc/vmeltype/internal/assets"
 	"github.com/otnc/vmeltype/internal/store"
+	"github.com/otnc/vmeltype/internal/winime"
 )
 
 type localEnv struct {
@@ -29,6 +30,9 @@ type localEnv struct {
 	localAppData string
 	// imeRegistered は、Meltype IME を PC に登録済みであることを真似る。
 	imeRegistered bool
+	// imeResult は、IME の DLL の入れ替えの結果。imeCalls は、入れ替えを求められた記録。
+	imeResult winime.Result
+	imeCalls  []imeCall
 }
 
 func newLocalEnv(t *testing.T) *localEnv {
@@ -63,6 +67,10 @@ func (l *localEnv) run(t *testing.T, interactive bool, stdin string, args ...str
 		},
 		LocalAppData:  func() (string, error) { return l.localAppData, nil },
 		IMERegistered: func() (bool, error) { return l.imeRegistered, nil },
+		ReplaceIME: func(appDir string) (winime.Result, error) {
+			l.imeCalls = append(l.imeCalls, imeCall{appDir: appDir, deployed: readFile(filepath.Join(l.standardAppDir(), "Meltype.exe"))})
+			return l.imeResult, nil
+		},
 	}
 	code := Run(args, env)
 	return result{code: code, stdout: stdout.String(), stderr: stderr.String()}
@@ -417,4 +425,10 @@ func TestUninstallRequiresExactVersion(t *testing.T) {
 			t.Errorf("code = %d, stderr = %s", got.code, got.stderr)
 		}
 	})
+}
+
+// imeCall は、IME の DLL の入れ替えを求められたときの、渡された切り替え先の版と、そのときの実行先の Meltype.exe の中身。
+type imeCall struct {
+	appDir   string
+	deployed string
 }

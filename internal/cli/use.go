@@ -23,7 +23,8 @@ const useLong = `保持版を有効にします。通信しません。保持し
 portable 版は --portable を付けたときだけ対象にします。付けなければ通常版 (IME の登録を伴うもの) だけを探し、portable 版しか保持していなくても選びません。
 いまは Windows だけに対応しています。どちらも実行先を固定し、版を切り替えるときはアプリのファイルだけを入れ替えます。vMeltype が置いていないファイルはそのまま引き継ぎます。
 portable 版の実行先は管理ルートの portable\app で、データは隣の data です。
-通常版の実行先とデータ先は、本家と同じ %LOCALAPPDATA%\Programs\Meltype と %LOCALAPPDATA%\Meltype です。本家のインストールがあれば取り込み、置き換えた本家のファイルを管理前の記録として残します。切り替えの前にデータのスナップショットを作り、本家の自動更新を止め、本家がダウンロード済みの更新を管理ルートに移します。Meltype IME を登録済みの PC には、まだ対応していません。
+通常版の実行先とデータ先は、本家と同じ %LOCALAPPDATA%\Programs\Meltype と %LOCALAPPDATA%\Meltype です。本家のインストールがあれば取り込み、置き換えた本家のファイルを管理前の記録として残します。切り替えの前にデータのスナップショットを作り、本家の自動更新を止め、本家がダウンロード済みの更新を管理ルートに移します。
+Meltype IME を登録済みなら、実行先を入れ替える前に、IME の DLL も切り替え先の版のものに入れ替えます。入れ替えには切り替え先の版の本家のスクリプトを使い、DLL が違えば管理者権限の確認 (UAC) が出ます。断られたら切り替えません。登録していなければ、IME には触れません。
 同じ版が有効で配置も一致していれば何もしません。--force を付けると、一致していても入れ替えます。
 
 実行先の Meltype が動いていれば、正常に終了させてから切り替え、終わったら起動し直します。終了させるのは、--stop-app を付けたとき、-y を付けたとき (設定 stop-app-on-yes が true のとき)、対話で終了してよいと答えたときです。終わらなければ、強制終了せずに止めます。`
@@ -103,8 +104,9 @@ func switchVersion(cmd *cobra.Command, env *Env, root string, st store.Store, ta
 		return err
 	}
 	standard := target.Variant == string(assets.Standard)
+	imeRegistered := false
 	if standard {
-		if err := checkIMENotRegistered(env); err != nil {
+		if imeRegistered, err = env.IMERegistered(); err != nil {
 			return err
 		}
 	}
@@ -143,6 +145,9 @@ func switchVersion(cmd *cobra.Command, env *Env, root string, st store.Store, ta
 		planOut = cmd.ErrOrStderr()
 	}
 	writeUsePlan(planOut, plan, place)
+	if imeRegistered {
+		fmt.Fprintln(planOut, "Meltype IME:  登録済みなので、DLL をこの版のものに入れ替えます。DLL が違えば、管理者権限の確認 (UAC) が出ます。入力方式の一覧と既定の入力方式は変えません。")
+	}
 	app.describe(planOut)
 	if dryRun {
 		if asJSON {
@@ -173,6 +178,11 @@ func switchVersion(cmd *cobra.Command, env *Env, root string, st store.Store, ta
 		}
 		if err = lifecycle.PrepareStandardData(root, place.dataDir, activeTag, env.Now()); err != nil {
 			return err
+		}
+		if imeRegistered {
+			if err = replaceIME(env, filepath.Join(st.Path(target.ID), "files", "app"), target.Tag); err != nil {
+				return err
+			}
 		}
 	}
 	if err = lifecycle.ExecuteUse(root, st.Path(target.ID), plan, env.Now()); err != nil {
