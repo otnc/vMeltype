@@ -69,7 +69,7 @@ func commandSpecs(env *Env) []commandSpec {
 			{use: "verify <id>", short: "スナップショットの中身を記録と照合する", args: exactArgs(1), flags: []commonFlag{flagJSON}, run: runSnapshotVerify(env)},
 			{use: "restore <id>", short: "いまのデータを保存してからスナップショットを復元する", args: exactArgs(1), flags: change, setup: addStopAppFlag, run: runSnapshotRestore(env)},
 		}},
-		{use: "doctor", short: "依存、権限、登録、データ先、復旧できるかを診断する", flags: []commonFlag{flagJSON}},
+		{use: "doctor", short: "管理ルートを診断し、直し方を示す。通信しない", flags: []commonFlag{flagJSON}, run: runDoctor(env)},
 		{use: "run", short: "有効な版の Meltype を起動する"},
 		{use: "detach", short: "いまの環境を残して管理をやめる", flags: change},
 		{use: "track", short: "新しい版への自動の追従", subs: []commandSpec{
