@@ -54,7 +54,7 @@ func Inspect(root string) (Status, error) {
 			s.Deployment = DeploymentUnknown
 			break
 		}
-		if mismatched := mismatchedFiles(state.Active.AppDir, stored.Files); len(mismatched) > 0 {
+		if mismatched := mismatchedFiles(state.Active.AppDir, appFiles(stored)); len(mismatched) > 0 {
 			s.Deployment = DeploymentMismatch
 			s.Mismatched = mismatched
 		} else {

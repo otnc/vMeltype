@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/otnc/vmeltype/internal/archive"
+	"github.com/otnc/vmeltype/internal/assets"
 	"github.com/otnc/vmeltype/internal/privatefs"
 	"github.com/otnc/vmeltype/internal/store"
 )
@@ -71,7 +72,7 @@ func PlanPortableUse(root string, target store.Stored, overridePin bool) (UsePla
 		}
 	}
 	var conflicts []string
-	for _, name := range topLevelEntries(target.Files) {
+	for _, name := range topLevelEntries(appFiles(target)) {
 		if containsFold(carried, name) {
 			conflicts = append(conflicts, name)
 		}
@@ -82,7 +83,7 @@ func PlanPortableUse(root string, target store.Stored, overridePin bool) (UsePla
 
 	plan := UsePlan{Target: target, AppDir: appDir, From: state.Active, Carried: carried}
 	if state.Active != nil && state.Active.StoreID == target.ID {
-		plan.UpToDate = deployedMatches(appDir, target.Files)
+		plan.UpToDate = deployedMatches(appDir, appFiles(target))
 	}
 	return plan, nil
 }
@@ -102,7 +103,7 @@ func ExecutePortableUse(root string, storedDir string, plan UsePlan, now time.Ti
 	if err != nil {
 		return err
 	}
-	if err := copyStoredFiles(filepath.Join(storedDir, "files"), staging, plan.Target.Files); err != nil {
+	if err := copyStoredFiles(filepath.Join(storedDir, "files"), staging, plan.Target); err != nil {
 		os.RemoveAll(staging)
 		return err
 	}
@@ -116,7 +117,7 @@ func ExecutePortableUse(root string, storedDir string, plan UsePlan, now time.Ti
 			Tag:          plan.Target.Tag,
 			Variant:      plan.Target.Variant,
 			AppDir:       plan.AppDir,
-			OwnedEntries: topLevelEntries(plan.Target.Files),
+			OwnedEntries: topLevelEntries(appFiles(plan.Target)),
 			ActivatedAt:  now.UTC(),
 		},
 		StagingDir: staging,
@@ -199,18 +200,41 @@ func finishUse(root string, journal *Journal) error {
 	return nil
 }
 
-func copyStoredFiles(srcRoot, dstRoot string, files []archive.File) error {
-	for _, f := range files {
-		rel := filepath.FromSlash(f.Path)
-		dst := filepath.Join(dstRoot, rel)
+// copyStoredFiles は、保持版のうち実行先に置くファイルを、照合しながら dstRoot に写す。
+func copyStoredFiles(srcRoot, dstRoot string, s store.Stored) error {
+	prefix := appPrefix(s.Variant)
+	for _, f := range appFiles(s) {
+		dst := filepath.Join(dstRoot, filepath.FromSlash(f.Path))
 		if err := privatefs.MkdirAll(filepath.Dir(dst)); err != nil {
 			return err
 		}
-		if err := copyVerified(filepath.Join(srcRoot, rel), dst, f); err != nil {
+		if err := copyVerified(filepath.Join(srcRoot, filepath.FromSlash(prefix+f.Path)), dst, f); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// appPrefix は、配布物の中で、実行先に置く本体があるディレクトリ。
+// 通常版の ZIP は app の下に本体があり、隣にインストール用のスクリプトなどがある。portable 版は ZIP の直下が本体。
+func appPrefix(variant string) string {
+	if variant == string(assets.Standard) {
+		return "app/"
+	}
+	return ""
+}
+
+// appFiles は、保持版のうち実行先に置くファイルを、実行先からの相対パスにして返す。
+func appFiles(s store.Stored) []archive.File {
+	prefix := appPrefix(s.Variant)
+	var files []archive.File
+	for _, f := range s.Files {
+		if rel, ok := strings.CutPrefix(f.Path, prefix); ok && rel != "" {
+			f.Path = rel
+			files = append(files, f)
+		}
+	}
+	return files
 }
 
 func copyVerified(src, dst string, want archive.File) error {
