@@ -23,13 +23,15 @@ func (l *localEnv) standardDataDir() string {
 func (l *localEnv) storeStandard(t *testing.T, tag string) {
 	t.Helper()
 	l.storeFiles(t, tag, "standard", map[string]string{
-		"app/Meltype.exe":            "exe " + tag,
-		"app/dotnet/host.dll":        "dll " + tag,
-		"app/tip/x64/MeltypeTip.dll": "tip " + tag,
-		"app/uninstall-helper.ps1":   "helper " + tag,
-		"install.ps1":                "install " + tag,
-		"uninstall.ps1":              "uninstall " + tag,
-		"README.txt":                 "readme",
+		"app/Meltype.exe":                   "exe " + tag,
+		"app/dotnet/host.dll":               "dll " + tag,
+		"app/tip/x64/MeltypeTip.dll":        "tip " + tag,
+		"app/tip/x64/MeltypeTip.dll.sha256": "hash-x64-" + tag,
+		"app/tip/x86/MeltypeTip.dll.sha256": "hash-x86-" + tag,
+		"app/uninstall-helper.ps1":          "helper " + tag,
+		"install.ps1":                       "install " + tag,
+		"uninstall.ps1":                     "uninstall " + tag,
+		"README.txt":                        "readme",
 	})
 }
 
