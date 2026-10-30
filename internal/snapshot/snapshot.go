@@ -63,6 +63,8 @@ type Manifest struct {
 	Dirs          []string       `json:"dirs"`
 	Files         []archive.File `json:"files"`
 	TotalBytes    int64          `json:"totalBytes"`
+	// ImportedAt は、書き出したファイルから取り込んだ日時。この管理ルートで作ったものは nil。
+	ImportedAt *time.Time `json:"importedAt,omitempty"`
 }
 
 // Problem は、読めなかったスナップショット。
