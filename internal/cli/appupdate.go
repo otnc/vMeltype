@@ -51,6 +51,9 @@ func runAppUpdate(env *Env) func(*cobra.Command, []string) error {
 				return writeJSON(out, map[string]any{"changed": false, "current": env.Version})
 			}
 			fmt.Fprintf(out, "vMeltype %s は最新です。\n", env.Version)
+			if !pre && strings.Contains(env.Version, "-") {
+				fmt.Fprintln(out, "プレリリースも含めて探すなら --pre を付けます。")
+			}
 			return nil
 		}
 		expected, ok := strings.CutPrefix(asset.Digest, "sha256:")

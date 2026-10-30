@@ -114,6 +114,18 @@ func TestAppUpdate(t *testing.T) {
 			t.Errorf("code = %d\n%s%s", got.code, got.stdout, got.stderr)
 		}
 	})
+	t.Run("プレリリースを使っていて --pre がなければ、--pre を案内する", func(t *testing.T) {
+		e := newSelfUpdateEnv(t, "0.1.0-pre.2", selfZip(t, "v0.1.0-pre.2"))
+
+		got := e.run(t, "app", "update", "-y")
+
+		if !strings.Contains(got.stdout, "--pre") {
+			t.Errorf("--pre を案内していない: %s", got.stdout)
+		}
+		if stable := newSelfUpdateEnv(t, "0.1.0", selfZip(t, "v0.1.0")).run(t, "app", "update", "-y"); strings.Contains(stable.stdout, "--pre") {
+			t.Errorf("正式版を使っているのに --pre を案内した: %s", stable.stdout)
+		}
+	})
 	t.Run("SHA-256 が合わなければ置き換えない", func(t *testing.T) {
 		broken := selfZip(t, "v0.1.0")
 		broken.digest = digestOf([]byte("別のもの"))
