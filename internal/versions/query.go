@@ -129,3 +129,22 @@ func (q Query) matches(c Candidate) bool {
 	}
 	return true
 }
+
+// Newer は、current より新しい候補のうち、SemVer が最大のものを返す。いまより古い版には下げない。
+// includePre が false なら正式版だけ、true ならプレリリースと正式版を合わせた中から選ぶ。
+func Newer(candidates []Candidate, current string, includePre bool) (Candidate, bool) {
+	var best Candidate
+	found := false
+	for _, c := range candidates {
+		if !IsValid(c.Tag) || Compare(c.Tag, current) <= 0 {
+			continue
+		}
+		if !includePre && (c.Prerelease || strings.Contains(c.Tag, "-")) {
+			continue
+		}
+		if !found || Compare(c.Tag, best.Tag) > 0 {
+			best, found = c, true
+		}
+	}
+	return best, found
+}
