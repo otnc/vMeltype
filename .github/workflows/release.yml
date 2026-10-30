@@ -1,7 +1,8 @@
 name: リリース
 
-# 版を入れて手で起動すると、CI が通った main のコミットから配布物を作り、GitHub のリリースを下書きで作る。
-# 公開 (タグの作成) は作者がリリースの画面で行う。版に - があれば (0.1.0-pre.1 など) プレリリースにする
+# 版を入れて手で起動すると、CI が通った main のコミットから配布物を作り、GitHub のリリースを作る。
+# 版に - があれば (0.1.0-pre.1 など)、プレリリースとしてそのまま公開する (タグもこのとき作られる)。
+# 正式版は下書きにし、作者が内容を確かめてからリリースの画面で公開する
 on:
   workflow_dispatch:
     inputs:
@@ -23,11 +24,11 @@ concurrency:
 
 jobs:
   release:
-    name: リリースの下書きの作成
+    name: リリースの作成
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
-      # リリースの下書きを作る
+      # リリースを作る。プレリリースは公開するのでタグも作る
       contents: write
       # 配布物の証明 (artifact attestation) を作る
       id-token: write
@@ -82,9 +83,8 @@ jobs:
       - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: ${{ env.ASSET }}
-      - name: リリースの下書きを作る
+      - name: リリースを作る
         run: |
-          flags=()
-          if [[ "$VERSION" == *-* ]]; then flags+=(--prerelease); fi
+          if [[ "$VERSION" == *-* ]]; then flags=(--prerelease); else flags=(--draft); fi
           gh release create "v$VERSION" "$ASSET" "$ASSET.sha256" \
-            --draft --target "$SHA" --title "vMeltype $VERSION" --generate-notes "${flags[@]}"
+            --target "$SHA" --title "vMeltype $VERSION" --generate-notes "${flags[@]}"
