@@ -40,7 +40,7 @@ func exitCodeOf(err error) int {
 		errors.Is(err, lifecycle.ErrPinned), errors.Is(err, appctl.ErrStillRunning), errors.Is(err, errDoctorFailed),
 		errors.Is(err, errIMECanceled), errors.Is(err, errIMEFailed):
 		return ExitNeedsAction
-	case errors.Is(err, prompt.ErrCanceled), errors.Is(err, context.Canceled):
+	case errors.Is(err, prompt.ErrCanceled), errors.Is(err, prompt.ErrInterrupted), errors.Is(err, context.Canceled):
 		return ExitCanceled
 	default:
 		return ExitError

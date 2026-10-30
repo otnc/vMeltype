@@ -135,7 +135,7 @@ func runAppUpdate(env *Env) func(*cobra.Command, []string) error {
 			}
 			return nil
 		}
-		confirmer := prompt.Confirmer{In: cmd.InOrStdin(), Out: cmd.ErrOrStderr(), Interactive: env.Interactive && !asJSON, AssumeYes: yes}
+		confirmer := env.confirmer(cmd, env.Interactive && !asJSON, yes)
 		if err := confirmer.Confirm(fmt.Sprintf("vMeltype を %s に更新しますか？", release.Tag), prompt.DefaultYes); err != nil {
 			return err
 		}

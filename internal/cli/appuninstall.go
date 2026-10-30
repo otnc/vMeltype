@@ -76,7 +76,7 @@ func runAppUninstall(env *Env) func(*cobra.Command, []string) error {
 		}
 
 		interactive := env.Interactive && !asJSON
-		asker := prompt.Confirmer{In: cmd.InOrStdin(), Out: cmd.ErrOrStderr(), Interactive: interactive}
+		asker := env.confirmer(cmd, interactive, false)
 		if !removeMeltype && interactive && !dryRun {
 			if removeMeltype, err = asker.Ask("Meltype も削除しますか？", prompt.DefaultNo); err != nil {
 				return err
@@ -115,7 +115,7 @@ func runAppUninstall(env *Env) func(*cobra.Command, []string) error {
 			}
 			return nil
 		}
-		confirmer := prompt.Confirmer{In: cmd.InOrStdin(), Out: cmd.ErrOrStderr(), Interactive: interactive, AssumeYes: yes}
+		confirmer := env.confirmer(cmd, interactive, yes)
 		if err := confirmer.Confirm("vMeltype を削除しますか？", prompt.DefaultNo); err != nil {
 			return err
 		}

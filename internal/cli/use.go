@@ -159,7 +159,7 @@ func switchVersion(cmd *cobra.Command, env *Env, root string, st store.Store, ta
 	if err := app.confirmable(interactive); err != nil {
 		return err
 	}
-	confirmer := prompt.Confirmer{In: cmd.InOrStdin(), Out: cmd.ErrOrStderr(), Interactive: interactive, AssumeYes: app.assumeYes(yes)}
+	confirmer := env.confirmer(cmd, interactive, app.assumeYes(yes))
 	if err := confirmer.Confirm(app.question(fmt.Sprintf(question, target.Tag)), prompt.DefaultYes); err != nil {
 		return err
 	}
@@ -267,7 +267,7 @@ func runRecover(env *Env) func(*cobra.Command, []string) error {
 			}
 			return nil
 		}
-		confirmer := prompt.Confirmer{In: cmd.InOrStdin(), Out: cmd.ErrOrStderr(), Interactive: env.Interactive && !asJSON, AssumeYes: yes}
+		confirmer := env.confirmer(cmd, env.Interactive && !asJSON, yes)
 		if err := confirmer.Confirm("復旧しますか？", prompt.DefaultYes); err != nil {
 			return err
 		}
@@ -347,7 +347,7 @@ func runUninstall(env *Env) func(*cobra.Command, []string) error {
 			}
 			return nil
 		}
-		confirmer := prompt.Confirmer{In: cmd.InOrStdin(), Out: cmd.ErrOrStderr(), Interactive: env.Interactive && !asJSON, AssumeYes: yes}
+		confirmer := env.confirmer(cmd, env.Interactive && !asJSON, yes)
 		if err := confirmer.Confirm(fmt.Sprintf("保持バージョン %s を削除しますか？", target.ID), prompt.DefaultNo); err != nil {
 			return err
 		}

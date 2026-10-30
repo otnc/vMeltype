@@ -15,6 +15,7 @@ import (
 	"github.com/otnc/vmeltype/internal/assets"
 	"github.com/otnc/vmeltype/internal/catalog/remote"
 	"github.com/otnc/vmeltype/internal/cli"
+	"github.com/otnc/vmeltype/internal/keyinput"
 	"github.com/otnc/vmeltype/internal/osproc"
 	"github.com/otnc/vmeltype/internal/rootdir"
 	"github.com/otnc/vmeltype/internal/upstreamremove"
@@ -68,6 +69,10 @@ func main() {
 			_, err := upstreamremove.Run(ctx, appDir, fallbackScript, interactive, removeMeltypeTimeout)
 			return err
 		},
+	}
+	// keyinput は、入力が端末でないと戻らないので、対話できるときだけ使う
+	if env.Interactive {
+		env.ListenKeys = keyinput.Listen
 	}
 	code := cli.RunContext(ctx, os.Args[1:], env)
 	stop()
