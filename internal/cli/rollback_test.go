@@ -62,7 +62,7 @@ func TestUninstall(t *testing.T) {
 		return err == nil
 	}
 
-	t.Run("有効でない保持版を削除する", func(t *testing.T) {
+	t.Run("有効でない保持バージョンを削除する", func(t *testing.T) {
 		l := setup(t)
 		got := l.run(t, false, "", "un", "v1.3.0", "--portable", "-y")
 		if got.code != ExitOK || isStored(l, "v1.3.0") {
@@ -75,7 +75,7 @@ func TestUninstall(t *testing.T) {
 			t.Errorf("実行先に触れた")
 		}
 	})
-	t.Run("有効版は削除しない", func(t *testing.T) {
+	t.Run("有効なバージョンは削除しない", func(t *testing.T) {
 		l := setup(t)
 		got := l.run(t, false, "", "uninstall", "v1.4.0", "--portable", "-y")
 		if got.code != ExitError || !isStored(l, "v1.4.0") || !strings.Contains(got.stderr, "有効") {
@@ -103,7 +103,7 @@ func TestUninstall(t *testing.T) {
 			t.Errorf("code = %d, stderr = %s", got.code, got.stderr)
 		}
 	})
-	t.Run("保持していない版", func(t *testing.T) {
+	t.Run("保持していないバージョン", func(t *testing.T) {
 		l := setup(t)
 		got := l.run(t, false, "", "uninstall", "v9.9.9", "--portable", "-y")
 		if got.code != ExitError {

@@ -60,7 +60,7 @@ func TestListShowsStoredVersions(t *testing.T) {
 		t.Fatalf("code = %d, stderr = %s", got.code, got.stderr)
 	}
 	if !strings.Contains(got.stdout, "v1.4.0_windows-amd64_standard") || !strings.Contains(got.stdout, "v1.3.0") {
-		t.Errorf("保持版を表示していない:\n%s", got.stdout)
+		t.Errorf("保持バージョンを表示していない:\n%s", got.stdout)
 	}
 }
 
@@ -68,7 +68,7 @@ func TestListWithoutStoredVersions(t *testing.T) {
 	got := executeOffline(t, t.TempDir(), "ls")
 
 	if got.code != ExitOK || !strings.Contains(got.stdout, "vmeltype install") {
-		t.Errorf("保持版がないときの案内がない: code = %d\n%s", got.code, got.stdout)
+		t.Errorf("保持バージョンがないときの案内がない: code = %d\n%s", got.code, got.stdout)
 	}
 }
 
@@ -82,10 +82,10 @@ func TestListReportsBrokenVersions(t *testing.T) {
 	got := executeOffline(t, root, "list")
 
 	if got.code != ExitOK || !strings.Contains(got.stdout, "v1.4.0") {
-		t.Errorf("壊れた保持版のせいで一覧を表示できない: code = %d\n%s%s", got.code, got.stdout, got.stderr)
+		t.Errorf("壊れた保持バージョンのせいで一覧を表示できない: code = %d\n%s%s", got.code, got.stdout, got.stderr)
 	}
 	if !strings.Contains(got.stderr, "broken") {
-		t.Errorf("壊れた保持版を知らせていない: %s", got.stderr)
+		t.Errorf("壊れた保持バージョンを知らせていない: %s", got.stderr)
 	}
 }
 

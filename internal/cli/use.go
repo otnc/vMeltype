@@ -16,16 +16,16 @@ import (
 	"github.com/otnc/vmeltype/internal/versions"
 )
 
-const useLong = `保持版を有効にします。通信しません。保持していない版は、先に "vmeltype install <tag>" で取得します。
+const useLong = `保持バージョンを有効にします。通信しません。保持していないバージョンは、先に "vmeltype install <tag>" で取得します。
 
-版の指定は install と同じで、保持している版の中から選びます。版を省くと保持している正式版の最新、1 や 1.4 ではその範囲の最新、--pre ではプレリリースの最新です。
+バージョンの指定は install と同じで、保持しているバージョンの中から選びます。バージョンを省くと保持している正式版の最新、1 や 1.4 ではその範囲の最新、--pre ではプレリリースの最新です。
 
 portable 版は --portable を付けたときだけ対象にします。付けなければ通常版 (IME の登録を伴うもの) だけを探し、portable 版しか保持していなくても選びません。
-いまは Windows だけに対応しています。どちらも実行先を固定し、版を切り替えるときはアプリのファイルだけを入れ替えます。vMeltype が置いていないファイルはそのまま引き継ぎます。
+いまは Windows だけに対応しています。どちらも実行先を固定し、バージョンを切り替えるときはアプリのファイルだけを入れ替えます。vMeltype が置いていないファイルはそのまま引き継ぎます。
 portable 版の実行先は管理ルートの portable\app で、データは隣の data です。
 通常版の実行先とデータ先は、本家と同じ %LOCALAPPDATA%\Programs\Meltype と %LOCALAPPDATA%\Meltype です。本家のインストールがあれば取り込み、置き換えた本家のファイルを管理前の記録として残します。切り替えの前にデータのスナップショットを作り、本家の自動更新を止め、本家がダウンロード済みの更新を管理ルートに移します。
-Meltype IME を登録済みなら、実行先を入れ替える前に、IME の DLL も切り替え先の版のものに入れ替えます。入れ替えには切り替え先の版の本家のスクリプトを使い、DLL が違えば管理者権限の確認 (UAC) が出ます。断られたら切り替えません。登録していなければ、IME には触れません。
-同じ版が有効で配置も一致していれば何もしません。--force を付けると、一致していても入れ替えます。
+Meltype IME を登録済みなら、実行先を入れ替える前に、IME の DLL も切り替え先のバージョンのものに入れ替えます。入れ替えには切り替え先のバージョンの本家のスクリプトを使い、DLL が違えば管理者権限の確認 (UAC) が出ます。断られたら切り替えません。登録していなければ、IME には触れません。
+同じバージョンが有効で配置も一致していれば何もしません。--force を付けると、一致していても入れ替えます。
 
 実行先の Meltype が動いていれば、正常に終了させてから切り替え、終わったら起動し直します。終了させるのは、--stop-app を付けたとき、-y を付けたとき (設定 stop-app-on-yes が true のとき)、対話で終了してよいと答えたときです。終わらなければ、強制終了せずに止めます。`
 
@@ -35,7 +35,7 @@ var errAppRunning = errors.New("実行先の Meltype が動いています。Mel
 func setupUseFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool("reinstall", false, "--force と同じ")
 	cmd.Flags().Bool("pre", false, "正式版ではなく、保持しているプレリリースから最新を選ぶ")
-	cmd.Flags().String("id", "", "保持 ID で保持版を選ぶ")
+	cmd.Flags().String("id", "", "保持 ID で保持バージョンを選ぶ")
 	cmd.Flags().Bool("portable", false, "portable 版を対象にする。付けなければ通常版を対象にする")
 	addOverridePinFlag(cmd)
 	addStopAppFlag(cmd)
@@ -80,14 +80,14 @@ func runRollback(env *Env) func(*cobra.Command, []string) error {
 			return err
 		}
 		if state.Previous == nil {
-			return errors.New("直前に有効だった版の記録がないので、戻せません")
+			return errors.New("直前に有効だったバージョンの記録がないので、戻せません")
 		}
 		st := store.Store{Root: root}
 		target, err := st.Get(state.Previous.StoreID)
 		if err != nil {
-			return fmt.Errorf("直前の版 %s は保持していないので、戻せません: %w", state.Previous.StoreID, err)
+			return fmt.Errorf("直前のバージョン %s は保持していないので、戻せません: %w", state.Previous.StoreID, err)
 		}
-		fmt.Fprintln(cmd.ErrOrStderr(), "rollback は版だけを戻し、data は戻しません。")
+		fmt.Fprintln(cmd.ErrOrStderr(), "rollback はバージョンだけを戻し、data は戻しません。")
 		return switchVersion(cmd, env, root, st, target, false, "%s に戻しますか？")
 	}
 }
@@ -146,7 +146,7 @@ func switchVersion(cmd *cobra.Command, env *Env, root string, st store.Store, ta
 	}
 	writeUsePlan(planOut, plan, place)
 	if imeRegistered {
-		fmt.Fprintln(planOut, "Meltype IME:  登録済みなので、DLL をこの版のものに入れ替えます。DLL が違えば、管理者権限の確認 (UAC) が出ます。入力方式の一覧と既定の入力方式は変えません。")
+		fmt.Fprintln(planOut, "Meltype IME:  登録済みなので、DLL をこのバージョンのものに入れ替えます。DLL が違えば、管理者権限の確認 (UAC) が出ます。入力方式の一覧と既定の入力方式は変えません。")
 	}
 	app.describe(planOut)
 	if dryRun {
@@ -231,9 +231,9 @@ func runRecover(env *Env) func(*cobra.Command, []string) error {
 		if j.From != nil {
 			from = j.From.Tag
 		}
-		description := fmt.Sprintf("%s から %s への切り替えが中断しています。新しい版を置く前に止まったので、%s の実行先に戻します。", from, j.To.Tag, from)
+		description := fmt.Sprintf("%s から %s への切り替えが中断しています。新しいバージョンを置く前に止まったので、%s の実行先に戻します。", from, j.To.Tag, from)
 		if plan.Complete {
-			description = fmt.Sprintf("%s から %s への切り替えが中断しています。新しい版はもう置いてあるので、data などの引き継ぎを終えて %s を有効にします。", from, j.To.Tag, j.To.Tag)
+			description = fmt.Sprintf("%s から %s への切り替えが中断しています。新しいバージョンはもう置いてあるので、data などの引き継ぎを終えて %s を有効にします。", from, j.To.Tag, j.To.Tag)
 		}
 		planOut := out
 		if asJSON {
@@ -269,7 +269,7 @@ func runUninstall(env *Env) func(*cobra.Command, []string) error {
 			return err
 		}
 		if query.id == "" && !query.query.IsExact() {
-			return usageError{fmt.Errorf("uninstall では、削除する版を省略せずに指定してください (例: 1.4.0、1.4.1-pre.1): %q", query.input)}
+			return usageError{fmt.Errorf("uninstall では、削除するバージョンを省略せずに指定してください (例: 1.4.0、1.4.1-pre.1): %q", query.input)}
 		}
 		dryRun, _ := flags.GetBool("dry-run")
 		yes, _ := flags.GetBool("yes")
@@ -299,17 +299,17 @@ func runUninstall(env *Env) func(*cobra.Command, []string) error {
 			return err
 		}
 		if state.Active != nil && state.Active.StoreID == target.ID {
-			return fmt.Errorf("%s は有効な版なので削除できません。別の版に切り替えてから削除してください", target.ID)
+			return fmt.Errorf("%s は有効なバージョンなので削除できません。別のバージョンに切り替えてから削除してください", target.ID)
 		}
 
 		planOut := cmd.OutOrStdout()
 		if asJSON {
 			planOut = cmd.ErrOrStderr()
 		}
-		fmt.Fprintf(planOut, "削除する保持版: %s (%s)\n", target.ID, st.Path(target.ID))
+		fmt.Fprintf(planOut, "削除する保持バージョン: %s (%s)\n", target.ID, st.Path(target.ID))
 		fmt.Fprintln(planOut, "実行先、data、OS の登録には触れません。")
 		if state.Previous != nil && state.Previous.StoreID == target.ID {
-			fmt.Fprintln(planOut, "直前の版なので、削除すると rollback で戻れなくなります。")
+			fmt.Fprintln(planOut, "直前のバージョンなので、削除すると rollback で戻れなくなります。")
 		}
 		if dryRun {
 			if asJSON {
@@ -318,7 +318,7 @@ func runUninstall(env *Env) func(*cobra.Command, []string) error {
 			return nil
 		}
 		confirmer := prompt.Confirmer{In: cmd.InOrStdin(), Out: cmd.ErrOrStderr(), Interactive: env.Interactive && !asJSON, AssumeYes: yes}
-		if err := confirmer.Confirm(fmt.Sprintf("保持版 %s を削除しますか？", target.ID), prompt.DefaultNo); err != nil {
+		if err := confirmer.Confirm(fmt.Sprintf("保持バージョン %s を削除しますか？", target.ID), prompt.DefaultNo); err != nil {
 			return err
 		}
 		if err := st.Remove(target.ID); err != nil {
@@ -327,17 +327,17 @@ func runUninstall(env *Env) func(*cobra.Command, []string) error {
 		if asJSON {
 			return writeJSON(cmd.OutOrStdout(), map[string]any{"removed": target.ID})
 		}
-		fmt.Fprintf(cmd.OutOrStdout(), "保持版 %s を削除しました。\n", target.ID)
+		fmt.Fprintf(cmd.OutOrStdout(), "保持バージョン %s を削除しました。\n", target.ID)
 		return nil
 	}
 }
 
 func setupUninstallFlags(cmd *cobra.Command) {
-	cmd.Flags().String("id", "", "保持 ID で保持版を選ぶ")
+	cmd.Flags().String("id", "", "保持 ID で保持バージョンを選ぶ")
 	cmd.Flags().Bool("portable", false, "portable 版を対象にする。付けなければ通常版を対象にする")
 }
 
-// storedQuery は、保持版を選ぶための指定。input は利用者が書いた版の指定 (省略なら空)。
+// storedQuery は、保持バージョンを選ぶための指定。input は利用者が書いたバージョンの指定 (省略なら空)。
 type storedQuery struct {
 	input   string
 	query   versions.Query
@@ -346,7 +346,7 @@ type storedQuery struct {
 	variant assets.Variant
 }
 
-// newStoredQuery は、引数と --pre、--id、--portable から、保持版の選び方を作る。
+// newStoredQuery は、引数と --pre、--id、--portable から、保持バージョンの選び方を作る。
 func newStoredQuery(cmd *cobra.Command, args []string) (storedQuery, error) {
 	q := storedQuery{variant: selectedVariant(cmd)}
 	if len(args) > 0 {
@@ -378,8 +378,8 @@ func (q storedQuery) installHint() string {
 	return strings.Join(parts, " ")
 }
 
-// resolveStored は、版の指定か保持 ID から、この端末の保持版を 1 つに決める。保持版の manifest だけを使い、通信しない。
-// variant の違う保持版は、同じタグでも対象にしない。portable 版は --portable で明示したときだけ扱うため。
+// resolveStored は、バージョンの指定か保持 ID から、この端末の保持バージョンを 1 つに決める。保持バージョンの manifest だけを使い、通信しない。
+// variant の違う保持バージョンは、同じタグでも対象にしない。portable 版は --portable で明示したときだけ扱うため。
 func resolveStored(st store.Store, q storedQuery, platform assets.Platform) (store.Stored, error) {
 	if q.id != "" {
 		s, err := st.Get(q.id)
@@ -401,7 +401,7 @@ func resolveStored(st store.Store, q storedQuery, platform assets.Platform) (sto
 	if err != nil {
 		return store.Stored{}, err
 	}
-	// 同じ端末と variant の中では、タグごとに保持版は 1 つになる
+	// 同じ端末と variant の中では、タグごとに保持バージョンは 1 つになる
 	sameByTag := map[string]store.Stored{}
 	var same, other []versions.Candidate
 	for _, s := range stored {
@@ -450,7 +450,7 @@ func writeUsePlan(w io.Writer, plan lifecycle.UsePlan, place layout) {
 		fmt.Fprintf(w, "データ先:     %s\n", place.dataDir)
 		fmt.Fprintln(w, "切り替えの前にデータのスナップショットを作り、本家の自動更新を止めます。本家がダウンロード済みの更新は、管理ルートに移します。")
 	}
-	fmt.Fprintln(w, "データはそのまま使います。新しい版を初めて起動したときに、Meltype がデータを移行することがあります。")
+	fmt.Fprintln(w, "データはそのまま使います。新しいバージョンを初めて起動したときに、Meltype がデータを移行することがあります。")
 }
 
 func runCurrent(env *Env) func(*cobra.Command, []string) error {
@@ -468,7 +468,7 @@ func runCurrent(env *Env) func(*cobra.Command, []string) error {
 			return writeJSON(out, map[string]any{"active": state.Active, "previous": state.Previous, "pin": state.Pin})
 		}
 		if state.Active == nil {
-			fmt.Fprintln(out, "有効な版はありません。\"vmeltype use <tag>\" で有効にします。")
+			fmt.Fprintln(out, "有効なバージョンはありません。\"vmeltype use <tag>\" で有効にします。")
 			return nil
 		}
 		variant := variantLabels[state.Active.Variant]

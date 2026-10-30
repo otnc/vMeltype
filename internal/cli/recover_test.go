@@ -93,7 +93,7 @@ func TestRecover(t *testing.T) {
 	}{
 		{name: "組み立ての段階で止まっていれば、何も変えずに後片付けする", phase: lifecycle.PhaseStaged, wantActive: "v1.4.0"},
 		{name: "前の実行先を退避した段階で止まっていれば、元へ戻す", phase: lifecycle.PhaseOldMoved, wantActive: "v1.4.0"},
-		{name: "新しい版を置いた段階で止まっていれば、引き継ぎを終える", phase: lifecycle.PhaseNewPlaced, wantActive: "v1.3.0"},
+		{name: "新しいバージョンを置いた段階で止まっていれば、引き継ぎを終える", phase: lifecycle.PhaseNewPlaced, wantActive: "v1.3.0"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -111,7 +111,7 @@ func TestRecover(t *testing.T) {
 				t.Errorf("data が実行先にない")
 			}
 			if current := l.run(t, false, "", "current"); !strings.Contains(current.stdout, tt.wantActive) {
-				t.Errorf("有効版の記録が違う: %s", current.stdout)
+				t.Errorf("有効なバージョンの記録が違う: %s", current.stdout)
 			}
 			entries, _ := os.ReadDir(filepath.Dir(l.appDir()))
 			if len(entries) != 1 {

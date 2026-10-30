@@ -21,7 +21,7 @@ import (
 	"github.com/otnc/vmeltype/internal/privatefs"
 )
 
-// SchemaVersion は、この版の vMeltype が読み書きする manifest の形式の版。
+// SchemaVersion は、このバージョンの vMeltype が読み書きする manifest の形式のバージョン。
 const SchemaVersion = 1
 
 var (
@@ -33,7 +33,7 @@ var (
 	ErrNotFound = errors.New("スナップショットがありません")
 	// ErrCorrupted は、スナップショットの中身が manifest と一致しないことを表す。
 	ErrCorrupted   = errors.New("スナップショットの中身が記録と一致しません")
-	errNewerSchema = errors.New("新しい版の vMeltype が作ったスナップショットなので読めません。vMeltype を更新してください")
+	errNewerSchema = errors.New("新しいバージョンの vMeltype が作ったスナップショットなので読めません。vMeltype を更新してください")
 )
 
 // Reason は、スナップショットを作った理由。
@@ -42,7 +42,7 @@ type Reason string
 const (
 	ReasonManual        Reason = "manual"
 	ReasonBeforeRestore Reason = "before-restore"
-	// ReasonBeforeUse は、通常版の use が、版を切り替える前に自動で作ったもの。
+	// ReasonBeforeUse は、通常版の use が、バージョンを切り替える前に自動で作ったもの。
 	ReasonBeforeUse Reason = "before-use"
 )
 

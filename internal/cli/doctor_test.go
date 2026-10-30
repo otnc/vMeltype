@@ -45,7 +45,7 @@ func TestDoctorWithoutAnything(t *testing.T) {
 
 	got := l.run(t, false, "", "doctor")
 
-	if got.code != ExitOK || !strings.Contains(got.stdout, "有効な版はありません") {
+	if got.code != ExitOK || !strings.Contains(got.stdout, "有効なバージョンはありません") {
 		t.Errorf("code = %d\n%s%s", got.code, got.stdout, got.stderr)
 	}
 	if _, err := os.Stat(l.root); err != nil {
@@ -87,7 +87,7 @@ func TestDoctorFindsProblems(t *testing.T) {
 			wantHint:  "vmeltype recover",
 		},
 		{
-			name: "実行先が保持版と違えば、置き直し方を示す",
+			name: "実行先が保持バージョンと違えば、置き直し方を示す",
 			prepare: func(t *testing.T) *localEnv {
 				l := pinnedEnv(t)
 				os.WriteFile(filepath.Join(l.appDir(), "Meltype.exe"), []byte("書き換えた"), 0o600)
@@ -99,7 +99,7 @@ func TestDoctorFindsProblems(t *testing.T) {
 			wantHint:  "--force",
 		},
 		{
-			name: "直前の版を保持していなければ、rollback できないと警告する",
+			name: "直前のバージョンを保持していなければ、rollback できないと警告する",
 			prepare: func(t *testing.T) *localEnv {
 				l := newLocalEnv(t)
 				l.storePortable(t, "v1.4.0", nil)
@@ -115,7 +115,7 @@ func TestDoctorFindsProblems(t *testing.T) {
 			wantHint:  "vmeltype install v1.3.0 --portable",
 		},
 		{
-			name: "読めない保持版があれば警告する",
+			name: "読めない保持バージョンがあれば警告する",
 			prepare: func(t *testing.T) *localEnv {
 				l := pinnedEnv(t)
 				broken := store.Store{Root: l.root}.Path(store.ID("v1.2.0", "windows", "amd64", "portable"))
@@ -182,8 +182,8 @@ func TestDoctorChecksIMEDLL(t *testing.T) {
 		wantLevel string
 		wantCode  int
 	}{
-		{name: "有効版の DLL なら OK", installed: map[string]string{"x64": "HASH-X64-V1.4.0", "x86": "HASH-X86-V1.4.0"}, wantLevel: "ok", wantCode: ExitOK},
-		{name: "ほかの版の DLL なら、置き直し方を示す", installed: map[string]string{"x64": "HASH-X64-V1.3.0", "x86": "HASH-X86-V1.3.0"}, wantLevel: "fail", wantCode: ExitNeedsAction},
+		{name: "有効なバージョンの DLL なら OK", installed: map[string]string{"x64": "HASH-X64-V1.4.0", "x86": "HASH-X86-V1.4.0"}, wantLevel: "ok", wantCode: ExitOK},
+		{name: "ほかのバージョンの DLL なら、置き直し方を示す", installed: map[string]string{"x64": "HASH-X64-V1.3.0", "x86": "HASH-X86-V1.3.0"}, wantLevel: "fail", wantCode: ExitNeedsAction},
 		{name: "DLL のハッシュがなければ、確かめられないと警告する", installed: map[string]string{"x64": "", "x86": ""}, wantLevel: "warn", wantCode: ExitOK},
 	}
 	for _, tt := range tests {

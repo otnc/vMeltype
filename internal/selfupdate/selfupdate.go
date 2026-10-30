@@ -1,4 +1,4 @@
-// Package selfupdate は、vMeltype 自身の新しい版を選び、動いている vmeltype.exe を置き換える。
+// Package selfupdate は、vMeltype 自身の新しいバージョンを選び、動いている vmeltype.exe を置き換える。
 package selfupdate
 
 import (
@@ -24,7 +24,7 @@ var platformSuffixes = map[[2]string]string{
 	{"windows", "amd64"}: "windows",
 }
 
-// Select は、current より新しい版のうち、この端末の配布物があるものの最大を返す。いまより古い版には下げない。
+// Select は、current より新しいバージョンのうち、この端末の配布物があるものの最大を返す。いまより古いバージョンには下げない。
 // includePre が false なら正式版だけから選ぶ。
 func Select(releases []catalog.Release, current string, includePre bool, goos, goarch string) (catalog.Release, catalog.Asset, bool) {
 	suffix, ok := platformSuffixes[[2]string{goos, goarch}]

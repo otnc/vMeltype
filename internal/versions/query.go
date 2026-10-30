@@ -8,13 +8,13 @@ import (
 	"strings"
 )
 
-// ErrInvalidQuery は、版の指定を解釈できないことを表す。
-var ErrInvalidQuery = errors.New("版の指定を解釈できません")
+// ErrInvalidQuery は、バージョンの指定を解釈できないことを表す。
+var ErrInvalidQuery = errors.New("バージョンの指定を解釈できません")
 
 // 1、1.4、1.4.0、1.4.1-pre.1 の形。ビルドの情報 (+...) は比べないので受け付けない。
 var queryPattern = regexp.MustCompile(`^(\d+)(?:\.(\d+)(?:\.(\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?)?)?$`)
 
-// Query は、版の指定。省略、範囲 (1、1.4)、正式版 (1.4.0)、プレリリース (1.4.1-pre.1) を表す。
+// Query は、バージョンの指定。省略、範囲 (1、1.4)、正式版 (1.4.0)、プレリリース (1.4.1-pre.1) を表す。
 type Query struct {
 	// parts は、指定した数字の数 (0 から 3)。0 は範囲の指定がないことを表す。
 	parts               int
@@ -24,7 +24,7 @@ type Query struct {
 	wantPrerelease bool
 }
 
-// ParseQuery は、版の指定を解釈する。先頭の v は省ける。空と latest は、範囲の指定がないことを表す。
+// ParseQuery は、バージョンの指定を解釈する。先頭の v は省ける。空と latest は、範囲の指定がないことを表す。
 // pre は --pre の有無で、正式版ではなくプレリリースだけから選ぶ。
 //
 //	q, err := versions.ParseQuery("1.4", false) // 1.4.x の正式版の最新
@@ -53,7 +53,7 @@ func ParseQuery(input string, pre bool) (Query, error) {
 	return q, nil
 }
 
-// IsExact は、1 つの版だけを指す指定かを返す。uninstall のように、推測で選んではいけない操作に使う。
+// IsExact は、1 つのバージョンだけを指す指定かを返す。uninstall のように、推測で選んではいけない操作に使う。
 func (q Query) IsExact() bool {
 	return q.parts == 3 && (q.prerelease != "" || !q.wantPrerelease)
 }
@@ -130,7 +130,7 @@ func (q Query) matches(c Candidate) bool {
 	return true
 }
 
-// Newer は、current より新しい候補のうち、SemVer が最大のものを返す。いまより古い版には下げない。
+// Newer は、current より新しい候補のうち、SemVer が最大のものを返す。いまより古いバージョンには下げない。
 // includePre が false なら正式版だけ、true ならプレリリースと正式版を合わせた中から選ぶ。
 func Newer(candidates []Candidate, current string, includePre bool) (Candidate, bool) {
 	var best Candidate

@@ -50,7 +50,7 @@ function Assert-Running([string] $Tag) {
     $version = (Get-Item $exe).VersionInfo.ProductVersion
     Write-Host "動いている Meltype: $version"
     if (-not $version.StartsWith($Tag.TrimStart('v'))) {
-        throw "実行先の Meltype の版が $version で、$Tag ではありません"
+        throw "実行先の Meltype のバージョンが $version で、$Tag ではありません"
     }
 }
 
@@ -71,7 +71,7 @@ function Get-StoredPackage([string] $Tag) {
     return Join-Path $root "versions\$($stored.id)\files"
 }
 
-# 登録した IME の DLL が、Tag の版のものかを、本家が DLL の隣に置く署名する前の中身のハッシュで確かめる
+# 登録した IME の DLL が、Tag のバージョンのものかを、本家が DLL の隣に置く署名する前の中身のハッシュで確かめる
 function Assert-ImeDll([string] $Tag) {
     if (-not $Ime) { return }
     $programFiles = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::LocalMachine, [Microsoft.Win32.RegistryView]::Registry64).OpenSubKey('SOFTWARE\Microsoft\Windows\CurrentVersion').GetValue('ProgramFilesDir')
@@ -135,7 +135,7 @@ if ($status.deployment -ne 'match' -or $status.running.Count -eq 0 -or $status.d
 }
 Invoke-Vmeltype doctor | Out-Null
 
-Write-Host '--- 元の版に切り替える'
+Write-Host '--- 元のバージョンに切り替える'
 Invoke-Vmeltype use $From -y | Out-Null
 Assert-Running $From
 Assert-ImeDll $From

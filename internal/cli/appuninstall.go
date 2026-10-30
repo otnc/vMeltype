@@ -18,7 +18,7 @@ import (
 
 const appUninstallLong = `vMeltype をやめ、管理ルートを消します。
 
-Meltype は既定で残します。有効な版をそのまま使える状態で残し、止めていた本家の自動更新を管理前の値に戻します。
+Meltype は既定で残します。有効なバージョンをそのまま使える状態で残し、止めていた本家の自動更新を管理前の値に戻します。
 Meltype も削除するなら、対話で答えるか --remove-meltype を付けます。本家のアンインストーラーで削除するので、IME の登録、自動起動、ショートカットも外れます。本家の setup.exe で入れていれば設定と学習データを消すかを本家が聞きますが、Install.cmd で入れたものや vMeltype だけで入れたものは、本家のアンインストーラーが設定と学習データも消します。
 スナップショットは既定で消します。残すなら、対話で答えるか --keep-snapshots を付けます。管理ルートの snapshots だけが残ります。
 いま動いている vmeltype.exe は消せないので、終わったあとに手で消してください。`
@@ -210,7 +210,7 @@ func writeUninstallPlan(w io.Writer, root, exe string, standard *layout, hasPort
 		fmt.Fprintf(w, "Meltype:          本家のアンインストーラーで削除します (%s)。IME の登録、自動起動、ショートカットも外れます。\n", standard.appDir)
 		fmt.Fprintln(w, "                  Install.cmd や vMeltype だけで入れたものは、設定と学習データも消えます。")
 	case standard != nil:
-		fmt.Fprintf(w, "Meltype:          いまの版のまま残し (%s)、本家の自動更新を管理前の値に戻します。\n", standard.appDir)
+		fmt.Fprintf(w, "Meltype:          いまのバージョンのまま残し (%s)、本家の自動更新を管理前の値に戻します。\n", standard.appDir)
 	}
 	if hasPortable && removeMeltype {
 		fmt.Fprintf(w, "portable 版:      管理ルートの中にあるので、data と一緒に消えます (%s)\n", lifecycle.PortableAppDir(root))

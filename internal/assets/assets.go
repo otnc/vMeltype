@@ -33,7 +33,7 @@ var (
 )
 
 // 公式インストーラー (setup.exe) と deb、rpm は、本家の導入処理やパッケージ管理に任せることになるので選ばない。
-// 名前の規則は v1.0.0 からの Meltype-<版>-<platform>.zip で、それより前の試験版の形式は扱わない。
+// 名前の規則は v1.0.0 からの Meltype-<バージョン>-<platform>.zip で、それより前の試験版の形式は扱わない。
 var platformSuffixes = map[Platform]map[Variant]string{
 	{"windows", "amd64"}: {Standard: "windows", Portable: "windows-portable"},
 	{"darwin", "arm64"}:  {Standard: "mac"},

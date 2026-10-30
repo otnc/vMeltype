@@ -1,4 +1,4 @@
-// Package versions は、本家のタグを SemVer として比べ、版の指定 (範囲を含む) からタグを選ぶ。
+// Package versions は、本家のタグを SemVer として比べ、バージョンの指定 (範囲を含む) からタグを選ぶ。
 package versions
 
 import (
@@ -8,8 +8,8 @@ import (
 	"golang.org/x/mod/semver"
 )
 
-// ErrTagNotFound は、指定した版が公式一覧にないことを表す。
-var ErrTagNotFound = errors.New("指定した版は公式一覧にありません")
+// ErrTagNotFound は、指定したバージョンが公式一覧にないことを表す。
+var ErrTagNotFound = errors.New("指定したバージョンは公式一覧にありません")
 
 // comparable は、比較のためだけに先頭へ v を補った値を返す。元のタグは書き換えない。
 func comparable(tag string) string {

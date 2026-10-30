@@ -21,11 +21,11 @@ const pollInterval = 200 * time.Millisecond
 
 // Stop は、本家の "Meltype.exe --exit" で終了の合図を送り、実行先から動いているプロセスがなくなるまで、最長 timeout だけ待つ。
 // 本家は合図を受けると、まだ書いていない学習データを書いてから終わるので、プロセスがなくなれば書き終えている。
-// --exit のない版 (v0.1.0) や、合図に応えない Meltype は、強制終了せずに ErrStillRunning を返す。
+// --exit のないバージョン (v0.1.0) や、合図に応えない Meltype は、強制終了せずに ErrStillRunning を返す。
 //
 // 起動した直後の Meltype は、合図の受け口ができるまで合図を受け取れず、--exit が失敗する。そのため、送れるまで送り直す。
 // 送り直すのは本体の Meltype.exe が動いている間だけにする。本体が動いていれば多重起動が禁じられているので、
-// --exit を知らない版に送っても、新しい Meltype は起動しない。
+// --exit を知らないバージョンに送っても、新しい Meltype は起動しない。
 func Stop(ctx context.Context, appDir string, runningUnder func(string) ([]string, error), timeout time.Duration) error {
 	exe := filepath.Join(appDir, ExeName)
 	deadline := time.Now().Add(timeout)

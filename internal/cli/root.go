@@ -45,7 +45,7 @@ type Env struct {
 	IMERegistered func() (bool, error)
 	// InstalledTipHashes は、登録されている Meltype IME の DLL のハッシュを、CPU (x64、x86) ごとに返す。
 	InstalledTipHashes func() (map[string]string, error)
-	// ReplaceIME は、登録済みの Meltype IME の DLL を、appDir (切り替え先の版の、本家の ZIP の app に当たるディレクトリ) のものに入れ替える。
+	// ReplaceIME は、登録済みの Meltype IME の DLL を、appDir (切り替え先のバージョンの、本家の ZIP の app に当たるディレクトリ) のものに入れ替える。
 	ReplaceIME func(appDir string) (winime.Result, error)
 	// Executable は、いま動いている vmeltype の実行ファイルのパスを返す。app update が置き換える。
 	Executable func() (string, error)
@@ -104,8 +104,8 @@ func RunContext(ctx context.Context, args []string, env Env) int {
 func newRootCommand(env *Env) *cobra.Command {
 	root := &cobra.Command{
 		Use:   "vmeltype",
-		Short: "Meltype の複数の版を保持し、切り替える",
-		Long: `vMeltype は、Meltype の正式版、プレリリース、旧版を保持し、選んで切り替える版の管理ツールです。
+		Short: "Meltype のバージョン管理をはじめとした、外付けの多機能ツール",
+		Long: `vMeltype は、日本語入力 Meltype のバージョン管理をはじめとした、外付けの多機能ツールです。正式版、プレリリース、古いバージョンを保持して切り替えるほか、データのスナップショットや中断からの復旧も扱います。
 install で取得して保持し、use で有効にします。use、list、current などのローカル操作は通信しません。`,
 		Version:               env.Version,
 		Args:                  rejectUnknownSubcommand,
@@ -116,9 +116,9 @@ install で取得して保持し、use で有効にします。use、list、curr
 		RunE:              func(cmd *cobra.Command, _ []string) error { return cmd.Help() },
 		CompletionOptions: cobra.CompletionOptions{DisableDefaultCmd: true},
 	}
-	// v は版の指定と紛らわしいので、--version の短縮形にしない
-	root.Flags().Bool("version", false, "vMeltype の版を表示する")
-	root.PersistentFlags().String("root", "", "vMeltype の管理ルート (設定、保持版、スナップショットを置く場所)")
+	// v はバージョンの指定と紛らわしいので、--version の短縮形にしない
+	root.Flags().Bool("version", false, "vMeltype のバージョンを表示する")
+	root.PersistentFlags().String("root", "", "vMeltype の管理ルート (設定、保持バージョン、スナップショットを置く場所)")
 	root.SetVersionTemplate("vMeltype {{.Version}}\n")
 	root.SetFlagErrorFunc(func(_ *cobra.Command, err error) error {
 		return usageError{fmt.Errorf("オプションの誤り: %w", err)}

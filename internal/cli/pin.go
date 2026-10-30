@@ -9,14 +9,14 @@ import (
 	"github.com/otnc/vmeltype/internal/versions"
 )
 
-const pinLong = `有効な版を固定します。通信しません。固定している間は、use と rollback で別の版に切り替えません。同じ版の再適用と、recover での復旧は止めません。
+const pinLong = `有効なバージョンを固定します。通信しません。固定している間は、use と rollback で別のバージョンに切り替えません。同じバージョンの再適用と、recover での復旧は止めません。
 
-固定できるのは有効な版だけです。版を指定するときは、有効な版と合う指定だけを受け付けます。別の版を固定するなら、先に "vmeltype use <tag>" で切り替えてから固定します。
+固定できるのは有効なバージョンだけです。バージョンを指定するときは、有効なバージョンと合う指定だけを受け付けます。別のバージョンを固定するなら、先に "vmeltype use <tag>" で切り替えてから固定します。
 
-切り替えるには "vmeltype unpin" で解除するか、その操作だけ --override-pin を付けます。--override-pin で切り替えたら、固定は新しい版に移ります。--yes では固定を越えません。`
+切り替えるには "vmeltype unpin" で解除するか、その操作だけ --override-pin を付けます。--override-pin で切り替えたら、固定は新しいバージョンに移ります。--yes では固定を越えません。`
 
 func addOverridePinFlag(cmd *cobra.Command) {
-	cmd.Flags().Bool("override-pin", false, "この操作に限って、版の固定を越えて切り替える。固定は新しい版に移る")
+	cmd.Flags().Bool("override-pin", false, "この操作に限って、バージョンの固定を越えて切り替える。固定は新しいバージョンに移る")
 }
 
 func runPin(env *Env) func(*cobra.Command, []string) error {
@@ -31,7 +31,7 @@ func runPin(env *Env) func(*cobra.Command, []string) error {
 			return err
 		}
 		defer lock.Release()
-		// 中断した変更が残っていると、どの版が有効なのかが決まっていない
+		// 中断した変更が残っていると、どのバージョンが有効なのかが決まっていない
 		if journal, err := lifecycle.LoadJournal(root); err != nil {
 			return err
 		} else if journal != nil {
@@ -51,7 +51,7 @@ func runPin(env *Env) func(*cobra.Command, []string) error {
 				return usageError{err}
 			}
 			if _, ok := versions.Select([]versions.Candidate{{Tag: state.Active.Tag}}, query); !ok {
-				return fmt.Errorf("有効な版は %s で、%s に合わないので固定しません。別の版を固定するなら、先に \"vmeltype use %s\" で切り替えてください", state.Active.Tag, query.Describe(), args[0])
+				return fmt.Errorf("有効なバージョンは %s で、%s に合わないので固定しません。別のバージョンを固定するなら、先に \"vmeltype use %s\" で切り替えてください", state.Active.Tag, query.Describe(), args[0])
 			}
 		}
 
@@ -89,10 +89,10 @@ func runUnpin(env *Env) func(*cobra.Command, []string) error {
 			return writeJSON(out, map[string]any{"unpinned": removed})
 		}
 		if !removed {
-			fmt.Fprintln(out, "版を固定していません。")
+			fmt.Fprintln(out, "バージョンを固定していません。")
 			return nil
 		}
-		fmt.Fprintln(out, "版の固定を解除しました。有効な版は変えていません。")
+		fmt.Fprintln(out, "バージョンの固定を解除しました。有効なバージョンは変えていません。")
 		return nil
 	}
 }

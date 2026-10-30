@@ -21,11 +21,11 @@ import (
 	"github.com/otnc/vmeltype/internal/versions"
 )
 
-const installLong = `公式の配布物を取得し、GitHub が示す SHA-256 と照合してから展開し、保持版として置きます。有効な版は変えません。
+const installLong = `公式の配布物を取得し、GitHub が示す SHA-256 と照合してから展開し、保持バージョンとして置きます。有効なバージョンは変えません。
 
-版の先頭の v は省けます。版を省くと正式版の最新、1 や 1.4 のような範囲ではその中の正式版の最新、1.4.0 ではその正式版を選びます。--pre を付けると、正式版ではなくプレリリースから最新を選びます (例: 1.4.1 --pre)。1.4.1-pre.1 のようにプレリリースを直接指定することもできます。最新は SemVer で比べ、GitHub の Latest の表示とは異なることがあります。
+バージョンの先頭の v は省けます。バージョンを省くと正式版の最新、1 や 1.4 のような範囲ではその中の正式版の最新、1.4.0 ではその正式版を選びます。--pre を付けると、正式版ではなくプレリリースから最新を選びます (例: 1.4.1 --pre)。1.4.1-pre.1 のようにプレリリースを直接指定することもできます。最新は SemVer で比べ、GitHub の Latest の表示とは異なることがあります。
 portable 版を取得するには --portable を付けます。付けなければ通常版を取得します。
-既に保持している版は、通信せずに終わります。取得し直すには --reinstall を付けます。`
+既に保持しているバージョンは、通信せずに終わります。取得し直すには --reinstall を付けます。`
 
 // 公式の ZIP は数十 MB なので、これを大きく超えるものは異常とみなす。
 var extractLimits = archive.Limits{MaxFiles: 50000, MaxTotalBytes: 4 << 30}
@@ -78,7 +78,7 @@ func runInstall(env *Env) func(*cobra.Command, []string) error {
 		st := store.Store{Root: root}
 		out := cmd.OutOrStdout()
 
-		// 1 つの版を指定したときは、公式一覧を待たずに保持済みかを確かめる
+		// 1 つのバージョンを指定したときは、公式一覧を待たずに保持済みかを確かめる
 		if query.IsExact() && !reinstall {
 			if s, ok := findStored(st, input, env.Platform, variant); ok {
 				return reportAlreadyStored(out, s, asJSON)
@@ -172,7 +172,7 @@ func newInstallPlan(st store.Store, id string, release catalog.Release, asset ca
 	}, nil
 }
 
-// downloadAndStore は、作業用のディレクトリで取得、照合、展開を終えてから保持版として置く。
+// downloadAndStore は、作業用のディレクトリで取得、照合、展開を終えてから保持バージョンとして置く。
 // 途中で失敗したら、作業用のディレクトリごと捨てる。
 func downloadAndStore(cmd *cobra.Command, env *Env, st store.Store, plan installPlan, release catalog.Release, asset catalog.Asset) (store.Stored, error) {
 	staging, err := st.Stage()
@@ -254,7 +254,7 @@ func resolveRelease(releases []catalog.Release, query versions.Query) (catalog.R
 	return catalog.Release{}, fmt.Errorf("%w: %s", versions.ErrTagNotFound, query.Describe())
 }
 
-// findStored は、タグの指定 (先頭の v の有無を含む) に合う保持版を、候補が 1 つのときだけ返す。
+// findStored は、タグの指定 (先頭の v の有無を含む) に合う保持バージョンを、候補が 1 つのときだけ返す。
 func findStored(st store.Store, input string, platform assets.Platform, variant assets.Variant) (store.Stored, bool) {
 	alternative := "v" + input
 	if after, ok := strings.CutPrefix(input, "v"); ok {
@@ -286,14 +286,14 @@ func writeInstallPlan(w io.Writer, plan installPlan) {
 	if plan.ExpectedSHA256 == "" {
 		expected = "期待値がないので照合しない (未検証として保持する)"
 	}
-	fmt.Fprintf(w, "取得する版:   %s (%s)\n", plan.Tag, kind)
-	fmt.Fprintf(w, "配布物:       %s (%s)\n", plan.Asset, formatBytes(plan.Size))
-	fmt.Fprintf(w, "置き場所:     %s\n", plan.Destination)
-	fmt.Fprintf(w, "検証:         %s\n", expected)
+	fmt.Fprintf(w, "取得するバージョン: %s (%s)\n", plan.Tag, kind)
+	fmt.Fprintf(w, "配布物:             %s (%s)\n", plan.Asset, formatBytes(plan.Size))
+	fmt.Fprintf(w, "置き場所:           %s\n", plan.Destination)
+	fmt.Fprintf(w, "検証:               %s\n", expected)
 	if plan.Reinstall {
 		fmt.Fprintln(w, "既に保持していれば、検証が済んでから置き換えます。")
 	}
-	fmt.Fprintln(w, "有効な版は変えません。")
+	fmt.Fprintln(w, "有効なバージョンは変えません。")
 }
 
 func formatBytes(n int64) string {

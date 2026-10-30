@@ -1,4 +1,4 @@
-// Package lifecycle は、保持版を有効にする処理と、その記録 (有効版、処理記録、排他) を扱う。通信しない。
+// Package lifecycle は、保持バージョンを有効にする処理と、その記録 (有効なバージョン、処理記録、排他) を扱う。通信しない。
 package lifecycle
 
 import (
@@ -12,12 +12,12 @@ import (
 	"github.com/otnc/vmeltype/internal/privatefs"
 )
 
-// SchemaVersion は、この版の vMeltype が読み書きする状態と処理記録の形式の版。
+// SchemaVersion は、このバージョンの vMeltype が読み書きする状態と処理記録の形式のバージョン。
 const SchemaVersion = 1
 
-var errNewerSchema = errors.New("新しい版の vMeltype が保存した形式なので読めません。vMeltype を更新してください")
+var errNewerSchema = errors.New("新しいバージョンの vMeltype が保存した形式なので読めません。vMeltype を更新してください")
 
-// Activation は、有効にした 1 つの版。
+// Activation は、有効にした 1 つのバージョン。
 type Activation struct {
 	StoreID string `json:"storeId"`
 	Tag     string `json:"tag"`
@@ -28,7 +28,7 @@ type Activation struct {
 	ActivatedAt  time.Time `json:"activatedAt"`
 }
 
-// State は、有効版と直前の版、固定の記録。
+// State は、有効なバージョンと直前のバージョン、固定の記録。
 type State struct {
 	SchemaVersion int         `json:"schemaVersion"`
 	Active        *Activation `json:"active,omitempty"`
@@ -40,14 +40,14 @@ func stateDir(root string) string {
 	return filepath.Join(root, "state")
 }
 
-// LoadState は、有効版の記録を読む。まだ何も有効にしていなければ空の記録を返す。
+// LoadState は、有効なバージョンの記録を読む。まだ何も有効にしていなければ空の記録を返す。
 func LoadState(root string) (State, error) {
 	var s State
 	if err := readJSON(filepath.Join(stateDir(root), "active.json"), &s); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return State{}, nil
 		}
-		return State{}, fmt.Errorf("有効版の記録を読めませんでした: %w", err)
+		return State{}, fmt.Errorf("有効なバージョンの記録を読めませんでした: %w", err)
 	}
 	if s.SchemaVersion > SchemaVersion {
 		return State{}, errNewerSchema

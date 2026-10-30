@@ -1,12 +1,12 @@
 name: リリース
 
-# 版を入れて手で起動すると、CI が通った main のコミットから配布物を作り、GitHub のリリースとタグを作って公開する。
-# 作者が版を入れて起動することを公開の承認とし、下書きは挟まない。版に - があれば (0.1.0-pre.1 など) プレリリースにする
+# バージョンを入れて手で起動すると、CI が通った main のコミットから配布物を作り、GitHub のリリースとタグを作って公開する。
+# 作者がバージョンを入れて起動することを公開の承認とし、下書きは挟まない。バージョンに - があれば (0.1.0-pre.1 など) プレリリースにする
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 版 (0.1.0、0.1.0-pre.1 など。先頭の v は付けない)
+        description: バージョン (0.1.0、0.1.0-pre.1 など。先頭の v は付けない)
         required: true
         type: string
       sha:
@@ -39,12 +39,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.sha != '' && inputs.sha || 'main' }}
-          # main に含まれるかを確かめ、リリースノートで前の版からの変更を並べるので、履歴とタグをすべて取る
+          # main に含まれるかを確かめ、リリースノートで前のバージョンからの変更を並べるので、履歴とタグをすべて取る
           fetch-depth: 0
-      - name: 版とコミットを確かめる
+      - name: バージョンとコミットを確かめる
         run: |
           if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-pre\.[0-9]+)?$ ]]; then
-            echo "版は 0.1.0 や 0.1.0-pre.1 の形にしてください: $VERSION"; exit 1
+            echo "バージョンは 0.1.0 や 0.1.0-pre.1 の形にしてください: $VERSION"; exit 1
           fi
           if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" > /dev/null; then
             echo "v$VERSION のタグがもうあります"; exit 1
