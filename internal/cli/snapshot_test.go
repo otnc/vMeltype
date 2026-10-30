@@ -208,6 +208,24 @@ func TestSnapshotExportImport(t *testing.T) {
 			t.Errorf("code = %d\n%s", got.code, got.stderr)
 		}
 	})
+	t.Run("取り込んだものは、一覧と詳細で分かる", func(t *testing.T) {
+		from := managedStandard(t)
+		id := from.createSnapshot(t)
+		file := filepath.Join(t.TempDir(), "data.vmeltype-snapshot")
+		from.run(t, false, "", "snapshot", "export", id, file)
+		to := managedStandard(t)
+		made := to.createSnapshot(t)
+		var m struct{ ID string }
+		json.Unmarshal([]byte(to.run(t, false, "", "snapshot", "import", file, "--json").stdout), &m)
+
+		list := to.run(t, false, "", "snapshot", "list").stdout
+		if !strings.Contains(lineWith(list, m.ID), "取り込み") || strings.Contains(lineWith(list, made), "取り込み") {
+			t.Errorf("取り込んだものが一覧で分からない:\n%s", list)
+		}
+		if inspect := to.run(t, false, "", "snapshot", "inspect", m.ID).stdout; !strings.Contains(inspect, "取り込んだ日時") {
+			t.Errorf("取り込んだ日時を示していない:\n%s", inspect)
+		}
+	})
 	t.Run("有効なバージョンがなければ、通常版のデータを復元せずに use を案内する", func(t *testing.T) {
 		from := managedStandard(t)
 		id := from.createSnapshot(t)
@@ -245,4 +263,14 @@ func (l *localEnv) writeStandardData(t *testing.T, name, body string) {
 // portableUserdict は、portable 版の data の userdict.txt の中身を返す。
 func portableUserdict(l *localEnv) string {
 	return readFile(filepath.Join(l.appDir(), "data", "userdict.txt"))
+}
+
+// lineWith は、text のうち substr を含む最初の行を返す。
+func lineWith(text, substr string) string {
+	for _, line := range strings.Split(text, "\n") {
+		if strings.Contains(line, substr) {
+			return line
+		}
+	}
+	return ""
 }

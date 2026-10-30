@@ -150,7 +150,11 @@ func runSnapshotList(env *Env) func(*cobra.Command, []string) error {
 			if tag == "" {
 				tag = "-"
 			}
-			rows = append(rows, []string{m.ID, formatLocal(m.CreatedAt), reasonLabels[m.Reason], tag, strconv.Itoa(len(m.Files)) + " 件", formatBytes(m.TotalBytes)})
+			reason := reasonLabels[m.Reason]
+			if m.ImportedAt != nil {
+				reason += " (取り込み)"
+			}
+			rows = append(rows, []string{m.ID, formatLocal(m.CreatedAt), reason, tag, strconv.Itoa(len(m.Files)) + " 件", formatBytes(m.TotalBytes)})
 		}
 		writeTable(out, rows)
 		return nil
@@ -184,6 +188,9 @@ func runSnapshotInspect(env *Env) func(*cobra.Command, []string) error {
 func writeSnapshotSummary(w io.Writer, m snapshot.Manifest) {
 	fmt.Fprintf(w, "スナップショット:     %s\n", m.ID)
 	fmt.Fprintf(w, "作った日時:           %s (%s)\n", formatLocal(m.CreatedAt), reasonLabels[m.Reason])
+	if m.ImportedAt != nil {
+		fmt.Fprintf(w, "取り込んだ日時:       %s\n", formatLocal(*m.ImportedAt))
+	}
 	if m.ActiveTag != "" {
 		fmt.Fprintf(w, "有効だったバージョン: %s\n", m.ActiveTag)
 	}
