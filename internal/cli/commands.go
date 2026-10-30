@@ -68,6 +68,8 @@ func commandSpecs(env *Env) []commandSpec {
 			{use: "inspect <id>", short: "スナップショットの範囲を表示する", args: exactArgs(1), flags: []commonFlag{flagJSON}, run: runSnapshotInspect(env)},
 			{use: "verify <id>", short: "スナップショットの中身を記録と照合する", args: exactArgs(1), flags: []commonFlag{flagJSON}, run: runSnapshotVerify(env)},
 			{use: "restore <id>", short: "いまのデータを保存してからスナップショットを復元する", args: exactArgs(1), flags: change, setup: addStopAppFlag, run: runSnapshotRestore(env)},
+			{use: "export <id> <file>", short: "スナップショットを 1 つのファイルに書き出す。別の PC で取り込める", args: exactArgs(2), flags: []commonFlag{flagJSON}, run: runSnapshotExport(env)},
+			{use: "import <file>", short: "書き出したスナップショットを取り込む。データは変えない", args: exactArgs(1), flags: []commonFlag{flagJSON}, run: runSnapshotImport(env)},
 		}},
 		{use: "doctor", short: "管理ルートを診断し、直し方を示す。通信しない", flags: []commonFlag{flagJSON}, run: runDoctor(env)},
 		{use: "run", short: "有効な版の Meltype を起動する。通信しない", run: runRun(env)},
