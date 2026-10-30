@@ -3,6 +3,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -85,7 +86,7 @@ func RunContext(ctx context.Context, args []string, env Env) int {
 		err = ctx.Err()
 	}
 	code := exitCodeOf(err)
-	if err != nil {
+	if err != nil && !errors.Is(err, errUpdateAvailable) {
 		fmt.Fprintf(env.Err, "エラー: %v\n", err)
 		if code == ExitUsage {
 			fmt.Fprintf(env.Err, "\"%s --help\" で使い方を表示します。\n", executed.CommandPath())
