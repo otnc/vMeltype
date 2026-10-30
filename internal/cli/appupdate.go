@@ -12,6 +12,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/otnc/vmeltype/internal/catalog"
 	"github.com/otnc/vmeltype/internal/prompt"
 	"github.com/otnc/vmeltype/internal/selfupdate"
 )
@@ -25,6 +26,66 @@ func setupAppUpdateFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool("pre", false, "プレリリースも含めて探す")
 }
 
+// suggestPre は、プレリリースを使っているのに --pre なしで探して最新だったときに、--pre を案内する。
+// 正式版だけを探すと、いまのプレリリースより新しい正式版がまだなければ、プレリリースの新しいものを見落とすため。
+func suggestPre(out io.Writer, version string, pre bool) {
+	if !pre && strings.Contains(version, "-") {
+		fmt.Fprintln(out, "プレリリースも含めて探すなら --pre を付けます。")
+	}
+}
+
+func isDevBuild(version string) bool {
+	return version == "dev" || version == ""
+}
+
+// findSelfUpdate は、vMeltype 自身のリリースから、いまより新しく、この端末の配布物があるものの最大を探す。
+func findSelfUpdate(cmd *cobra.Command, env *Env, pre bool) (catalog.Release, catalog.Asset, bool, error) {
+	c, err := newRemoteClient(env).Fetch(cmd.Context(), selfupdate.Repository, nil)
+	if err != nil {
+		return catalog.Release{}, catalog.Asset{}, false, fmt.Errorf("vMeltype のリリースの一覧を取得できませんでした: %w", err)
+	}
+	release, asset, ok := selfupdate.Select(c.Releases(), env.Version, pre, env.Platform.OS, env.Platform.Arch)
+	return release, asset, ok, nil
+}
+
+func runAppCheck(env *Env) func(*cobra.Command, []string) error {
+	return func(cmd *cobra.Command, _ []string) error {
+		pre, _ := cmd.Flags().GetBool("pre")
+		asJSON, _ := cmd.Flags().GetBool("json")
+		if isDevBuild(env.Version) {
+			return errors.New("開発中のビルドなので、リリースと比べられません。リリースの vmeltype.exe を使ってください")
+		}
+		release, _, ok, err := findSelfUpdate(cmd, env, pre)
+		if err != nil {
+			return err
+		}
+		out := cmd.OutOrStdout()
+		latest := env.Version
+		if ok {
+			latest = release.Tag
+		}
+		switch {
+		case asJSON:
+			if err := writeJSON(out, map[string]any{"current": env.Version, "latest": latest, "updateAvailable": ok}); err != nil {
+				return err
+			}
+		case ok:
+			command := "vmeltype app update"
+			if release.Prerelease {
+				command += " --pre"
+			}
+			fmt.Fprintf(out, "vMeltype の新しいバージョンがあります: %s (いまは %s)。\"%s\" で更新します。\n", release.Tag, env.Version, command)
+		default:
+			fmt.Fprintf(out, "vMeltype %s は最新です。\n", env.Version)
+			suggestPre(out, env.Version, pre)
+		}
+		if ok {
+			return errUpdateAvailable
+		}
+		return nil
+	}
+}
+
 func runAppUpdate(env *Env) func(*cobra.Command, []string) error {
 	return func(cmd *cobra.Command, _ []string) error {
 		flags := cmd.Flags()
@@ -32,7 +93,7 @@ func runAppUpdate(env *Env) func(*cobra.Command, []string) error {
 		dryRun, _ := flags.GetBool("dry-run")
 		yes, _ := flags.GetBool("yes")
 		asJSON, _ := flags.GetBool("json")
-		if env.Version == "dev" || env.Version == "" {
+		if isDevBuild(env.Version) {
 			return errors.New("開発中のビルドなので、更新しません。リリースの vmeltype.exe を使ってください")
 		}
 		exe, err := env.Executable()
@@ -40,20 +101,17 @@ func runAppUpdate(env *Env) func(*cobra.Command, []string) error {
 			return fmt.Errorf("vmeltype.exe の場所が分かりませんでした: %w", err)
 		}
 
-		c, err := newRemoteClient(env).Fetch(cmd.Context(), selfupdate.Repository, nil)
+		release, asset, ok, err := findSelfUpdate(cmd, env, pre)
 		if err != nil {
-			return fmt.Errorf("vMeltype のリリースの一覧を取得できませんでした: %w", err)
+			return err
 		}
-		release, asset, ok := selfupdate.Select(c.Releases(), env.Version, pre, env.Platform.OS, env.Platform.Arch)
 		out := cmd.OutOrStdout()
 		if !ok {
 			if asJSON {
 				return writeJSON(out, map[string]any{"changed": false, "current": env.Version})
 			}
 			fmt.Fprintf(out, "vMeltype %s は最新です。\n", env.Version)
-			if !pre && strings.Contains(env.Version, "-") {
-				fmt.Fprintln(out, "プレリリースも含めて探すなら --pre を付けます。")
-			}
+			suggestPre(out, env.Version, pre)
 			return nil
 		}
 		expected, ok := strings.CutPrefix(asset.Digest, "sha256:")
