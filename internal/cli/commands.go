@@ -49,7 +49,7 @@ func commandSpecs(env *Env) []commandSpec {
 	return []commandSpec{
 		{use: "current", aliases: []string{"c"}, short: "有効な Meltype の版を表示する。通信しない", flags: []commonFlag{flagJSON}, run: runCurrent(env)},
 		{use: "list", aliases: []string{"ls"}, short: "保持版を表示する。通信しない", flags: []commonFlag{flagJSON}, run: runList(env)},
-		{use: "status", short: "要求、配置、登録、稼働、データ先、未完了の処理を表示する", flags: []commonFlag{flagJSON}},
+		{use: "status", short: "有効版、配置、稼働、データ先、未完了の処理を表示する。通信しない", flags: []commonFlag{flagJSON}, run: runStatus(env)},
 		{use: "fetch", short: "公式のリリースの情報だけを取得して保存する。配布物は取得しない", flags: []commonFlag{flagJSON}, run: runFetch(env)},
 		{use: "releases", aliases: []string{"rel"}, short: "公式のリリースの一覧を取得して表示する", long: releasesLong, flags: []commonFlag{flagAll, flagOffline, flagJSON}, setup: setupReleasesFlags, run: runReleases(env)},
 		{use: "install [tag]", aliases: []string{"i"}, short: "版を取得、検証して保持する。有効な版は変えない", long: installLong, args: maxArgs(1), flags: append([]commonFlag{flagOffline}, change...), setup: setupInstallFlags, run: runInstall(env)},
@@ -69,8 +69,8 @@ func commandSpecs(env *Env) []commandSpec {
 			{use: "verify <id>", short: "スナップショットの中身を記録と照合する", args: exactArgs(1), flags: []commonFlag{flagJSON}, run: runSnapshotVerify(env)},
 			{use: "restore <id>", short: "いまのデータを保存してからスナップショットを復元する", args: exactArgs(1), flags: change, setup: addStopAppFlag, run: runSnapshotRestore(env)},
 		}},
-		{use: "doctor", short: "依存、権限、登録、データ先、復旧できるかを診断する", flags: []commonFlag{flagJSON}},
-		{use: "run", short: "有効な版の Meltype を起動する"},
+		{use: "doctor", short: "管理ルートを診断し、直し方を示す。通信しない", flags: []commonFlag{flagJSON}, run: runDoctor(env)},
+		{use: "run", short: "有効な版の Meltype を起動する。通信しない", run: runRun(env)},
 		{use: "detach", short: "いまの環境を残して管理をやめる", flags: change},
 		{use: "track", short: "新しい版への自動の追従", subs: []commandSpec{
 			{use: "status", short: "追従の設定を表示する", flags: []commonFlag{flagJSON}},

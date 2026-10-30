@@ -64,8 +64,13 @@ Invoke-Vmeltype list | Out-Null
 
 Write-Host '--- 有効にして起動する'
 Invoke-Vmeltype use $From --portable -y | Out-Null
-Start-Process -FilePath $exe -WorkingDirectory $appDir
+Invoke-Vmeltype run | Out-Null
 Assert-Running $From
+# 動いている間に run をもう一度使っても、二つ目は起動しない
+Invoke-Vmeltype run | Out-Null
+if ((Get-Running).Count -ne 1) {
+    throw "Meltype が $((Get-Running).Count) 個動いています"
+}
 # Meltype は起動すると data と設定のファイルを作る
 Wait-Until { Test-Path (Join-Path $dataDir 'config.json') } 'Meltype が data に設定を作りません'
 $before = (Invoke-Vmeltype snapshot create -y --json | ConvertFrom-Json).id
@@ -85,6 +90,14 @@ Write-Host '--- rollback で戻す'
 Invoke-Vmeltype rollback -y | Out-Null
 Assert-Running $From
 Assert-Marker $true
+
+Write-Host '--- 動いている Meltype の状態を調べる'
+# Meltype が動いて data に書いても、実行先の配置は保持版と一致したままになる
+$status = Invoke-Vmeltype status --json | ConvertFrom-Json
+if ($status.deployment -ne 'match' -or $status.running.Count -eq 0 -or -not $status.dataExists) {
+    throw "status が違います: deployment = $($status.deployment)、running = $($status.running.Count)、dataExists = $($status.dataExists)"
+}
+Invoke-Vmeltype doctor | Out-Null
 
 Write-Host '--- snapshot を復元する'
 Invoke-Vmeltype snapshot restore $before -y | Out-Null
