@@ -83,8 +83,8 @@ func commandSpecs(env *Env) []commandSpec {
 			{use: "update", short: "vMeltype 自身を更新する", flags: change},
 			{use: "uninstall", short: "Meltype を管理前に戻してから vMeltype を削除する", flags: change},
 			{use: "config", short: "vMeltype の設定", subs: []commandSpec{
-				{use: "show", short: "設定を表示する", flags: []commonFlag{flagJSON}},
-				{use: "set <key> <value>", short: "設定を変える。既存のファイルは移動しない", args: exactArgs(2), flags: []commonFlag{flagJSON}},
+				{use: "show", short: "設定を表示する", flags: []commonFlag{flagJSON}, run: runConfigShow(env)},
+				{use: "set <key> <value>", short: "設定を変える。既存のファイルは移動しない", args: exactArgs(2), flags: []commonFlag{flagJSON}, run: runConfigSet(env)},
 			}},
 		}},
 	}

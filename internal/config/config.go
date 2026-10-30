@@ -14,6 +14,9 @@ import (
 	"github.com/otnc/vmeltype/internal/privatefs"
 )
 
+// ErrInvalid は、Set に渡した項目か値を受け付けないことを表す。
+var ErrInvalid = errors.New("設定できません")
+
 // Settings は、vMeltype が使う設定。ファイルにない項目は既定の値になる。
 type Settings struct {
 	// StopAppOnYes は、-y だけで、動いている実行先の Meltype を終了させるか。
@@ -66,11 +69,11 @@ func Load(root string) (Settings, error) {
 // Set は、1 つの設定を変える。知らない項目は、新しい版の vMeltype が書いたものかもしれないので消さない。
 func Set(root, key, value string) error {
 	if _, ok := keys[key]; !ok {
-		return fmt.Errorf("知らない設定です: %q (設定できるもの: %s)", key, strings.Join(keyNames(), "、"))
+		return fmt.Errorf("%w: %q (設定できるもの: %s)", ErrInvalid, key, strings.Join(keyNames(), "、"))
 	}
 	parsed, err := strconv.ParseBool(value)
 	if err != nil {
-		return fmt.Errorf("%s には true か false を指定してください: %q", key, value)
+		return fmt.Errorf("%w: %s には true か false を指定してください: %q", ErrInvalid, key, value)
 	}
 	raw, err := readRaw(root)
 	if err != nil {
