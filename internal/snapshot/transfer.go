@@ -12,12 +12,12 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/otnc/vmeltype/internal/archive"
-	"github.com/otnc/vmeltype/internal/privatefs"
+	"github.com/otnc/meltool/internal/archive"
+	"github.com/otnc/meltool/internal/privatefs"
 )
 
 // FileExtension は、書き出したスナップショットのファイルの拡張子。中身は、管理ルートに置くときと同じ形 (manifest.json と files) の ZIP。
-const FileExtension = ".vmeltype-snapshot"
+const FileExtension = ".meltool-snapshot"
 
 // 書き出したファイルは利用者が持ち運ぶものなので、取り込むときは中身を信用せず、上限を決めて展開する。
 var importLimits = archive.Limits{MaxFiles: 100000, MaxTotalBytes: 4 << 30}

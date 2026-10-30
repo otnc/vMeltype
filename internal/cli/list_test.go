@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/otnc/vmeltype/internal/store"
+	"github.com/otnc/meltool/internal/store"
 )
 
 // executeOffline は、通信の手段を渡さずにコマンドを実行する。通信しようとすれば nil の HTTP クライアントで失敗する。
@@ -67,7 +67,7 @@ func TestListShowsStoredVersions(t *testing.T) {
 func TestListWithoutStoredVersions(t *testing.T) {
 	got := executeOffline(t, t.TempDir(), "ls")
 
-	if got.code != ExitOK || !strings.Contains(got.stdout, "vmeltype install") {
+	if got.code != ExitOK || !strings.Contains(got.stdout, "meltool install") {
 		t.Errorf("保持バージョンがないときの案内がない: code = %d\n%s", got.code, got.stdout)
 	}
 }

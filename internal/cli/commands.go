@@ -79,12 +79,12 @@ func commandSpecs(env *Env) []commandSpec {
 			{use: "enable", short: "追従を有効にする", flags: []commonFlag{flagJSON}},
 			{use: "disable", short: "追従を無効にする", flags: []commonFlag{flagJSON}},
 		}},
-		{use: "app", aliases: []string{"self"}, short: "vMeltype 自身の操作", subs: []commandSpec{
-			{use: "version", short: "vMeltype のバージョンを表示する", run: printVersion(env.Version)},
-			{use: "doctor", short: "vMeltype 自身と管理ルートを診断する", flags: []commonFlag{flagJSON}},
-			{use: "update", aliases: []string{"upgrade"}, short: "vMeltype 自身を新しいバージョンに置き換える", long: appUpdateLong, flags: change, setup: setupAppUpdateFlags, run: runAppUpdate(env)},
-			{use: "uninstall", short: "vMeltype をやめる。Meltype を残すか消すかを選べる", long: appUninstallLong, flags: change, setup: setupAppUninstallFlags, run: runAppUninstall(env)},
-			{use: "config", short: "vMeltype の設定", subs: []commandSpec{
+		{use: "app", aliases: []string{"self"}, short: "Meltool 自身の操作", subs: []commandSpec{
+			{use: "version", short: "Meltool のバージョンを表示する", run: printVersion(env.Version)},
+			{use: "doctor", short: "Meltool 自身と管理ルートを診断する", flags: []commonFlag{flagJSON}},
+			{use: "update", aliases: []string{"upgrade"}, short: "Meltool 自身を新しいバージョンに置き換える", long: appUpdateLong, flags: change, setup: setupAppUpdateFlags, run: runAppUpdate(env)},
+			{use: "uninstall", short: "Meltool をやめる。Meltype を残すか消すかを選べる", long: appUninstallLong, flags: change, setup: setupAppUninstallFlags, run: runAppUninstall(env)},
+			{use: "config", short: "Meltool の設定", subs: []commandSpec{
 				{use: "show", short: "設定を表示する", flags: []commonFlag{flagJSON}, run: runConfigShow(env)},
 				{use: "set <key> <value>", short: "設定を変える。既存のファイルは移動しない", args: exactArgs(2), flags: []commonFlag{flagJSON}, run: runConfigSet(env)},
 			}},
@@ -139,7 +139,7 @@ func notImplemented(cmd *cobra.Command, _ []string) error {
 
 func printVersion(version string) func(*cobra.Command, []string) error {
 	return func(cmd *cobra.Command, _ []string) error {
-		_, err := fmt.Fprintf(cmd.OutOrStdout(), "vMeltype %s\n", version)
+		_, err := fmt.Fprintf(cmd.OutOrStdout(), "Meltool %s\n", version)
 		return err
 	}
 }

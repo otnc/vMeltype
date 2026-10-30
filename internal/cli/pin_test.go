@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/otnc/vmeltype/internal/lifecycle"
+	"github.com/otnc/meltool/internal/lifecycle"
 )
 
 type pinRecord struct {

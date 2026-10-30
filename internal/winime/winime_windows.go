@@ -21,16 +21,16 @@ import (
 const script = `
 $ErrorActionPreference = 'Stop'
 function Done([string]$result) {
-    [IO.File]::WriteAllText($env:VMELTYPE_IME_RESULT, $result)
+    [IO.File]::WriteAllText($env:MELTOOL_IME_RESULT, $result)
     exit 0
 }
-$imeScript = $env:VMELTYPE_IME_SCRIPT
+$imeScript = $env:MELTOOL_IME_SCRIPT
 if (-not (Test-Path -LiteralPath $imeScript)) { Done 'unsupported' }
 . $imeScript
 foreach ($name in 'Test-Arm64Windows', 'Get-MeltypeImeSourceHashes', 'Test-MeltypeImeCurrent', 'Invoke-Elevated') {
     if (-not (Get-Command $name -CommandType Function -ErrorAction SilentlyContinue)) { Done 'unsupported' }
 }
-$source = $env:VMELTYPE_IME_SOURCE
+$source = $env:MELTOOL_IME_SOURCE
 if (Test-Arm64Windows) { Done 'arm64' }
 $hashes = Get-MeltypeImeSourceHashes $source
 if (-not $hashes) { Done 'corrupt' }
@@ -50,7 +50,7 @@ func Replace(ctx context.Context, appDir string) (Result, error) {
 	if err != nil {
 		return "", err
 	}
-	resultFile, err := os.CreateTemp("", "vmeltype-ime-*.txt")
+	resultFile, err := os.CreateTemp("", "meltool-ime-*.txt")
 	if err != nil {
 		return "", err
 	}
@@ -59,9 +59,9 @@ func Replace(ctx context.Context, appDir string) (Result, error) {
 
 	cmd := exec.CommandContext(ctx, powershell, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encode(script))
 	cmd.Env = append(os.Environ(),
-		"VMELTYPE_IME_SCRIPT="+filepath.Join(appDir, "meltype-ime.ps1"),
-		"VMELTYPE_IME_SOURCE="+filepath.Join(appDir, "tip"),
-		"VMELTYPE_IME_RESULT="+resultFile.Name(),
+		"MELTOOL_IME_SCRIPT="+filepath.Join(appDir, "meltype-ime.ps1"),
+		"MELTOOL_IME_SOURCE="+filepath.Join(appDir, "tip"),
+		"MELTOOL_IME_RESULT="+resultFile.Name(),
 	)
 	output, runErr := cmd.CombinedOutput()
 	data, _ := os.ReadFile(resultFile.Name())

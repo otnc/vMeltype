@@ -16,8 +16,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/otnc/vmeltype/internal/assets"
-	"github.com/otnc/vmeltype/internal/store"
+	"github.com/otnc/meltool/internal/assets"
+	"github.com/otnc/meltool/internal/store"
 )
 
 type fakeRelease struct {
@@ -112,7 +112,7 @@ func (f *fakeUpstream) run(t *testing.T, root string, interactive bool, stdin st
 		Interactive:  interactive,
 		Version:      "1.2.3",
 		Now:          func() time.Time { return time.Date(2026, 10, 29, 9, 0, 0, 0, time.UTC) },
-		Getenv:       func(key string) string { return map[string]string{"VMELTYPE_GITHUB_TOKEN": "secret"}[key] },
+		Getenv:       func(key string) string { return map[string]string{"MELTOOL_GITHUB_TOKEN": "secret"}[key] },
 		DefaultRoot:  func() (string, error) { return root, nil },
 		HTTPClient:   f.server.Client(),
 		GitHubAPIURL: f.server.URL,

@@ -1,7 +1,7 @@
 package lifecycle
 
 import (
-	"github.com/otnc/vmeltype/internal/store"
+	"github.com/otnc/meltool/internal/store"
 )
 
 // Deployment は、実行先の配置が、保持バージョンのうち有効なものと一致するか。

@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/otnc/vmeltype/internal/archive"
-	"github.com/otnc/vmeltype/internal/privatefs"
-	"github.com/otnc/vmeltype/internal/versions"
+	"github.com/otnc/meltool/internal/archive"
+	"github.com/otnc/meltool/internal/privatefs"
+	"github.com/otnc/meltool/internal/versions"
 )
 
-// SchemaVersion は、このバージョンの vMeltype が読み書きする manifest の形式のバージョン。
+// SchemaVersion は、このバージョンの Meltool が読み書きする manifest の形式のバージョン。
 const SchemaVersion = 1
 
 const manifestFile = "manifest.json"
@@ -137,7 +137,7 @@ func (s Store) Get(id string) (Stored, error) {
 		return Stored{}, fmt.Errorf("manifest が壊れています: %w", err)
 	}
 	if m.SchemaVersion > SchemaVersion {
-		return Stored{}, errors.New("新しいバージョンの vMeltype が保存した manifest なので読めません")
+		return Stored{}, errors.New("新しいバージョンの Meltool が保存した manifest なので読めません")
 	}
 	if m.ID != id {
 		return Stored{}, fmt.Errorf("manifest の保持 ID (%s) がディレクトリ名と一致しません", m.ID)

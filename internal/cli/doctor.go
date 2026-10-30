@@ -10,12 +10,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/otnc/vmeltype/internal/assets"
-	"github.com/otnc/vmeltype/internal/config"
-	"github.com/otnc/vmeltype/internal/lifecycle"
-	"github.com/otnc/vmeltype/internal/snapshot"
-	"github.com/otnc/vmeltype/internal/store"
-	"github.com/otnc/vmeltype/internal/winsys"
+	"github.com/otnc/meltool/internal/assets"
+	"github.com/otnc/meltool/internal/config"
+	"github.com/otnc/meltool/internal/lifecycle"
+	"github.com/otnc/meltool/internal/snapshot"
+	"github.com/otnc/meltool/internal/store"
+	"github.com/otnc/meltool/internal/winsys"
 )
 
 // errDoctorFailed は、doctor が直すべき問題を見つけたことを表す。
@@ -90,7 +90,7 @@ func journalCheck(s localStatus) check {
 	if s.Pending == nil {
 		return check{Name: "journal", Level: levelOK, Message: "中断した変更はありません"}
 	}
-	return check{Name: "journal", Level: levelFail, Message: describeJournal(s.Pending), Hint: "\"vmeltype recover\" で復旧してください"}
+	return check{Name: "journal", Level: levelFail, Message: describeJournal(s.Pending), Hint: "\"meltool recover\" で復旧してください"}
 }
 
 func deploymentCheck(s localStatus) check {
@@ -135,7 +135,7 @@ func storedCheck(root string) check {
 			ids = append(ids, p.ID)
 		}
 		return check{Name: "stored", Level: levelWarn, Message: fmt.Sprintf("読めない保持バージョンがあります (%s)", strings.Join(ids, "、")),
-			Hint: "使うなら \"vmeltype install <tag> --reinstall\" で取得し直してください"}
+			Hint: "使うなら \"meltool install <tag> --reinstall\" で取得し直してください"}
 	}
 	return check{Name: "stored", Level: levelOK, Message: fmt.Sprintf("保持バージョンは %d 件で、すべて読めます", len(stored))}
 }
@@ -158,16 +158,16 @@ func snapshotsCheck(root string) check {
 
 func configCheck(root string) check {
 	if _, err := config.Load(root); err != nil {
-		return check{Name: "config", Level: levelFail, Message: err.Error(), Hint: "\"vmeltype app config set <key> <value>\" で直してください"}
+		return check{Name: "config", Level: levelFail, Message: err.Error(), Hint: "\"meltool app config set <key> <value>\" で直してください"}
 	}
 	return check{Name: "config", Level: levelOK, Message: "設定を読めます"}
 }
 
 func installCommand(tag, variant string) string {
 	if variant == string(assets.Portable) {
-		return fmt.Sprintf("vmeltype install %s --portable", tag)
+		return fmt.Sprintf("meltool install %s --portable", tag)
 	}
-	return "vmeltype install " + tag
+	return "meltool install " + tag
 }
 
 func writeChecks(w io.Writer, root string, checks []check) {

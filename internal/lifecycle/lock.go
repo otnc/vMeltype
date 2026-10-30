@@ -6,11 +6,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/otnc/vmeltype/internal/privatefs"
+	"github.com/otnc/meltool/internal/privatefs"
 )
 
-// ErrLocked は、別の vMeltype が同じ管理ルートを変更中であることを表す。
-var ErrLocked = errors.New("別の vMeltype が同じ管理ルートを変更中です。終わってから実行してください")
+// ErrLocked は、別の Meltool が同じ管理ルートを変更中であることを表す。
+var ErrLocked = errors.New("別の Meltool が同じ管理ルートを変更中です。終わってから実行してください")
 
 // Lock は、管理ルートの変更の排他。OS のファイルロックなので、異常終了してもロックは残らない。
 type Lock struct {

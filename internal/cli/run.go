@@ -9,8 +9,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/otnc/vmeltype/internal/appctl"
-	"github.com/otnc/vmeltype/internal/lifecycle"
+	"github.com/otnc/meltool/internal/appctl"
+	"github.com/otnc/meltool/internal/lifecycle"
 )
 
 // runRun は、有効なバージョンの Meltype を起動して、終わるのを待たずに戻る。Meltype には引数を渡さない。
@@ -32,7 +32,7 @@ func runRun(env *Env) func(*cobra.Command, []string) error {
 			return err
 		}
 		if state.Active == nil {
-			return errors.New("有効なバージョンがないので起動できません。先に \"vmeltype use <tag>\" で有効にしてください")
+			return errors.New("有効なバージョンがないので起動できません。先に \"meltool use <tag>\" で有効にしてください")
 		}
 		appDir := state.Active.AppDir
 		if _, err := os.Stat(filepath.Join(appDir, appctl.ExeName)); err != nil {

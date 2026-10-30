@@ -20,7 +20,7 @@ func exported(t *testing.T) (file string, m Manifest) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	file = filepath.Join(t.TempDir(), "data.vmeltype-snapshot")
+	file = filepath.Join(t.TempDir(), "data.meltool-snapshot")
 	if err := Export(root, m.ID, file); err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +82,7 @@ func rewrite(t *testing.T, file string, change func(name string, body []byte) (s
 		t.Fatal(err)
 	}
 	defer r.Close()
-	out := filepath.Join(t.TempDir(), "changed.vmeltype-snapshot")
+	out := filepath.Join(t.TempDir(), "changed.meltool-snapshot")
 	f, _ := os.Create(out)
 	w := zip.NewWriter(f)
 	for _, entry := range r.File {

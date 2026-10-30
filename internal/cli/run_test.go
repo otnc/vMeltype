@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/otnc/vmeltype/internal/lifecycle"
+	"github.com/otnc/meltool/internal/lifecycle"
 )
 
 func TestRun(t *testing.T) {
@@ -41,7 +41,7 @@ func TestRun(t *testing.T) {
 			name:     "有効なバージョンがなければ use を案内する",
 			prepare:  newLocalEnv,
 			wantCode: ExitError,
-			wantText: "vmeltype use",
+			wantText: "meltool use",
 		},
 		{
 			name:     "中断した変更があれば起動しない",

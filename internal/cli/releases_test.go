@@ -158,7 +158,7 @@ func TestReleasesCachedWithoutSavedCatalog(t *testing.T) {
 
 	got := github.execute(t, t.TempDir(), "releases", "--cached")
 
-	if got.code != ExitError || !strings.Contains(got.stderr, "vmeltype fetch") {
+	if got.code != ExitError || !strings.Contains(got.stderr, "meltool fetch") {
 		t.Errorf("code = %d, stderr = %s", got.code, got.stderr)
 	}
 }

@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/otnc/vmeltype/internal/catalog"
+	"github.com/otnc/meltool/internal/catalog"
 )
 
 var now = time.Date(2026, 10, 29, 9, 0, 0, 0, time.UTC)
@@ -20,7 +20,7 @@ func newClient(server *httptest.Server) *Client {
 	return &Client{
 		HTTP:      server.Client(),
 		BaseURL:   server.URL,
-		UserAgent: "vmeltype/test",
+		UserAgent: "meltool/test",
 		Now:       func() time.Time { return now },
 		Sleep:     func(context.Context, time.Duration) error { return nil },
 	}

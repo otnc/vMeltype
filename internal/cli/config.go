@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/otnc/vmeltype/internal/config"
+	"github.com/otnc/meltool/internal/config"
 )
 
 func runConfigShow(env *Env) func(*cobra.Command, []string) error {

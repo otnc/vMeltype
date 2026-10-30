@@ -1,4 +1,4 @@
-// Package rootdir は、vMeltype の管理ルートの既定の場所を決める。
+// Package rootdir は、Meltool の管理ルートの既定の場所を決める。
 package rootdir
 
 import (
@@ -18,15 +18,15 @@ func Default(goos string, getenv func(string) string, home string) (string, erro
 		if !isAbs(goos, base) {
 			return "", errors.New("LOCALAPPDATA が設定されていないので、管理ルートを決められません。--root で指定してください")
 		}
-		return filepath.Join(base, "vMeltype"), nil
+		return filepath.Join(base, "Meltool"), nil
 	case "darwin":
-		return filepath.Join(home, "Library", "Application Support", "vMeltype"), nil
+		return filepath.Join(home, "Library", "Application Support", "Meltool"), nil
 	default:
 		base := getenv("XDG_DATA_HOME")
 		if !isAbs(goos, base) {
 			base = filepath.Join(home, ".local", "share")
 		}
-		return filepath.Join(base, "vmeltype"), nil
+		return filepath.Join(base, "meltool"), nil
 	}
 }
 

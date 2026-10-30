@@ -3,8 +3,8 @@ package cli
 import (
 	"fmt"
 
-	"github.com/otnc/vmeltype/internal/assets"
-	"github.com/otnc/vmeltype/internal/lifecycle"
+	"github.com/otnc/meltool/internal/assets"
+	"github.com/otnc/meltool/internal/lifecycle"
 )
 
 // layout は、variant ごとの実行先とデータ先。
@@ -49,7 +49,7 @@ func activeLayout(env *Env, root string) (layout, error) {
 // reapplyCommand は、有効なバージョンを同じバージョンのまま置き直すコマンドを返す。
 func reapplyCommand(active *lifecycle.Activation) string {
 	if active.Variant == string(assets.Portable) {
-		return fmt.Sprintf("vmeltype use %s --portable --force", active.Tag)
+		return fmt.Sprintf("meltool use %s --portable --force", active.Tag)
 	}
-	return fmt.Sprintf("vmeltype use %s --force", active.Tag)
+	return fmt.Sprintf("meltool use %s --force", active.Tag)
 }

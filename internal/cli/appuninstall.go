@@ -9,19 +9,19 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/otnc/vmeltype/internal/assets"
-	"github.com/otnc/vmeltype/internal/lifecycle"
-	"github.com/otnc/vmeltype/internal/prompt"
-	"github.com/otnc/vmeltype/internal/store"
-	"github.com/otnc/vmeltype/internal/upstreamconf"
+	"github.com/otnc/meltool/internal/assets"
+	"github.com/otnc/meltool/internal/lifecycle"
+	"github.com/otnc/meltool/internal/prompt"
+	"github.com/otnc/meltool/internal/store"
+	"github.com/otnc/meltool/internal/upstreamconf"
 )
 
-const appUninstallLong = `vMeltype をやめ、管理ルートを消します。
+const appUninstallLong = `Meltool をやめ、管理ルートを消します。
 
 Meltype は既定で残します。有効なバージョンをそのまま使える状態で残し、止めていた本家の自動更新を管理前の値に戻します。
-Meltype も削除するなら、対話で答えるか --remove-meltype を付けます。本家のアンインストーラーで削除するので、IME の登録、自動起動、ショートカットも外れます。本家の setup.exe で入れていれば設定と学習データを消すかを本家が聞きますが、Install.cmd で入れたものや vMeltype だけで入れたものは、本家のアンインストーラーが設定と学習データも消します。
+Meltype も削除するなら、対話で答えるか --remove-meltype を付けます。本家のアンインストーラーで削除するので、IME の登録、自動起動、ショートカットも外れます。本家の setup.exe で入れていれば設定と学習データを消すかを本家が聞きますが、Install.cmd で入れたものや Meltool だけで入れたものは、本家のアンインストーラーが設定と学習データも消します。
 スナップショットは既定で消します。残すなら、対話で答えるか --keep-snapshots を付けます。管理ルートの snapshots だけが残ります。
-いま動いている vmeltype.exe は消せないので、終わったあとに手で消してください。`
+いま動いている meltool.exe は消せないので、終わったあとに手で消してください。`
 
 func setupAppUninstallFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool("remove-meltype", false, "Meltype も本家のアンインストーラーで削除する")
@@ -116,7 +116,7 @@ func runAppUninstall(env *Env) func(*cobra.Command, []string) error {
 			return nil
 		}
 		confirmer := prompt.Confirmer{In: cmd.InOrStdin(), Out: cmd.ErrOrStderr(), Interactive: interactive, AssumeYes: yes}
-		if err := confirmer.Confirm("vMeltype を削除しますか？", prompt.DefaultNo); err != nil {
+		if err := confirmer.Confirm("Meltool を削除しますか？", prompt.DefaultNo); err != nil {
 			return err
 		}
 
@@ -170,7 +170,7 @@ func runAppUninstall(env *Env) func(*cobra.Command, []string) error {
 		if asJSON {
 			return writeJSON(out, map[string]any{"root": root, "removedMeltype": removeMeltype, "keptSnapshots": keepSnapshots, "executable": exe})
 		}
-		fmt.Fprintln(out, "vMeltype の管理ルートを消しました。")
+		fmt.Fprintln(out, "Meltool の管理ルートを消しました。")
 		writeExeNote(out, exe)
 		return nil
 	}
@@ -208,7 +208,7 @@ func writeUninstallPlan(w io.Writer, root, exe string, standard *layout, hasPort
 	switch {
 	case removeMeltype && standard != nil:
 		fmt.Fprintf(w, "Meltype:          本家のアンインストーラーで削除します (%s)。IME の登録、自動起動、ショートカットも外れます。\n", standard.appDir)
-		fmt.Fprintln(w, "                  Install.cmd や vMeltype だけで入れたものは、設定と学習データも消えます。")
+		fmt.Fprintln(w, "                  Install.cmd や Meltool だけで入れたものは、設定と学習データも消えます。")
 	case standard != nil:
 		fmt.Fprintf(w, "Meltype:          いまのバージョンのまま残し (%s)、本家の自動更新を管理前の値に戻します。\n", standard.appDir)
 	}
@@ -221,13 +221,13 @@ func writeUninstallPlan(w io.Writer, root, exe string, standard *layout, hasPort
 		fmt.Fprintln(w, "スナップショット: 消します")
 	}
 	if exe != "" {
-		fmt.Fprintf(w, "vmeltype.exe:     動いているので消せません。終わったあとに手で消してください (%s)\n", exe)
+		fmt.Fprintf(w, "meltool.exe:      動いているので消せません。終わったあとに手で消してください (%s)\n", exe)
 	}
 }
 
 func writeExeNote(w io.Writer, exe string) {
 	if exe != "" {
-		fmt.Fprintf(w, "vmeltype.exe は動いているので消せません。終わったら %s を手で消してください。\n", exe)
+		fmt.Fprintf(w, "meltool.exe は動いているので消せません。終わったら %s を手で消してください。\n", exe)
 	}
 }
 

@@ -10,6 +10,6 @@ const (
 	MethodInno Method = "inno"
 	// MethodScript は、本家の Install.cmd が置いた uninstall.ps1。設定と学習データも消す。
 	MethodScript Method = "script"
-	// MethodFallbackScript は、どちらもないとき (vMeltype だけで入れたとき) に使う、保持バージョンのうち有効なものの uninstall.ps1。設定と学習データも消す。
+	// MethodFallbackScript は、どちらもないとき (Meltool だけで入れたとき) に使う、保持バージョンのうち有効なものの uninstall.ps1。設定と学習データも消す。
 	MethodFallbackScript Method = "fallback-script"
 )

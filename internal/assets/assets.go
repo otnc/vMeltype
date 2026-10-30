@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/otnc/vmeltype/internal/catalog"
+	"github.com/otnc/meltool/internal/catalog"
 )
 
 // Platform は、Go の GOOS と GOARCH の組。
@@ -24,7 +24,7 @@ const (
 )
 
 var (
-	// ErrUnsupportedPlatform は、vMeltype がこの OS、CPU、variant の組を扱わないことを表す。
+	// ErrUnsupportedPlatform は、Meltool がこの OS、CPU、variant の組を扱わないことを表す。
 	ErrUnsupportedPlatform = errors.New("この OS、CPU、variant の組には対応していません")
 	// ErrNoAsset は、リリースに合う配布物がないことを表す。
 	ErrNoAsset = errors.New("この端末に合う配布物がありません")

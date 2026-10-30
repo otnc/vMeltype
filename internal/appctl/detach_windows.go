@@ -9,7 +9,7 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-// detach は、vmeltype の終了や Ctrl+C を、起動した Meltype に伝えない。
+// detach は、meltool の終了や Ctrl+C を、起動した Meltype に伝えない。
 func detach(cmd *exec.Cmd) {
 	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: windows.CREATE_NEW_PROCESS_GROUP | windows.DETACHED_PROCESS}
 }

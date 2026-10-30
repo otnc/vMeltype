@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/otnc/vmeltype/internal/archive"
+	"github.com/otnc/meltool/internal/archive"
 )
 
 func sample(tag string) Stored {

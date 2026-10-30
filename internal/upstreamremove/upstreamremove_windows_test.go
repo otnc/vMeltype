@@ -41,8 +41,8 @@ func TestRun(t *testing.T) {
 	t.Run("インストール先になければ、渡された uninstall.ps1 で消す", func(t *testing.T) {
 		appDir := fakeInstall(t, "")
 		fallback := filepath.Join(t.TempDir(), "uninstall.ps1")
-		os.WriteFile(fallback, []byte("\xEF\xBB\xBFRemove-Item -LiteralPath $env:VMELTYPE_TEST_APP -Recurse -Force\n"), 0o600)
-		t.Setenv("VMELTYPE_TEST_APP", appDir)
+		os.WriteFile(fallback, []byte("\xEF\xBB\xBFRemove-Item -LiteralPath $env:MELTOOL_TEST_APP -Recurse -Force\n"), 0o600)
+		t.Setenv("MELTOOL_TEST_APP", appDir)
 
 		method, err := Run(context.Background(), appDir, fallback, false, time.Minute)
 

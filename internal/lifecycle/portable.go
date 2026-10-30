@@ -12,19 +12,19 @@ import (
 	"strings"
 	"time"
 
-	"github.com/otnc/vmeltype/internal/archive"
-	"github.com/otnc/vmeltype/internal/assets"
-	"github.com/otnc/vmeltype/internal/privatefs"
-	"github.com/otnc/vmeltype/internal/store"
+	"github.com/otnc/meltool/internal/archive"
+	"github.com/otnc/meltool/internal/assets"
+	"github.com/otnc/meltool/internal/privatefs"
+	"github.com/otnc/meltool/internal/store"
 )
 
 var (
 	// ErrEntryConflict は、引き継ぐファイルと新しいバージョンのファイルの名前がぶつかることを表す。
 	ErrEntryConflict = errors.New("実行先にある管理していないファイルが、新しいバージョンのファイルと同じ名前です")
 	// ErrCorruptStored は、保持バージョンのファイルが manifest と一致しないことを表す。
-	ErrCorruptStored = errors.New("保持バージョンのファイルが manifest と一致しません。\"vmeltype install <tag> --reinstall\" で取得し直してください")
+	ErrCorruptStored = errors.New("保持バージョンのファイルが manifest と一致しません。\"meltool install <tag> --reinstall\" で取得し直してください")
 	// ErrNeedsRecover は、切り替えの途中で失敗し、recover での復旧が要ることを表す。
-	ErrNeedsRecover = errors.New("切り替えの途中で失敗しました。\"vmeltype recover\" で復旧してください")
+	ErrNeedsRecover = errors.New("切り替えの途中で失敗しました。\"meltool recover\" で復旧してください")
 )
 
 // PortableAppDir は、portable 版の実行先。バージョンを切り替えても場所を変えず、隣の data を引き継ぐ。
@@ -37,7 +37,7 @@ type UsePlan struct {
 	Target store.Stored
 	AppDir string
 	From   *Activation
-	// Carried は、前の実行先から引き継ぐ名前 (data と、vMeltype が置いていないもの)。
+	// Carried は、前の実行先から引き継ぐ名前 (data と、Meltool が置いていないもの)。
 	Carried []string
 	// Adopted は、取り込む本家のインストールのうち、新しいバージョンで置き換える名前。取り込まないなら空。
 	Adopted []string
@@ -49,13 +49,13 @@ type UsePlan struct {
 type UseOptions struct {
 	// OverridePin は、利用者がこの操作に限って固定を越えると明示したときだけ true にする。
 	OverridePin bool
-	// Adopt は、vMeltype が管理していない実行先にある本家のインストールを取り込むこと。
+	// Adopt は、Meltool が管理していない実行先にある本家のインストールを取り込むこと。
 	// 新しいバージョンと同じ名前のものを置き換え、ほか (アンインストール用のファイルなど) は引き継ぐ。
 	Adopt bool
 }
 
 // ErrNoAppFiles は、保持バージョンに、実行先に置く本体がないことを表す。
-var ErrNoAppFiles = errors.New("保持バージョンに、実行先に置く本体がありません。\"vmeltype install <tag> --reinstall\" で取得し直してください")
+var ErrNoAppFiles = errors.New("保持バージョンに、実行先に置く本体がありません。\"meltool install <tag> --reinstall\" で取得し直してください")
 
 // PlanPortableUse は、portable 版の切り替えの計画を作る。実行先は管理ルートの中に固定する。
 func PlanPortableUse(root string, target store.Stored, overridePin bool) (UsePlan, error) {

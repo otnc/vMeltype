@@ -9,13 +9,13 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/otnc/vmeltype/internal/privatefs"
+	"github.com/otnc/meltool/internal/privatefs"
 )
 
-// SchemaVersion は、このバージョンの vMeltype が読み書きする状態と処理記録の形式のバージョン。
+// SchemaVersion は、このバージョンの Meltool が読み書きする状態と処理記録の形式のバージョン。
 const SchemaVersion = 1
 
-var errNewerSchema = errors.New("新しいバージョンの vMeltype が保存した形式なので読めません。vMeltype を更新してください")
+var errNewerSchema = errors.New("新しいバージョンの Meltool が保存した形式なので読めません。Meltool を更新してください")
 
 // Activation は、有効にした 1 つのバージョン。
 type Activation struct {
@@ -23,7 +23,7 @@ type Activation struct {
 	Tag     string `json:"tag"`
 	Variant string `json:"variant"`
 	AppDir  string `json:"appDir"`
-	// OwnedEntries は、実行先の直下に vMeltype が置いた名前。次の切り替えで、これ以外 (data など) を引き継ぐ。
+	// OwnedEntries は、実行先の直下に Meltool が置いた名前。次の切り替えで、これ以外 (data など) を引き継ぐ。
 	OwnedEntries []string  `json:"ownedEntries"`
 	ActivatedAt  time.Time `json:"activatedAt"`
 }

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/otnc/vmeltype/internal/store"
+	"github.com/otnc/meltool/internal/store"
 )
 
 func TestRollbackReturnsToPreviousVersion(t *testing.T) {

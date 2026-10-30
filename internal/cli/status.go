@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/otnc/vmeltype/internal/lifecycle"
+	"github.com/otnc/meltool/internal/lifecycle"
 )
 
 // localStatus は、status と doctor が使う、管理ルートと実行先のいまの状態。
@@ -65,10 +65,10 @@ func runStatus(env *Env) func(*cobra.Command, []string) error {
 func writeStatus(w io.Writer, s localStatus) {
 	fmt.Fprintf(w, "管理ルート:       %s\n", s.Root)
 	if s.Pending != nil {
-		fmt.Fprintf(w, "未完了の処理:     %s。\"vmeltype recover\" で復旧してください\n", describeJournal(s.Pending))
+		fmt.Fprintf(w, "未完了の処理:     %s。\"meltool recover\" で復旧してください\n", describeJournal(s.Pending))
 	}
 	if s.Active == nil {
-		fmt.Fprintln(w, "有効なバージョン: 有効なバージョンはありません。\"vmeltype use <tag>\" で有効にします")
+		fmt.Fprintln(w, "有効なバージョン: 有効なバージョンはありません。\"meltool use <tag>\" で有効にします")
 		return
 	}
 	fmt.Fprintf(w, "有効なバージョン: %s (%s、保持 ID: %s)\n", s.Active.Tag, variantLabels[s.Active.Variant], s.Active.StoreID)

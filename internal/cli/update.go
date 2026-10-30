@@ -6,12 +6,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/otnc/vmeltype/internal/assets"
-	"github.com/otnc/vmeltype/internal/catalog"
-	"github.com/otnc/vmeltype/internal/lifecycle"
-	"github.com/otnc/vmeltype/internal/prompt"
-	"github.com/otnc/vmeltype/internal/store"
-	"github.com/otnc/vmeltype/internal/versions"
+	"github.com/otnc/meltool/internal/assets"
+	"github.com/otnc/meltool/internal/catalog"
+	"github.com/otnc/meltool/internal/lifecycle"
+	"github.com/otnc/meltool/internal/prompt"
+	"github.com/otnc/meltool/internal/store"
+	"github.com/otnc/meltool/internal/versions"
 )
 
 const updateLong = `有効なバージョンより新しいバージョンを公式一覧から探し、保持していなければ取得してから切り替えます。切り替えは use と同じで、計画を示して確認します。
@@ -39,7 +39,7 @@ func findUpdate(cmd *cobra.Command, env *Env, root string) (*lifecycle.Activatio
 		return nil, nil, err
 	}
 	if state.Active == nil {
-		return nil, nil, errors.New("有効なバージョンがないので、新しいバージョンを探せません。先に \"vmeltype use <tag>\" で有効にしてください")
+		return nil, nil, errors.New("有効なバージョンがないので、新しいバージョンを探せません。先に \"meltool use <tag>\" で有効にしてください")
 	}
 	_, c, err := fetchCatalog(cmd, env, root)
 	if err != nil {
@@ -83,7 +83,7 @@ func runCheck(env *Env) func(*cobra.Command, []string) error {
 				return err
 			}
 		} else if release != nil {
-			fmt.Fprintf(out, "新しいバージョンがあります: %s (いまは %s)。\"vmeltype update\" で更新します。\n", release.Tag, active.Tag)
+			fmt.Fprintf(out, "新しいバージョンがあります: %s (いまは %s)。\"meltool update\" で更新します。\n", release.Tag, active.Tag)
 		} else {
 			fmt.Fprintf(out, "%s は最新です。\n", active.Tag)
 		}
@@ -121,7 +121,7 @@ func runUpdate(env *Env) func(*cobra.Command, []string) error {
 		if state, err := lifecycle.LoadState(root); err != nil {
 			return err
 		} else if state.Pin != nil && !overridePin {
-			return fmt.Errorf("%w (%s に固定しています)。%s に更新するには、\"vmeltype unpin\" で解除するか、--override-pin を付けてください", lifecycle.ErrPinned, state.Pin.Tag, release.Tag)
+			return fmt.Errorf("%w (%s に固定しています)。%s に更新するには、\"meltool unpin\" で解除するか、--override-pin を付けてください", lifecycle.ErrPinned, state.Pin.Tag, release.Tag)
 		}
 
 		planOut := out

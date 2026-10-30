@@ -1,4 +1,4 @@
-// Package selfupdate は、vMeltype 自身の新しいバージョンを選び、動いている vmeltype.exe を置き換える。
+// Package selfupdate は、Meltool 自身の新しいバージョンを選び、動いている meltool.exe を置き換える。
 package selfupdate
 
 import (
@@ -10,14 +10,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/otnc/vmeltype/internal/catalog"
-	"github.com/otnc/vmeltype/internal/versions"
+	"github.com/otnc/meltool/internal/catalog"
+	"github.com/otnc/meltool/internal/versions"
 )
 
-// Repository は、vMeltype のリリースを置くリポジトリ。
-const Repository = "otnc/vMeltype"
+// Repository は、Meltool のリリースを置くリポジトリ。
+const Repository = "otnc/Meltool"
 
-const exeName = "vmeltype.exe"
+const exeName = "meltool.exe"
 
 // platformSuffixes は、OS と CPU ごとの配布物の名前の末尾。本家の配布物の名前に合わせる。いまは Windows (x64) だけを配る。
 var platformSuffixes = map[[2]string]string{
@@ -35,7 +35,7 @@ func Select(releases []catalog.Release, current string, includePre bool, goos, g
 	byTag := map[string]catalog.Release{}
 	var candidates []versions.Candidate
 	for _, r := range releases {
-		want := fmt.Sprintf("vMeltype-%s-%s.zip", strings.TrimPrefix(r.Tag, "v"), suffix)
+		want := fmt.Sprintf("Meltool-%s-%s.zip", strings.TrimPrefix(r.Tag, "v"), suffix)
 		for _, a := range r.Assets {
 			if a.Name == want {
 				assetOf[r.Tag] = a
@@ -51,14 +51,14 @@ func Select(releases []catalog.Release, current string, includePre bool, goos, g
 	return byTag[chosen.Tag], assetOf[chosen.Tag], true
 }
 
-// Apply は、照合済みの配布物 (ZIP) の vmeltype.exe で、exe を置き換える。
+// Apply は、照合済みの配布物 (ZIP) の meltool.exe で、exe を置き換える。
 // Windows は動いている実行ファイルを消せないが名前は変えられるので、いまの exe を exe.old に退避してから新しいものを置く。
 // 新しいものを置けなければ、退避したものを戻す。前の更新で退避したものは、ここで消す。
 func Apply(exe, archive string) error {
 	dir := filepath.Dir(exe)
 	staged, err := os.CreateTemp(dir, exeName+".*.new")
 	if err != nil {
-		return fmt.Errorf("新しい vmeltype.exe を置く場所を作れませんでした: %w", err)
+		return fmt.Errorf("新しい meltool.exe を置く場所を作れませんでした: %w", err)
 	}
 	stagedPath := staged.Name()
 	defer os.Remove(stagedPath)
@@ -75,18 +75,18 @@ func Apply(exe, archive string) error {
 		return fmt.Errorf("前の更新で退避した %s を消せませんでした: %w", old, err)
 	}
 	if err := os.Rename(exe, old); err != nil {
-		return fmt.Errorf("いまの vmeltype.exe を退避できませんでした: %w", err)
+		return fmt.Errorf("いまの meltool.exe を退避できませんでした: %w", err)
 	}
 	if err := os.Rename(stagedPath, exe); err != nil {
 		if undoErr := os.Rename(old, exe); undoErr != nil {
-			return fmt.Errorf("新しい vmeltype.exe を置けず、元にも戻せませんでした。%s を %s に名前を変えてください: %w", old, exe, errors.Join(err, undoErr))
+			return fmt.Errorf("新しい meltool.exe を置けず、元にも戻せませんでした。%s を %s に名前を変えてください: %w", old, exe, errors.Join(err, undoErr))
 		}
-		return fmt.Errorf("新しい vmeltype.exe を置けなかったので、元に戻しました: %w", err)
+		return fmt.Errorf("新しい meltool.exe を置けなかったので、元に戻しました: %w", err)
 	}
 	return nil
 }
 
-// Cleanup は、前の更新で退避した vmeltype.exe を消す。動いている間は消せないので、次に vMeltype を使ったときに呼ぶ。消せなくても困らない。
+// Cleanup は、前の更新で退避した meltool.exe を消す。動いている間は消せないので、次に Meltool を使ったときに呼ぶ。消せなくても困らない。
 func Cleanup(exe string) {
 	os.Remove(exe + ".old")
 }
@@ -113,7 +113,7 @@ func extractExe(archive string, w io.Writer) error {
 			return err
 		}
 		if n > maxBytes {
-			return errors.New("配布物の vmeltype.exe が大きすぎます")
+			return errors.New("配布物の meltool.exe が大きすぎます")
 		}
 		return nil
 	}

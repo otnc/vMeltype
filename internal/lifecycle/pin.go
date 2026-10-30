@@ -10,7 +10,7 @@ var (
 	// ErrPinned は、固定しているバージョンから別のバージョンへ切り替えようとしたことを表す。
 	ErrPinned = errors.New("バージョンを固定しているので、別のバージョンに切り替えません")
 	// ErrNoActive は、有効なバージョンがなく、固定できないことを表す。
-	ErrNoActive = errors.New("有効なバージョンがないので固定できません。先に \"vmeltype use <tag>\" で有効にしてください")
+	ErrNoActive = errors.New("有効なバージョンがないので固定できません。先に \"meltool use <tag>\" で有効にしてください")
 )
 
 // Pinned は、固定したバージョン。同じタグでも variant や配布物が違えば別のバージョンとして扱うため、保持 ID で比べる。
@@ -53,7 +53,7 @@ func checkPin(state State, targetID string) error {
 	if state.Pin == nil || state.Pin.StoreID == targetID {
 		return nil
 	}
-	return fmt.Errorf("%w。%s (%s) に固定しています。切り替えるには \"vmeltype unpin\" で解除するか、この操作だけ --override-pin を付けてください", ErrPinned, state.Pin.Tag, state.Pin.StoreID)
+	return fmt.Errorf("%w。%s (%s) に固定しています。切り替えるには \"meltool unpin\" で解除するか、この操作だけ --override-pin を付けてください", ErrPinned, state.Pin.Tag, state.Pin.StoreID)
 }
 
 func pinOf(a Activation, now time.Time) Pinned {

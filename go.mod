@@ -1,4 +1,4 @@
-module github.com/otnc/vmeltype
+module github.com/otnc/meltool
 
 go 1.27.3
 

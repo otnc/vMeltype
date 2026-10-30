@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/otnc/vmeltype/internal/lifecycle"
+	"github.com/otnc/meltool/internal/lifecycle"
 )
 
 type statusJSON struct {

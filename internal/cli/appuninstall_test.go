@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/otnc/vmeltype/internal/lifecycle"
+	"github.com/otnc/meltool/internal/lifecycle"
 )
 
 // managedStandard は、本家のインストールを取り込んで v1.4.0 の通常版を有効にした状態を作る。本家の自動更新は止まっている。
@@ -56,8 +56,8 @@ func TestAppUninstallKeepsMeltype(t *testing.T) {
 		if readFile(filepath.Join(l.standardAppDir(), "Meltype.exe")) != "exe v1.4.0" || len(l.removeCalls) != 0 {
 			t.Errorf("Meltype を残していない")
 		}
-		if !strings.Contains(got.stdout, "vmeltype.exe") {
-			t.Errorf("vmeltype.exe の消し方を示していない:\n%s", got.stdout)
+		if !strings.Contains(got.stdout, "meltool.exe") {
+			t.Errorf("meltool.exe の消し方を示していない:\n%s", got.stdout)
 		}
 	})
 	t.Run("--keep-snapshots ならスナップショットだけを残す", func(t *testing.T) {

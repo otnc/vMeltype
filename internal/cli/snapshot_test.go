@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/otnc/vmeltype/internal/snapshot"
+	"github.com/otnc/meltool/internal/snapshot"
 )
 
 func (l *localEnv) writeData(t *testing.T, name, body string) {
@@ -174,7 +174,7 @@ func TestSnapshotExportImport(t *testing.T) {
 		from := managedStandard(t)
 		from.writeStandardData(t, "userdict.txt", "前の PC の辞書")
 		id := from.createSnapshot(t)
-		file := filepath.Join(t.TempDir(), "data.vmeltype-snapshot")
+		file := filepath.Join(t.TempDir(), "data.meltool-snapshot")
 
 		exported := from.run(t, false, "", "snapshot", "export", id, file)
 		if exported.code != ExitOK || !strings.Contains(exported.stdout, "辞書") {
@@ -196,7 +196,7 @@ func TestSnapshotExportImport(t *testing.T) {
 	t.Run("通常版のデータを portable 版には復元しない", func(t *testing.T) {
 		from := managedStandard(t)
 		id := from.createSnapshot(t)
-		file := filepath.Join(t.TempDir(), "data.vmeltype-snapshot")
+		file := filepath.Join(t.TempDir(), "data.meltool-snapshot")
 		from.run(t, false, "", "snapshot", "export", id, file)
 		to := newPortableWithData(t)
 		var m struct{ ID string }

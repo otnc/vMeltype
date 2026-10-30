@@ -1,4 +1,4 @@
-// Package upstreamconf は、本家の設定 (データ先の config.json) のうち、vMeltype が管理中に変える項目だけを書き換える。
+// Package upstreamconf は、本家の設定 (データ先の config.json) のうち、Meltool が管理中に変える項目だけを書き換える。
 // 本家は起動のたびに設定を読み直して保存するので、ファイル全体を読み直して書き出さず、対象の値だけを置き換える。
 package upstreamconf
 

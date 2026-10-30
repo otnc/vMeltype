@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/otnc/vmeltype/internal/osproc"
+	"github.com/otnc/meltool/internal/osproc"
 )
 
 var (
@@ -33,7 +33,7 @@ func TestMain(m *testing.M) {
 func placeFake(t *testing.T) string {
 	t.Helper()
 	fakeOnce.Do(func() {
-		dir, err := os.MkdirTemp("", "vmeltype-fake-")
+		dir, err := os.MkdirTemp("", "meltool-fake-")
 		if err != nil {
 			fakeErr = err
 			return

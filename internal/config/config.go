@@ -1,4 +1,4 @@
-// Package config は、管理ルートに置く vMeltype の設定を読み書きする。通信しない。
+// Package config は、管理ルートに置く Meltool の設定を読み書きする。通信しない。
 package config
 
 import (
@@ -11,13 +11,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/otnc/vmeltype/internal/privatefs"
+	"github.com/otnc/meltool/internal/privatefs"
 )
 
 // ErrInvalid は、Set に渡した項目か値を受け付けないことを表す。
 var ErrInvalid = errors.New("設定できません")
 
-// Settings は、vMeltype が使う設定。ファイルにない項目は既定の値になる。
+// Settings は、Meltool が使う設定。ファイルにない項目は既定の値になる。
 type Settings struct {
 	// StopAppOnYes は、-y だけで、動いている実行先の Meltype を終了させるか。
 	StopAppOnYes bool
@@ -66,7 +66,7 @@ func Load(root string) (Settings, error) {
 	return s, nil
 }
 
-// Set は、1 つの設定を変える。知らない項目は、新しいバージョンの vMeltype が書いたものかもしれないので消さない。
+// Set は、1 つの設定を変える。知らない項目は、新しいバージョンの Meltool が書いたものかもしれないので消さない。
 func Set(root, key, value string) error {
 	if _, ok := keys[key]; !ok {
 		return fmt.Errorf("%w: %q (設定できるもの: %s)", ErrInvalid, key, strings.Join(keyNames(), "、"))
@@ -111,7 +111,7 @@ func (k boolKey) read(raw map[string]json.RawMessage, name string) (bool, error)
 	}
 	var value bool
 	if err := json.Unmarshal(data, &value); err != nil {
-		return false, fmt.Errorf("設定 %s の値を読めません (%s)。\"vmeltype app config set %s true\" などで直してください", name, data, name)
+		return false, fmt.Errorf("設定 %s の値を読めません (%s)。\"meltool app config set %s true\" などで直してください", name, data, name)
 	}
 	return value, nil
 }

@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/otnc/vmeltype/internal/lifecycle"
-	"github.com/otnc/vmeltype/internal/store"
+	"github.com/otnc/meltool/internal/lifecycle"
+	"github.com/otnc/meltool/internal/store"
 )
 
 // interruptedUse は、v1.4.0 が有効で data がある状態から、v1.3.0 への use が phase で止まった状態を作る。

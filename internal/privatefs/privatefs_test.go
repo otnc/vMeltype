@@ -8,13 +8,13 @@ import (
 
 func TestMkdirAllCreatesOwnerOnlyDirectories(t *testing.T) {
 	parent := t.TempDir()
-	dir := filepath.Join(parent, "vMeltype", "versions")
+	dir := filepath.Join(parent, "Meltool", "versions")
 
 	if err := MkdirAll(dir); err != nil {
 		t.Fatal(err)
 	}
 
-	for _, created := range []string{filepath.Join(parent, "vMeltype"), dir} {
+	for _, created := range []string{filepath.Join(parent, "Meltool"), dir} {
 		if others := othersCanAccess(t, created); others != "" {
 			t.Errorf("%s を本人のほかも使える: %s", created, others)
 		}

@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/otnc/vmeltype/internal/assets"
+	"github.com/otnc/meltool/internal/assets"
 )
 
-// selfRelease は、vMeltype 自身のリリース。
+// selfRelease は、Meltool 自身のリリース。
 type selfRelease struct {
 	tag    string
 	pre    bool
@@ -22,7 +22,7 @@ type selfRelease struct {
 	digest string
 }
 
-// selfUpdateEnv は、vMeltype のリリースを返す偽の GitHub と、置き換えられる vmeltype.exe を用意する。
+// selfUpdateEnv は、Meltool のリリースを返す偽の GitHub と、置き換えられる meltool.exe を用意する。
 type selfUpdateEnv struct {
 	server  *httptest.Server
 	exe     string
@@ -31,15 +31,15 @@ type selfUpdateEnv struct {
 
 func newSelfUpdateEnv(t *testing.T, version string, releases ...selfRelease) *selfUpdateEnv {
 	t.Helper()
-	e := &selfUpdateEnv{exe: filepath.Join(t.TempDir(), "vmeltype.exe"), version: version}
-	if err := os.WriteFile(e.exe, []byte("vmeltype "+version), 0o700); err != nil {
+	e := &selfUpdateEnv{exe: filepath.Join(t.TempDir(), "meltool.exe"), version: version}
+	if err := os.WriteFile(e.exe, []byte("meltool "+version), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	e.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/repos/otnc/vMeltype/releases" {
+		if r.URL.Path == "/repos/otnc/Meltool/releases" {
 			var body []map[string]any
 			for i, rel := range releases {
-				name := "vMeltype-" + strings.TrimPrefix(rel.tag, "v") + "-windows.zip"
+				name := "Meltool-" + strings.TrimPrefix(rel.tag, "v") + "-windows.zip"
 				body = append(body, map[string]any{
 					"id": i + 1, "tag_name": rel.tag, "prerelease": rel.pre,
 					"published_at": time.Date(2026, 10, 1+i, 0, 0, 0, 0, time.UTC),
@@ -80,7 +80,7 @@ func (e *selfUpdateEnv) run(t *testing.T, args ...string) result {
 
 func selfZip(t *testing.T, tag string) selfRelease {
 	t.Helper()
-	zip := makeZip(t, map[string]string{"vmeltype.exe": "vmeltype " + strings.TrimPrefix(tag, "v"), "LICENSE.txt": "license"})
+	zip := makeZip(t, map[string]string{"meltool.exe": "meltool " + strings.TrimPrefix(tag, "v"), "LICENSE.txt": "license"})
 	return selfRelease{tag: tag, pre: strings.Contains(tag, "-"), zip: zip, digest: digestOf(zip)}
 }
 
@@ -91,7 +91,7 @@ func TestAppUpdate(t *testing.T) {
 
 			got := e.run(t, append(args, "-y")...)
 
-			if got.code != ExitOK || readFile(e.exe) != "vmeltype 0.1.0" {
+			if got.code != ExitOK || readFile(e.exe) != "meltool 0.1.0" {
 				t.Errorf("%v: code = %d, exe = %q\n%s", args, got.code, readFile(e.exe), got.stderr)
 			}
 		}
@@ -101,7 +101,7 @@ func TestAppUpdate(t *testing.T) {
 
 		got := e.run(t, "app", "update", "--pre", "-y")
 
-		if got.code != ExitOK || readFile(e.exe) != "vmeltype 0.2.0-pre.1" {
+		if got.code != ExitOK || readFile(e.exe) != "meltool 0.2.0-pre.1" {
 			t.Errorf("code = %d, exe = %q\n%s", got.code, readFile(e.exe), got.stderr)
 		}
 	})
@@ -110,7 +110,7 @@ func TestAppUpdate(t *testing.T) {
 
 		got := e.run(t, "app", "update", "-y")
 
-		if got.code != ExitOK || !strings.Contains(got.stdout, "最新") || readFile(e.exe) != "vmeltype 0.1.0-pre.2" {
+		if got.code != ExitOK || !strings.Contains(got.stdout, "最新") || readFile(e.exe) != "meltool 0.1.0-pre.2" {
 			t.Errorf("code = %d\n%s%s", got.code, got.stdout, got.stderr)
 		}
 	})
@@ -121,7 +121,7 @@ func TestAppUpdate(t *testing.T) {
 
 		got := e.run(t, "app", "update", "-y")
 
-		if got.code != ExitError || !strings.Contains(got.stderr, "SHA-256") || readFile(e.exe) != "vmeltype 0.1.0-pre.2" {
+		if got.code != ExitError || !strings.Contains(got.stderr, "SHA-256") || readFile(e.exe) != "meltool 0.1.0-pre.2" {
 			t.Errorf("code = %d, exe = %q\n%s", got.code, readFile(e.exe), got.stderr)
 		}
 	})
@@ -132,7 +132,7 @@ func TestAppUpdate(t *testing.T) {
 
 		got := e.run(t, "app", "update", "-y")
 
-		if got.code != ExitError || readFile(e.exe) != "vmeltype 0.1.0-pre.2" {
+		if got.code != ExitError || readFile(e.exe) != "meltool 0.1.0-pre.2" {
 			t.Errorf("code = %d, exe = %q\n%s", got.code, readFile(e.exe), got.stderr)
 		}
 	})
@@ -142,7 +142,7 @@ func TestAppUpdate(t *testing.T) {
 
 			got := e.run(t, args...)
 
-			if readFile(e.exe) != "vmeltype 0.1.0-pre.2" || !strings.Contains(got.stdout+got.stderr, "v0.1.0") {
+			if readFile(e.exe) != "meltool 0.1.0-pre.2" || !strings.Contains(got.stdout+got.stderr, "v0.1.0") {
 				t.Errorf("%v: code = %d, exe = %q\n%s%s", args, got.code, readFile(e.exe), got.stdout, got.stderr)
 			}
 		}
@@ -152,7 +152,7 @@ func TestAppUpdate(t *testing.T) {
 
 		got := e.run(t, "app", "update", "-y")
 
-		if got.code != ExitError || readFile(e.exe) != "vmeltype dev" {
+		if got.code != ExitError || readFile(e.exe) != "meltool dev" {
 			t.Errorf("code = %d\n%s", got.code, got.stderr)
 		}
 	})

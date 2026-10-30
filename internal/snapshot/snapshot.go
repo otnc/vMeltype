@@ -17,11 +17,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/otnc/vmeltype/internal/archive"
-	"github.com/otnc/vmeltype/internal/privatefs"
+	"github.com/otnc/meltool/internal/archive"
+	"github.com/otnc/meltool/internal/privatefs"
 )
 
-// SchemaVersion は、このバージョンの vMeltype が読み書きする manifest の形式のバージョン。
+// SchemaVersion は、このバージョンの Meltool が読み書きする manifest の形式のバージョン。
 const SchemaVersion = 1
 
 var (
@@ -33,7 +33,7 @@ var (
 	ErrNotFound = errors.New("スナップショットがありません")
 	// ErrCorrupted は、スナップショットの中身が manifest と一致しないことを表す。
 	ErrCorrupted   = errors.New("スナップショットの中身が記録と一致しません")
-	errNewerSchema = errors.New("新しいバージョンの vMeltype が作ったスナップショットなので読めません。vMeltype を更新してください")
+	errNewerSchema = errors.New("新しいバージョンの Meltool が作ったスナップショットなので読めません。Meltool を更新してください")
 )
 
 // Reason は、スナップショットを作った理由。

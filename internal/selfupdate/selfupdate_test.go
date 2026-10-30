@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/otnc/vmeltype/internal/catalog"
+	"github.com/otnc/meltool/internal/catalog"
 )
 
 func release(tag string, pre bool, assets ...string) catalog.Release {
@@ -20,10 +20,10 @@ func release(tag string, pre bool, assets ...string) catalog.Release {
 
 func TestSelect(t *testing.T) {
 	releases := []catalog.Release{
-		release("v0.1.0-pre.1", true, "vMeltype-0.1.0-pre.1-windows.zip"),
-		release("v0.1.0", false, "vMeltype-0.1.0-windows.zip"),
-		release("v0.2.0-pre.1", true, "vMeltype-0.2.0-pre.1-windows.zip"),
-		release("v0.3.0", false, "vMeltype-0.3.0-linux.zip"),
+		release("v0.1.0-pre.1", true, "Meltool-0.1.0-pre.1-windows.zip"),
+		release("v0.1.0", false, "Meltool-0.1.0-windows.zip"),
+		release("v0.2.0-pre.1", true, "Meltool-0.2.0-pre.1-windows.zip"),
+		release("v0.3.0", false, "Meltool-0.3.0-linux.zip"),
 	}
 	tests := []struct {
 		name       string
@@ -31,8 +31,8 @@ func TestSelect(t *testing.T) {
 		includePre bool
 		wantAsset  string
 	}{
-		{name: "正式版の中で新しいものを選ぶ", current: "0.1.0-pre.1", wantAsset: "vMeltype-0.1.0-windows.zip"},
-		{name: "--pre ならプレリリースも含める", current: "0.1.0", includePre: true, wantAsset: "vMeltype-0.2.0-pre.1-windows.zip"},
+		{name: "正式版の中で新しいものを選ぶ", current: "0.1.0-pre.1", wantAsset: "Meltool-0.1.0-windows.zip"},
+		{name: "--pre ならプレリリースも含める", current: "0.1.0", includePre: true, wantAsset: "Meltool-0.2.0-pre.1-windows.zip"},
 		{name: "この端末の配布物がないリリースは選ばない", current: "0.2.0-pre.1", includePre: true, wantAsset: ""},
 		{name: "最新なら選ばない", current: "0.1.0", wantAsset: ""},
 	}
@@ -65,7 +65,7 @@ func makeZip(t *testing.T, files map[string]string) string {
 
 func installed(t *testing.T, body string) string {
 	t.Helper()
-	exe := filepath.Join(t.TempDir(), "vmeltype.exe")
+	exe := filepath.Join(t.TempDir(), "meltool.exe")
 	if err := os.WriteFile(exe, []byte(body), 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -81,9 +81,9 @@ func read(path string) string {
 }
 
 func TestApply(t *testing.T) {
-	t.Run("ZIP の vmeltype.exe に置き換え、前のものを退避する", func(t *testing.T) {
+	t.Run("ZIP の meltool.exe に置き換え、前のものを退避する", func(t *testing.T) {
 		exe := installed(t, "old")
-		archive := makeZip(t, map[string]string{"vmeltype.exe": "new", "LICENSE.txt": "license"})
+		archive := makeZip(t, map[string]string{"meltool.exe": "new", "LICENSE.txt": "license"})
 
 		if err := Apply(exe, archive); err != nil {
 			t.Fatal(err)
@@ -99,7 +99,7 @@ func TestApply(t *testing.T) {
 	t.Run("前の更新で退避したものを消してから置き換える", func(t *testing.T) {
 		exe := installed(t, "second")
 		os.WriteFile(exe+".old", []byte("first"), 0o600)
-		archive := makeZip(t, map[string]string{"vmeltype.exe": "third"})
+		archive := makeZip(t, map[string]string{"meltool.exe": "third"})
 
 		if err := Apply(exe, archive); err != nil {
 			t.Fatal(err)
@@ -108,7 +108,7 @@ func TestApply(t *testing.T) {
 			t.Errorf("exe = %q, old = %q", read(exe), read(exe+".old"))
 		}
 	})
-	t.Run("ZIP に vmeltype.exe がなければ、何も変えない", func(t *testing.T) {
+	t.Run("ZIP に meltool.exe がなければ、何も変えない", func(t *testing.T) {
 		exe := installed(t, "old")
 		archive := makeZip(t, map[string]string{"other.exe": "x"})
 

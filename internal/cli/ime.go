@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/otnc/vmeltype/internal/winime"
+	"github.com/otnc/meltool/internal/winime"
 )
 
 var (
@@ -29,7 +29,7 @@ func replaceIME(env *Env, storedAppDir, tag string) error {
 	case winime.ResultFailed:
 		return errIMEFailed
 	case winime.ResultCorrupt:
-		return fmt.Errorf("%s の Meltype IME の DLL が、ビルドしたときのものと違います。\"vmeltype install %s --reinstall\" で取得し直してください", tag, tag)
+		return fmt.Errorf("%s の Meltype IME の DLL が、ビルドしたときのものと違います。\"meltool install %s --reinstall\" で取得し直してください", tag, tag)
 	case winime.ResultARM64:
 		return errors.New("ARM64 の Windows では、本家が Meltype IME に対応していないので、IME 登録済みの PC では切り替えません")
 	default:

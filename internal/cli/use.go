@@ -9,19 +9,19 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/otnc/vmeltype/internal/assets"
-	"github.com/otnc/vmeltype/internal/lifecycle"
-	"github.com/otnc/vmeltype/internal/prompt"
-	"github.com/otnc/vmeltype/internal/store"
-	"github.com/otnc/vmeltype/internal/versions"
+	"github.com/otnc/meltool/internal/assets"
+	"github.com/otnc/meltool/internal/lifecycle"
+	"github.com/otnc/meltool/internal/prompt"
+	"github.com/otnc/meltool/internal/store"
+	"github.com/otnc/meltool/internal/versions"
 )
 
-const useLong = `保持バージョンを有効にします。通信しません。保持していないバージョンは、先に "vmeltype install <tag>" で取得します。
+const useLong = `保持バージョンを有効にします。通信しません。保持していないバージョンは、先に "meltool install <tag>" で取得します。
 
 バージョンの指定は install と同じで、保持しているバージョンの中から選びます。バージョンを省くと保持している正式版の最新、1 や 1.4 ではその範囲の最新、--pre ではプレリリースの最新です。
 
 portable 版は --portable を付けたときだけ対象にします。付けなければ通常版 (IME の登録を伴うもの) だけを探し、portable 版しか保持していなくても選びません。
-いまは Windows だけに対応しています。どちらも実行先を固定し、バージョンを切り替えるときはアプリのファイルだけを入れ替えます。vMeltype が置いていないファイルはそのまま引き継ぎます。
+いまは Windows だけに対応しています。どちらも実行先を固定し、バージョンを切り替えるときはアプリのファイルだけを入れ替えます。Meltool が置いていないファイルはそのまま引き継ぎます。
 portable 版の実行先は管理ルートの portable\app で、データは隣の data です。
 通常版の実行先とデータ先は、本家と同じ %LOCALAPPDATA%\Programs\Meltype と %LOCALAPPDATA%\Meltype です。本家のインストールがあれば取り込み、置き換えた本家のファイルを管理前の記録として残します。切り替えの前にデータのスナップショットを作り、本家の自動更新を止め、本家がダウンロード済みの更新を管理ルートに移します。
 Meltype IME を登録済みなら、実行先を入れ替える前に、IME の DLL も切り替え先のバージョンのものに入れ替えます。入れ替えには切り替え先のバージョンの本家のスクリプトを使い、DLL が違えば管理者権限の確認 (UAC) が出ます。断られたら切り替えません。登録していなければ、IME には触れません。
@@ -365,7 +365,7 @@ func newStoredQuery(cmd *cobra.Command, args []string) (storedQuery, error) {
 }
 
 func (q storedQuery) installHint() string {
-	parts := []string{"vmeltype install"}
+	parts := []string{"meltool install"}
 	if q.input != "" {
 		parts = append(parts, q.input)
 	}
@@ -468,7 +468,7 @@ func runCurrent(env *Env) func(*cobra.Command, []string) error {
 			return writeJSON(out, map[string]any{"active": state.Active, "previous": state.Previous, "pin": state.Pin})
 		}
 		if state.Active == nil {
-			fmt.Fprintln(out, "有効なバージョンはありません。\"vmeltype use <tag>\" で有効にします。")
+			fmt.Fprintln(out, "有効なバージョンはありません。\"meltool use <tag>\" で有効にします。")
 			return nil
 		}
 		variant := variantLabels[state.Active.Variant]

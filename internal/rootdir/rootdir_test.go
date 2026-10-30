@@ -14,12 +14,12 @@ func TestDefault(t *testing.T) {
 		want    string
 		wantErr bool
 	}{
-		{name: "Windows は LOCALAPPDATA の下", goos: "windows", env: map[string]string{"LOCALAPPDATA": `C:\Users\alice\AppData\Local`}, want: filepath.Join(`C:\Users\alice\AppData\Local`, "vMeltype")},
+		{name: "Windows は LOCALAPPDATA の下", goos: "windows", env: map[string]string{"LOCALAPPDATA": `C:\Users\alice\AppData\Local`}, want: filepath.Join(`C:\Users\alice\AppData\Local`, "Meltool")},
 		{name: "Windows で LOCALAPPDATA がなければ決めない", goos: "windows", wantErr: true},
-		{name: "macOS は Application Support の下", goos: "darwin", want: filepath.Join(home, "Library", "Application Support", "vMeltype")},
-		{name: "Linux は XDG_DATA_HOME の下", goos: "linux", env: map[string]string{"XDG_DATA_HOME": "/data"}, want: filepath.Join("/data", "vmeltype")},
-		{name: "Linux で XDG_DATA_HOME がなければ ~/.local/share の下", goos: "linux", want: filepath.Join(home, ".local", "share", "vmeltype")},
-		{name: "XDG_DATA_HOME が相対パスなら無視する", goos: "linux", env: map[string]string{"XDG_DATA_HOME": "data"}, want: filepath.Join(home, ".local", "share", "vmeltype")},
+		{name: "macOS は Application Support の下", goos: "darwin", want: filepath.Join(home, "Library", "Application Support", "Meltool")},
+		{name: "Linux は XDG_DATA_HOME の下", goos: "linux", env: map[string]string{"XDG_DATA_HOME": "/data"}, want: filepath.Join("/data", "meltool")},
+		{name: "Linux で XDG_DATA_HOME がなければ ~/.local/share の下", goos: "linux", want: filepath.Join(home, ".local", "share", "meltool")},
+		{name: "XDG_DATA_HOME が相対パスなら無視する", goos: "linux", env: map[string]string{"XDG_DATA_HOME": "data"}, want: filepath.Join(home, ".local", "share", "meltool")},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

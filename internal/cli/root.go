@@ -1,4 +1,4 @@
-// Package cli は、vmeltype のコマンドと引数を解釈し、終了コードを決める。
+// Package cli は、meltool のコマンドと引数を解釈し、終了コードを決める。
 package cli
 
 import (
@@ -12,8 +12,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/otnc/vmeltype/internal/assets"
-	"github.com/otnc/vmeltype/internal/winime"
+	"github.com/otnc/meltool/internal/assets"
+	"github.com/otnc/meltool/internal/winime"
 )
 
 // Env は、コマンドが使う入出力と、外の世界への依存。テストで差し替えられるよう、ここからだけ受け取る。
@@ -47,7 +47,7 @@ type Env struct {
 	InstalledTipHashes func() (map[string]string, error)
 	// ReplaceIME は、登録済みの Meltype IME の DLL を、appDir (切り替え先のバージョンの、本家の ZIP の app に当たるディレクトリ) のものに入れ替える。
 	ReplaceIME func(appDir string) (winime.Result, error)
-	// Executable は、いま動いている vmeltype の実行ファイルのパスを返す。app update が置き換える。
+	// Executable は、いま動いている meltool の実行ファイルのパスを返す。app update が置き換える。
 	Executable func() (string, error)
 	// RemoveMeltype は、通常版の Meltype を本家のアンインストーラーで削除する。fallbackScript は、インストール先にアンインストーラーがないときに使う uninstall.ps1。
 	RemoveMeltype func(appDir, fallbackScript string, interactive bool) error
@@ -103,9 +103,9 @@ func RunContext(ctx context.Context, args []string, env Env) int {
 
 func newRootCommand(env *Env) *cobra.Command {
 	root := &cobra.Command{
-		Use:   "vmeltype",
+		Use:   "meltool",
 		Short: "Meltype のバージョン管理をはじめとした、外付けの多機能ツール",
-		Long: `vMeltype は、日本語入力 Meltype のバージョン管理をはじめとした、外付けの多機能ツールです。正式版、プレリリース、古いバージョンを保持して切り替えるほか、データのスナップショットや中断からの復旧も扱います。
+		Long: `Meltool は、日本語入力 Meltype のバージョン管理をはじめとした、外付けの多機能ツールです。正式版、プレリリース、古いバージョンを保持して切り替えるほか、データのスナップショットや中断からの復旧も扱います。
 install で取得して保持し、use で有効にします。use、list、current などのローカル操作は通信しません。`,
 		Version:               env.Version,
 		Args:                  rejectUnknownSubcommand,
@@ -117,9 +117,9 @@ install で取得して保持し、use で有効にします。use、list、curr
 		CompletionOptions: cobra.CompletionOptions{DisableDefaultCmd: true},
 	}
 	// v はバージョンの指定と紛らわしいので、--version の短縮形にしない
-	root.Flags().Bool("version", false, "vMeltype のバージョンを表示する")
-	root.PersistentFlags().String("root", "", "vMeltype の管理ルート (設定、保持バージョン、スナップショットを置く場所)")
-	root.SetVersionTemplate("vMeltype {{.Version}}\n")
+	root.Flags().Bool("version", false, "Meltool のバージョンを表示する")
+	root.PersistentFlags().String("root", "", "Meltool の管理ルート (設定、保持バージョン、スナップショットを置く場所)")
+	root.SetVersionTemplate("Meltool {{.Version}}\n")
 	root.SetFlagErrorFunc(func(_ *cobra.Command, err error) error {
 		return usageError{fmt.Errorf("オプションの誤り: %w", err)}
 	})

@@ -1,4 +1,4 @@
-// vmeltype は、Meltype の複数のバージョンを保持し、切り替える CLI。
+// meltool は、Meltype の複数のバージョンを保持し、切り替える CLI。
 package main
 
 import (
@@ -11,15 +11,15 @@ import (
 
 	"golang.org/x/term"
 
-	"github.com/otnc/vmeltype/internal/appctl"
-	"github.com/otnc/vmeltype/internal/assets"
-	"github.com/otnc/vmeltype/internal/catalog/remote"
-	"github.com/otnc/vmeltype/internal/cli"
-	"github.com/otnc/vmeltype/internal/osproc"
-	"github.com/otnc/vmeltype/internal/rootdir"
-	"github.com/otnc/vmeltype/internal/upstreamremove"
-	"github.com/otnc/vmeltype/internal/winime"
-	"github.com/otnc/vmeltype/internal/winsys"
+	"github.com/otnc/meltool/internal/appctl"
+	"github.com/otnc/meltool/internal/assets"
+	"github.com/otnc/meltool/internal/catalog/remote"
+	"github.com/otnc/meltool/internal/cli"
+	"github.com/otnc/meltool/internal/osproc"
+	"github.com/otnc/meltool/internal/rootdir"
+	"github.com/otnc/meltool/internal/upstreamremove"
+	"github.com/otnc/meltool/internal/winime"
+	"github.com/otnc/meltool/internal/winsys"
 )
 
 // version は、配布のビルドで -ldflags "-X main.version=..." で埋め込む。

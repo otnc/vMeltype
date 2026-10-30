@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/otnc/vmeltype/internal/privatefs"
-	"github.com/otnc/vmeltype/internal/snapshot"
-	"github.com/otnc/vmeltype/internal/upstreamconf"
+	"github.com/otnc/meltool/internal/privatefs"
+	"github.com/otnc/meltool/internal/snapshot"
+	"github.com/otnc/meltool/internal/upstreamconf"
 )
 
 // StandardAppDir は、通常版の実行先。本家と同じ場所にし、自動起動のタスク、ショートカット、「設定 → アプリ」の登録をそのまま使う。
@@ -18,23 +18,23 @@ func StandardAppDir(localAppData string) string {
 	return filepath.Join(localAppData, "Programs", "Meltype")
 }
 
-// StandardDataDir は、通常版のデータ先。本家が LocalAppData の下に決めていて、vMeltype は変えない。
+// StandardDataDir は、通常版のデータ先。本家が LocalAppData の下に決めていて、Meltool は変えない。
 func StandardDataDir(localAppData string) string {
 	return filepath.Join(localAppData, "Meltype")
 }
 
-// Baseline は、vMeltype が本家を初めて管理する直前の状態。管理前に戻すときに使う。項目ごとに、最初に変えたときだけ記録する。
+// Baseline は、Meltool が本家を初めて管理する直前の状態。管理前に戻すときに使う。項目ごとに、最初に変えたときだけ記録する。
 type Baseline struct {
 	SchemaVersion int `json:"schemaVersion"`
 	// StandardApp は、取り込んだ本家のインストール。取り込まずに始めたなら nil。
 	StandardApp *AdoptedApp `json:"standardApp,omitempty"`
-	// StandardConfig は、本家の設定の、vMeltype が変える前の値。
+	// StandardConfig は、本家の設定の、Meltool が変える前の値。
 	StandardConfig *upstreamconf.Original `json:"standardConfig,omitempty"`
 	// QuarantinedUpdates は、本家がダウンロード済みだった更新を移した先。
 	QuarantinedUpdates []string `json:"quarantinedUpdates,omitempty"`
 }
 
-// AdoptedApp は、取り込んだ本家のインストールのうち、vMeltype が置き換えたファイル。
+// AdoptedApp は、取り込んだ本家のインストールのうち、Meltool が置き換えたファイル。
 type AdoptedApp struct {
 	AppDir string `json:"appDir"`
 	// SavedDir は、置き換えた本家のファイルを移した先。

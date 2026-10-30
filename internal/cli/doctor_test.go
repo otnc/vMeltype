@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/otnc/vmeltype/internal/lifecycle"
-	"github.com/otnc/vmeltype/internal/store"
+	"github.com/otnc/meltool/internal/lifecycle"
+	"github.com/otnc/meltool/internal/store"
 )
 
 type doctorJSON struct {
@@ -84,7 +84,7 @@ func TestDoctorFindsProblems(t *testing.T) {
 			check:     "journal",
 			wantLevel: "fail",
 			wantCode:  ExitNeedsAction,
-			wantHint:  "vmeltype recover",
+			wantHint:  "meltool recover",
 		},
 		{
 			name: "実行先が保持バージョンと違えば、置き直し方を示す",
@@ -112,7 +112,7 @@ func TestDoctorFindsProblems(t *testing.T) {
 			check:     "previous",
 			wantLevel: "warn",
 			wantCode:  ExitOK,
-			wantHint:  "vmeltype install v1.3.0 --portable",
+			wantHint:  "meltool install v1.3.0 --portable",
 		},
 		{
 			name: "読めない保持バージョンがあれば警告する",
@@ -197,7 +197,7 @@ func TestDoctorChecksIMEDLL(t *testing.T) {
 			if got.code != tt.wantCode || d.levels()["ime"] != tt.wantLevel {
 				t.Errorf("code = %d, ime = %q\n%s", got.code, d.levels()["ime"], got.stderr)
 			}
-			if tt.wantLevel == "fail" && !strings.Contains(l.run(t, false, "", "doctor").stdout, "vmeltype use v1.4.0 --force") {
+			if tt.wantLevel == "fail" && !strings.Contains(l.run(t, false, "", "doctor").stdout, "meltool use v1.4.0 --force") {
 				t.Errorf("置き直し方を示していない")
 			}
 		})

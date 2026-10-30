@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/otnc/vmeltype/internal/catalog"
+	"github.com/otnc/meltool/internal/catalog"
 )
 
 func release(tag string, names ...string) catalog.Release {

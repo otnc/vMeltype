@@ -10,10 +10,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/otnc/vmeltype/internal/assets"
-	"github.com/otnc/vmeltype/internal/lifecycle"
-	"github.com/otnc/vmeltype/internal/prompt"
-	"github.com/otnc/vmeltype/internal/snapshot"
+	"github.com/otnc/meltool/internal/assets"
+	"github.com/otnc/meltool/internal/lifecycle"
+	"github.com/otnc/meltool/internal/prompt"
+	"github.com/otnc/meltool/internal/snapshot"
 )
 
 const snapshotLong = `Meltype のデータを保存し、検査し、復元します。通信しません。
@@ -141,7 +141,7 @@ func runSnapshotList(env *Env) func(*cobra.Command, []string) error {
 			return writeJSON(out, map[string]any{"snapshots": nonNil(listed)})
 		}
 		if len(listed) == 0 {
-			fmt.Fprintln(out, "スナップショットはありません。\"vmeltype snapshot create\" で作ります。")
+			fmt.Fprintln(out, "スナップショットはありません。\"meltool snapshot create\" で作ります。")
 			return nil
 		}
 		rows := [][]string{{"ID", "作った日時", "理由", "有効だったバージョン", "ファイル", "サイズ"}}
@@ -315,7 +315,7 @@ func runSnapshotExport(env *Env) func(*cobra.Command, []string) error {
 		}
 		fmt.Fprintf(out, "スナップショット %s を %s に書き出しました。\n", id, file)
 		fmt.Fprintln(out, "このファイルには、Meltype の設定、辞書、学習の中身が入っています。人に渡したり公開したりしないでください。")
-		fmt.Fprintf(out, "別の PC では \"vmeltype snapshot import %s\" で取り込みます。\n", filepath.Base(file))
+		fmt.Fprintf(out, "別の PC では \"meltool snapshot import %s\" で取り込みます。\n", filepath.Base(file))
 		return nil
 	}
 }
@@ -335,7 +335,7 @@ func runSnapshotImport(env *Env) func(*cobra.Command, []string) error {
 			return writeJSON(out, m)
 		}
 		fmt.Fprintf(out, "スナップショット %s として取り込みました (%d ファイル、%s)。\n", m.ID, len(m.Files), formatBytes(m.TotalBytes))
-		fmt.Fprintf(out, "復元するには \"vmeltype snapshot restore %s\" を実行します。\n", m.ID)
+		fmt.Fprintf(out, "復元するには \"meltool snapshot restore %s\" を実行します。\n", m.ID)
 		return nil
 	}
 }

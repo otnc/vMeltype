@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/otnc/vmeltype/internal/store"
+	"github.com/otnc/meltool/internal/store"
 )
 
 func runList(env *Env) func(*cobra.Command, []string) error {
@@ -39,7 +39,7 @@ var variantLabels = map[string]string{"standard": "通常版", "portable": "port
 
 func writeStored(w io.Writer, root string, stored []store.Stored) {
 	if len(stored) == 0 {
-		fmt.Fprintln(w, "保持しているバージョンはありません。\"vmeltype install <tag>\" で取得します。")
+		fmt.Fprintln(w, "保持しているバージョンはありません。\"meltool install <tag>\" で取得します。")
 		return
 	}
 	fmt.Fprintf(w, "保持しているバージョン (%s)\n\n", root)

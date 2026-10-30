@@ -12,13 +12,13 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/otnc/vmeltype/internal/archive"
-	"github.com/otnc/vmeltype/internal/assets"
-	"github.com/otnc/vmeltype/internal/catalog"
-	"github.com/otnc/vmeltype/internal/catalog/remote"
-	"github.com/otnc/vmeltype/internal/prompt"
-	"github.com/otnc/vmeltype/internal/store"
-	"github.com/otnc/vmeltype/internal/versions"
+	"github.com/otnc/meltool/internal/archive"
+	"github.com/otnc/meltool/internal/assets"
+	"github.com/otnc/meltool/internal/catalog"
+	"github.com/otnc/meltool/internal/catalog/remote"
+	"github.com/otnc/meltool/internal/prompt"
+	"github.com/otnc/meltool/internal/store"
+	"github.com/otnc/meltool/internal/versions"
 )
 
 const installLong = `公式の配布物を取得し、GitHub が示す SHA-256 と照合してから展開し、保持バージョンとして置きます。有効なバージョンは変えません。
@@ -143,7 +143,7 @@ func runInstall(env *Env) func(*cobra.Command, []string) error {
 		if asJSON {
 			return writeJSON(out, map[string]any{"alreadyStored": false, "stored": stored})
 		}
-		fmt.Fprintf(out, "%s を保持しました (保持 ID: %s)。有効にするには \"vmeltype use %s\" を実行します。\n", stored.Tag, stored.ID, stored.Tag)
+		fmt.Fprintf(out, "%s を保持しました (保持 ID: %s)。有効にするには \"meltool use %s\" を実行します。\n", stored.Tag, stored.ID, stored.Tag)
 		return nil
 	}
 }
@@ -311,8 +311,8 @@ func newRemoteClient(env *Env) *remote.Client {
 	return &remote.Client{
 		HTTP:      env.HTTPClient,
 		BaseURL:   env.GitHubAPIURL,
-		Token:     env.Getenv("VMELTYPE_GITHUB_TOKEN"),
-		UserAgent: "vmeltype/" + env.Version,
+		Token:     env.Getenv("MELTOOL_GITHUB_TOKEN"),
+		UserAgent: "meltool/" + env.Version,
 		Now:       env.Now,
 	}
 }

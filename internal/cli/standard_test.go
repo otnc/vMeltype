@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/otnc/vmeltype/internal/snapshot"
-	"github.com/otnc/vmeltype/internal/winime"
+	"github.com/otnc/meltool/internal/snapshot"
+	"github.com/otnc/meltool/internal/winime"
 )
 
 func (l *localEnv) standardAppDir() string {

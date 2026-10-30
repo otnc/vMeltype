@@ -9,7 +9,7 @@ import (
 )
 
 // ErrPendingJournal は、中断した変更の処理記録が残っていて、新しい変更を始められないことを表す。
-var ErrPendingJournal = errors.New("中断した変更の処理記録が残っています。\"vmeltype recover\" で復旧してから実行してください")
+var ErrPendingJournal = errors.New("中断した変更の処理記録が残っています。\"meltool recover\" で復旧してから実行してください")
 
 // 処理記録の段階。recover は、どこまで進んだかで、戻すか終えるかを決める。
 const (

@@ -15,7 +15,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/otnc/vmeltype/internal/privatefs"
+	"github.com/otnc/meltool/internal/privatefs"
 )
 
 // ErrUnsafeArchive は、展開先の外へ書く、OS の特殊な名前を使う、大きすぎるなど、安全に展開できない ZIP を表す。

@@ -11,14 +11,14 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/otnc/vmeltype/internal/catalog"
+	"github.com/otnc/meltool/internal/catalog"
 )
 
 const releasesLong = `本家の GitHub Releases から公式のリリースの一覧を取得し、保存してから表示します。
 取得に失敗したときは、古い一覧を最新のように表示せずに終了します。保存済みの一覧は --cached で表示できます。
 
 既定では正式版だけを表示し、--all でプレリリースも含めます。
-環境変数 VMELTYPE_GITHUB_TOKEN があれば、GitHub の API の認証に使います。`
+環境変数 MELTOOL_GITHUB_TOKEN があれば、GitHub の API の認証に使います。`
 
 func setupReleasesFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool("cached", false, "取得せず、保存済みの一覧を表示する")
@@ -63,7 +63,7 @@ func runReleases(env *Env) func(*cobra.Command, []string) error {
 		all, _ := cmd.Flags().GetBool("all")
 		asJSON, _ := cmd.Flags().GetBool("json")
 		if offline && !cached {
-			return usageError{errors.New("--offline では公式一覧を取得できません。保存済みの一覧は \"vmeltype releases --cached\" で表示します")}
+			return usageError{errors.New("--offline では公式一覧を取得できません。保存済みの一覧は \"meltool releases --cached\" で表示します")}
 		}
 
 		root, err := managementRoot(cmd, env)
@@ -76,7 +76,7 @@ func runReleases(env *Env) func(*cobra.Command, []string) error {
 			source = "cache"
 			c, err = catalog.Load(root)
 			if errors.Is(err, catalog.ErrNotFetched) {
-				return errors.New("保存済みの公式一覧がありません。\"vmeltype fetch\" で取得してください")
+				return errors.New("保存済みの公式一覧がありません。\"meltool fetch\" で取得してください")
 			}
 		} else {
 			_, c, err = fetchCatalog(cmd, env, root)
@@ -132,7 +132,7 @@ func fetchCatalog(cmd *cobra.Command, env *Env, root string) (previous, fetched 
 	fetched, err = newRemoteClient(env).Fetch(cmd.Context(), catalog.Repository, previous)
 	if err != nil {
 		if hasSaved {
-			return nil, nil, fmt.Errorf("公式一覧を取得できませんでした: %w\n保存済みの一覧は \"vmeltype releases --cached\" で表示できます", err)
+			return nil, nil, fmt.Errorf("公式一覧を取得できませんでした: %w\n保存済みの一覧は \"meltool releases --cached\" で表示できます", err)
 		}
 		return nil, nil, fmt.Errorf("公式一覧を取得できませんでした: %w", err)
 	}

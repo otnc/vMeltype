@@ -13,11 +13,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/otnc/vmeltype/internal/appctl"
-	"github.com/otnc/vmeltype/internal/archive"
-	"github.com/otnc/vmeltype/internal/assets"
-	"github.com/otnc/vmeltype/internal/store"
-	"github.com/otnc/vmeltype/internal/winime"
+	"github.com/otnc/meltool/internal/appctl"
+	"github.com/otnc/meltool/internal/archive"
+	"github.com/otnc/meltool/internal/assets"
+	"github.com/otnc/meltool/internal/store"
+	"github.com/otnc/meltool/internal/winime"
 )
 
 type localEnv struct {
@@ -76,7 +76,7 @@ func (l *localEnv) run(t *testing.T, interactive bool, stdin string, args ...str
 		LocalAppData:       func() (string, error) { return l.localAppData, nil },
 		IMERegistered:      func() (bool, error) { return l.imeRegistered, nil },
 		InstalledTipHashes: func() (map[string]string, error) { return l.installedTip, nil },
-		Executable:         func() (string, error) { return `C:	oolsvmeltype.exe`, nil },
+		Executable:         func() (string, error) { return `C:	oolsmeltool.exe`, nil },
 		RemoveMeltype: func(appDir, fallback string, interactive bool) error {
 			l.removeCalls = append(l.removeCalls, removeCall{appDir: appDir, fallback: fallback, interactive: interactive})
 			if l.removeFails {
@@ -244,7 +244,7 @@ func TestUseStopsBeforeChanging(t *testing.T) {
 			name:     "保持していないバージョンは install を案内する",
 			args:     []string{"use", "v9.9.9", "--portable", "-y"},
 			wantCode: ExitError,
-			wantText: "vmeltype install",
+			wantText: "meltool install",
 		},
 		{
 			name: "管理していないファイルが新しいバージョンのファイルと同じ名前なら止める",
@@ -415,7 +415,7 @@ func TestUseVersionQuery(t *testing.T) {
 		l := newLocalEnv(t)
 		l.storePortable(t, "v1.4.0", nil)
 		got := l.run(t, false, "", "use", "1.3", "--portable", "-y")
-		if got.code != ExitError || !strings.Contains(got.stderr, "1.3.x の正式版の最新") || !strings.Contains(got.stderr, "vmeltype install 1.3 --portable") {
+		if got.code != ExitError || !strings.Contains(got.stderr, "1.3.x の正式版の最新") || !strings.Contains(got.stderr, "meltool install 1.3 --portable") {
 			t.Errorf("code = %d, stderr = %s", got.code, got.stderr)
 		}
 	})

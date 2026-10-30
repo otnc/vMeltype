@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/otnc/vmeltype/internal/appctl"
-	"github.com/otnc/vmeltype/internal/lifecycle"
-	"github.com/otnc/vmeltype/internal/prompt"
+	"github.com/otnc/meltool/internal/appctl"
+	"github.com/otnc/meltool/internal/lifecycle"
+	"github.com/otnc/meltool/internal/prompt"
 )
 
 // 終了コード。scripts から結果を区別できるよう、意味を固定する。

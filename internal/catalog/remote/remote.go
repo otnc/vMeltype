@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/otnc/vmeltype/internal/catalog"
+	"github.com/otnc/meltool/internal/catalog"
 )
 
 // DefaultBaseURL は、GitHub の REST API の URL。
@@ -46,9 +46,9 @@ type RateLimitError struct {
 
 func (e *RateLimitError) Error() string {
 	if e.ResetAt.IsZero() {
-		return "GitHub の API の利用回数の上限に達しました。しばらくしてから試すか、VMELTYPE_GITHUB_TOKEN を設定してください"
+		return "GitHub の API の利用回数の上限に達しました。しばらくしてから試すか、MELTOOL_GITHUB_TOKEN を設定してください"
 	}
-	return fmt.Sprintf("GitHub の API の利用回数の上限に達しました。%s 以降に試すか、VMELTYPE_GITHUB_TOKEN を設定してください", e.ResetAt.Local().Format("2006-01-02 15:04"))
+	return fmt.Sprintf("GitHub の API の利用回数の上限に達しました。%s 以降に試すか、MELTOOL_GITHUB_TOKEN を設定してください", e.ResetAt.Local().Format("2006-01-02 15:04"))
 }
 
 // Fetch は、全ページを取得した公式一覧を返す。previous があれば、ページごとの ETag で変わっていないページを省く。
