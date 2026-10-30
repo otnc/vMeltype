@@ -48,12 +48,16 @@ vmeltype app update         # vMeltype 自身を新しい版にする (self upgr
 
 ## vMeltype をやめる
 
-自身の削除 (`app uninstall`) はまだありません。やめるときは、次のように手で戻します。
+```powershell
+vmeltype app uninstall      # self uninstall でも同じ
+```
 
-1. Meltype を終了してから、`%LOCALAPPDATA%\Meltype\config.json` の `AutoUpdate` を `true` に戻し、本家の自動更新を有効にする
-2. `vmeltype.exe` と管理ルートを消す
+管理ルートを消します。Meltype も削除するか (既定は残す) と、スナップショットも削除するか (既定は消す) を聞きます。
 
-Meltype 自体は本家と同じ場所に入ったままなので、そのまま使えます。管理ルートの `baseline\standard-app` には、最初の切り替えで置き換えた本家のファイルが入っています。消す前に、要るものがないか確かめてください。
+- Meltype を残すなら、いまの版をそのまま使える状態で残し、本家の自動更新を管理前の値に戻します
+- Meltype も削除するなら、本家のアンインストーラーを使います。本家の Install.cmd や vMeltype だけで入れた Meltype は、設定と学習データも消えます
+
+いま動いている `vmeltype.exe` は消せないので、終わったあとに手で消してください。
 
 ## 開発
 
