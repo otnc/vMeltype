@@ -96,6 +96,9 @@ if ($snapshots.Count -ne 2) {
 }
 
 Write-Host '--- 後片付け'
-& $exe --exit
+# 起動し直した直後の Meltype は合図の受け口がまだなく、--exit が 1 で終わるので、届くまで送り直す
+Wait-Until {
+    (Start-Process -FilePath $exe -ArgumentList '--exit' -Wait -PassThru).ExitCode -eq 0
+} 'Meltype に終了の合図を送れません'
 Wait-Until { (Get-Running).Count -eq 0 } 'Meltype が終わりません'
 Write-Host '通しの検査が終わりました'
