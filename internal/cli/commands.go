@@ -111,8 +111,12 @@ func buildCommand(spec commandSpec) *cobra.Command {
 	if len(spec.subs) > 0 {
 		cmd.Args = rejectUnknownSubcommand
 		cmd.RunE = func(cmd *cobra.Command, _ []string) error { return cmd.Help() }
+		// 使えるサブコマンドが 1 つもなければ、親も一覧から隠す
+		cmd.Hidden = true
 		for _, sub := range spec.subs {
-			cmd.AddCommand(buildCommand(sub))
+			child := buildCommand(sub)
+			cmd.AddCommand(child)
+			cmd.Hidden = cmd.Hidden && child.Hidden
 		}
 		return cmd
 	}
@@ -120,7 +124,9 @@ func buildCommand(spec commandSpec) *cobra.Command {
 		cmd.Args = noArgs
 	}
 	if cmd.RunE == nil {
+		// まだ作っていないコマンドは一覧に出さず、打たれたら、まだないことを示す
 		cmd.RunE = notImplemented
+		cmd.Hidden = true
 	}
 	return cmd
 }

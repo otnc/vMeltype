@@ -37,6 +37,30 @@ func TestRunWithoutArgumentsShowsHelp(t *testing.T) {
 	}
 }
 
+func TestHelpHidesUnimplementedCommands(t *testing.T) {
+	for _, tt := range []struct{ parent, name string }{{"", "apply"}, {"", "track"}, {"app", "uninstall"}} {
+		t.Run(strings.TrimSpace(tt.parent+" "+tt.name)+" は一覧に出さない", func(t *testing.T) {
+			help := execute(t, strings.Fields(tt.parent+" --help")...)
+			if strings.Contains(help.stdout, "\n  "+tt.name+" ") {
+				t.Errorf("一覧に %s がある:\n%s", tt.name, help.stdout)
+			}
+		})
+	}
+	t.Run("一覧から隠したコマンドを打てば、まだないことを示す", func(t *testing.T) {
+		got := execute(t, "app", "uninstall", "-y")
+
+		if got.code != ExitError || !strings.Contains(got.stderr, "まだ実装していません") {
+			t.Errorf("code = %d, stderr = %s", got.code, got.stderr)
+		}
+	})
+	t.Run("作ったコマンドは一覧に出す", func(t *testing.T) {
+		help := execute(t, "app", "--help")
+		if !strings.Contains(help.stdout, "\n  config ") || !strings.Contains(help.stdout, "\n  version ") {
+			t.Errorf("一覧に作ったコマンドがない:\n%s", help.stdout)
+		}
+	})
+}
+
 func TestAliasesBehaveLikeTheirCommands(t *testing.T) {
 	aliases := map[string]string{
 		"ls":  "list",
@@ -143,7 +167,7 @@ func TestUnimplementedCommandsFailWithoutChangingAnything(t *testing.T) {
 }
 
 func TestParentCommandsShowHelp(t *testing.T) {
-	for _, parent := range []string{"app", "snapshot", "track"} {
+	for _, parent := range []string{"app", "snapshot"} {
 		t.Run(parent+" だけならヘルプを表示する", func(t *testing.T) {
 			got := execute(t, parent)
 
