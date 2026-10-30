@@ -15,3 +15,8 @@ func LocalAppData() (string, error) {
 func IMERegistered() (bool, error) {
 	return false, errNotWindows
 }
+
+// InstalledTipHashes は、Windows 以外では使わない。
+func InstalledTipHashes() (map[string]string, error) {
+	return nil, errNotWindows
+}

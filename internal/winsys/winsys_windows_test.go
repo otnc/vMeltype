@@ -26,3 +26,14 @@ func TestIMERegisteredReadsWithoutError(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestInstalledTipHashesReadsWithoutError(t *testing.T) {
+	// 登録の有無は端末によるので、読めることと、CPU ごとの項目があることだけを確かめる
+	hashes, err := InstalledTipHashes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := hashes["x64"]; !ok {
+		t.Errorf("x64 の項目がない: %v", hashes)
+	}
+}
