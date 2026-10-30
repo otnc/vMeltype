@@ -58,6 +58,7 @@ func main() {
 		ReplaceIME: func(appDir string) (winime.Result, error) {
 			return winime.Replace(ctx, appDir)
 		},
+		Executable: os.Executable,
 	}
 	code := cli.RunContext(ctx, os.Args[1:], env)
 	stop()
