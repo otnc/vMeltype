@@ -42,6 +42,8 @@ type Reason string
 const (
 	ReasonManual        Reason = "manual"
 	ReasonBeforeRestore Reason = "before-restore"
+	// ReasonBeforeUse は、通常版の use が、版を切り替える前に自動で作ったもの。
+	ReasonBeforeUse Reason = "before-use"
 )
 
 // Meta は、作るときに記録する付加情報。

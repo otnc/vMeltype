@@ -21,7 +21,9 @@ const useLong = `保持版を有効にします。通信しません。保持し
 版の指定は install と同じで、保持している版の中から選びます。版を省くと保持している正式版の最新、1 や 1.4 ではその範囲の最新、--pre ではプレリリースの最新です。
 
 portable 版は --portable を付けたときだけ対象にします。付けなければ通常版 (IME の登録を伴うもの) だけを探し、portable 版しか保持していなくても選びません。
-いまは Windows の portable 版だけに対応しています。portable 版は実行先 (管理ルートの portable\app) を固定し、版を切り替えるときはアプリのファイルだけを入れ替えます。隣の data と、vMeltype が置いていないファイルはそのまま引き継ぎます。
+いまは Windows だけに対応しています。どちらも実行先を固定し、版を切り替えるときはアプリのファイルだけを入れ替えます。vMeltype が置いていないファイルはそのまま引き継ぎます。
+portable 版の実行先は管理ルートの portable\app で、データは隣の data です。
+通常版の実行先とデータ先は、本家と同じ %LOCALAPPDATA%\Programs\Meltype と %LOCALAPPDATA%\Meltype です。本家のインストールがあれば取り込み、置き換えた本家のファイルを管理前の記録として残します。切り替えの前にデータのスナップショットを作り、本家の自動更新を止め、本家がダウンロード済みの更新を管理ルートに移します。Meltype IME を登録済みの PC には、まだ対応していません。
 同じ版が有効で配置も一致していれば何もしません。--force を付けると、一致していても入れ替えます。
 
 実行先の Meltype が動いていれば、正常に終了させてから切り替え、終わったら起動し直します。終了させるのは、--stop-app を付けたとき、-y を付けたとき (設定 stop-app-on-yes が true のとき)、対話で終了してよいと答えたときです。終わらなければ、強制終了せずに止めます。`
@@ -96,8 +98,15 @@ func switchVersion(cmd *cobra.Command, env *Env, root string, st store.Store, ta
 	dryRun, _ := flags.GetBool("dry-run")
 	yes, _ := flags.GetBool("yes")
 	asJSON, _ := flags.GetBool("json")
-	if target.Variant != string(assets.Portable) {
-		return fmt.Errorf("%s は通常版です。use はいまは portable 版だけに対応しています。portable 版を使うなら --portable を付けてください", target.ID)
+	place, err := layoutFor(env, root, target.Variant)
+	if err != nil {
+		return err
+	}
+	standard := target.Variant == string(assets.Standard)
+	if standard {
+		if err := checkIMENotRegistered(env); err != nil {
+			return err
+		}
 	}
 
 	lock, err := lifecycle.AcquireLock(root)
@@ -112,7 +121,7 @@ func switchVersion(cmd *cobra.Command, env *Env, root string, st store.Store, ta
 	}
 
 	overridePin, _ := flags.GetBool("override-pin")
-	plan, err := lifecycle.PlanPortableUse(root, target, overridePin)
+	plan, err := lifecycle.PlanUse(root, place.appDir, target, lifecycle.UseOptions{OverridePin: overridePin, Adopt: standard})
 	if err != nil {
 		return err
 	}
@@ -133,11 +142,11 @@ func switchVersion(cmd *cobra.Command, env *Env, root string, st store.Store, ta
 	if asJSON {
 		planOut = cmd.ErrOrStderr()
 	}
-	writeUsePlan(planOut, plan)
+	writeUsePlan(planOut, plan, place)
 	app.describe(planOut)
 	if dryRun {
 		if asJSON {
-			return writeJSON(out, map[string]any{"dryRun": true, "target": target.ID, "appDir": plan.AppDir, "carried": nonNil(plan.Carried), "stopApp": app.needed()})
+			return writeJSON(out, map[string]any{"dryRun": true, "target": target.ID, "appDir": plan.AppDir, "dataDir": place.dataDir, "carried": nonNil(plan.Carried), "adopted": nonNil(plan.Adopted), "stopApp": app.needed()})
 		}
 		return nil
 	}
@@ -157,7 +166,16 @@ func switchVersion(cmd *cobra.Command, env *Env, root string, st store.Store, ta
 	if err != nil {
 		return err
 	}
-	if err = lifecycle.ExecutePortableUse(root, st.Path(target.ID), plan, env.Now()); err != nil {
+	if standard {
+		activeTag := ""
+		if plan.From != nil {
+			activeTag = plan.From.Tag
+		}
+		if err = lifecycle.PrepareStandardData(root, place.dataDir, activeTag, env.Now()); err != nil {
+			return err
+		}
+	}
+	if err = lifecycle.ExecuteUse(root, st.Path(target.ID), plan, env.Now()); err != nil {
 		return err
 	}
 	if asJSON {
@@ -404,7 +422,7 @@ func resolveStored(st store.Store, q storedQuery, platform assets.Platform) (sto
 	}
 }
 
-func writeUsePlan(w io.Writer, plan lifecycle.UsePlan) {
+func writeUsePlan(w io.Writer, plan lifecycle.UsePlan, place layout) {
 	from := "なし"
 	if plan.From != nil {
 		from = fmt.Sprintf("%s (%s)", plan.From.Tag, plan.From.StoreID)
@@ -412,10 +430,17 @@ func writeUsePlan(w io.Writer, plan lifecycle.UsePlan) {
 	fmt.Fprintf(w, "切り替え元:   %s\n", from)
 	fmt.Fprintf(w, "切り替え先:   %s (%s)\n", plan.Target.Tag, plan.Target.ID)
 	fmt.Fprintf(w, "実行先:       %s\n", plan.AppDir)
+	if len(plan.Adopted) > 0 {
+		fmt.Fprintf(w, "取り込むもの: %s (本家のインストール。置き換える本家のファイルは管理前の記録として残します)\n", summarize(plan.Adopted))
+	}
 	if len(plan.Carried) > 0 {
 		fmt.Fprintf(w, "引き継ぐもの: %s\n", strings.Join(plan.Carried, "、"))
 	}
-	fmt.Fprintln(w, "data はそのまま使います。新しい版を初めて起動したときに、Meltype がデータを移行することがあります。")
+	if place.variant == string(assets.Standard) {
+		fmt.Fprintf(w, "データ先:     %s\n", place.dataDir)
+		fmt.Fprintln(w, "切り替えの前にデータのスナップショットを作り、本家の自動更新を止めます。本家がダウンロード済みの更新は、管理ルートに移します。")
+	}
+	fmt.Fprintln(w, "データはそのまま使います。新しい版を初めて起動したときに、Meltype がデータを移行することがあります。")
 }
 
 func runCurrent(env *Env) func(*cobra.Command, []string) error {

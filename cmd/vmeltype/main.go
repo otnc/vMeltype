@@ -17,6 +17,7 @@ import (
 	"github.com/otnc/vmeltype/internal/cli"
 	"github.com/otnc/vmeltype/internal/osproc"
 	"github.com/otnc/vmeltype/internal/rootdir"
+	"github.com/otnc/vmeltype/internal/winsys"
 )
 
 // version は、配布のビルドで -ldflags "-X main.version=..." で埋め込む。
@@ -50,7 +51,9 @@ func main() {
 		StopApp: func(appDir string) error {
 			return appctl.Stop(ctx, appDir, osproc.RunningUnder, stopAppTimeout)
 		},
-		StartApp: appctl.Start,
+		StartApp:      appctl.Start,
+		LocalAppData:  winsys.LocalAppData,
+		IMERegistered: winsys.IMERegistered,
 	}
 	code := cli.RunContext(ctx, os.Args[1:], env)
 	stop()

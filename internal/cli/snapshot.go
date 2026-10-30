@@ -6,6 +6,7 @@ import (
 	"io"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -22,6 +23,7 @@ const snapshotLong = `Meltype のデータを保存し、検査し、復元し�
 var reasonLabels = map[snapshot.Reason]string{
 	snapshot.ReasonManual:        "手動",
 	snapshot.ReasonBeforeRestore: "復元の前",
+	snapshot.ReasonBeforeUse:     "切り替えの前",
 }
 
 // portableDataDir は、portable 版の data の場所を返す。本家の portable 版は、Meltype.exe の隣の data を使う。
@@ -62,8 +64,11 @@ func runSnapshotCreate(env *Env) func(*cobra.Command, []string) error {
 		if err != nil {
 			return err
 		}
-		dataDir := portableDataDir(root)
-		appDir := lifecycle.PortableAppDir(root)
+		place, err := activeLayout(env, root)
+		if err != nil {
+			return err
+		}
+		dataDir, appDir := place.dataDir, place.appDir
 		app, err := inspectApp(cmd, env, root, appDir)
 		if err != nil {
 			return err
@@ -221,14 +226,21 @@ func runSnapshotRestore(env *Env) func(*cobra.Command, []string) error {
 		if err != nil {
 			return err
 		}
-		dataDir := portableDataDir(root)
+		place, err := activeLayout(env, root)
+		if err != nil {
+			return err
+		}
+		dataDir := place.dataDir
+		if !strings.EqualFold(m.Source, dataDir) {
+			return fmt.Errorf("スナップショット %s は %s のデータで、いまの有効版のデータ先 (%s) とは違うので、復元しません", id, m.Source, dataDir)
+		}
 
 		out := cmd.OutOrStdout()
 		planOut := out
 		if asJSON {
 			planOut = cmd.ErrOrStderr()
 		}
-		appDir := lifecycle.PortableAppDir(root)
+		appDir := place.appDir
 		app, err := inspectApp(cmd, env, root, appDir)
 		if err != nil {
 			return err

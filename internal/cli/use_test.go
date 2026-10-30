@@ -25,10 +25,14 @@ type localEnv struct {
 	stopFails bool
 	// stopped と started は、実行先の Meltype を終了させた回数と、起動した回数。
 	stopped, started int
+	// localAppData は、通常版の実行先とデータ先を置く、利用者の LocalAppData の代わり。
+	localAppData string
+	// imeRegistered は、Meltype IME を PC に登録済みであることを真似る。
+	imeRegistered bool
 }
 
 func newLocalEnv(t *testing.T) *localEnv {
-	return &localEnv{root: t.TempDir()}
+	return &localEnv{root: t.TempDir(), localAppData: t.TempDir()}
 }
 
 func (l *localEnv) run(t *testing.T, interactive bool, stdin string, args ...string) result {
@@ -57,6 +61,8 @@ func (l *localEnv) run(t *testing.T, interactive bool, stdin string, args ...str
 			l.started++
 			return nil
 		},
+		LocalAppData:  func() (string, error) { return l.localAppData, nil },
+		IMERegistered: func() (bool, error) { return l.imeRegistered, nil },
 	}
 	code := Run(args, env)
 	return result{code: code, stdout: stdout.String(), stderr: stderr.String()}
@@ -253,13 +259,13 @@ func TestUseStopsBeforeChanging(t *testing.T) {
 			wantText: "v1.3.0",
 		},
 		{
-			name: "通常版はまだ扱わない",
+			name: "保持版に実行先へ置く本体がなければ止める",
 			prepare: func(t *testing.T, l *localEnv) {
 				l.storeFiles(t, "v1.2.0", "standard", map[string]string{"Meltype.exe": "x"})
 			},
 			args:     []string{"use", "v1.2.0", "-y"},
 			wantCode: ExitError,
-			wantText: "通常版",
+			wantText: "本体",
 		},
 		{
 			name:     "portable 版だけを保持していても、--portable がなければ選ばない",
